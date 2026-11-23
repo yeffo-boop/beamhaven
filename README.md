@@ -37,17 +37,23 @@ mkdir -p ~/Developer && cd ~/Developer
 gh repo clone yeffo-boop/beamhaven
 cd beamhaven
 
-# 2. Create your local settings file (once), then open .env and check it
+# 2. Create your local settings file (once). Open .env and replace both
+#    CHANGE_ME passwords with the same new password of your choice.
 cp .env.example .env
 
 # 3. Install the project's packages (again whenever package.json changes)
 npm install
 
-# 4. Start the app, then open http://localhost:3000
+# 4. Start the local database (OrbStack must be running)
+npm run db:up
+
+# 5. Start the app, then open http://localhost:3000
 npm run dev
 ```
 
-Press `Ctrl+C` in Terminal to stop the app.
+Press `Ctrl+C` in Terminal to stop the app. The database keeps running in the background; stop it with `npm run db:down` (your data is kept).
 
-Before opening a pull request, run all the fast checks with `npm run check`, then `npm run build`.
+Check everything is connected at http://localhost:3000/api/health, which should show `"database":"ok"`.
+
+Before opening a pull request, run all the fast checks with `npm run check`, then `npm run test:integration` (needs the database) and `npm run build`.
 The same checks run automatically on GitHub for every pull request.

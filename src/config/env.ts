@@ -18,6 +18,9 @@ export const envSchema = z.object({
     .url({ protocol: /^https?$/, message: "APP_URL must be a full http(s) URL" })
     .transform((value) => value.replace(/\/+$/, "")),
   APP_NAME: z.string().min(1).default("BeamHaven"),
+  DATABASE_URL: z
+    .string()
+    .regex(/^postgres(ql)?:\/\//, "DATABASE_URL must start with postgresql://"),
   TRUST_PROXY: z
     .enum(["true", "false"])
     .default("false")

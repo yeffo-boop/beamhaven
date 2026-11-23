@@ -1,0 +1,15 @@
+// BeamHaven database schema.
+// The data model is described in docs/DATA_MODEL.md. Tables are added one
+// milestone at a time, starting with logins and households in Milestone 2.
+//
+// After changing this file, create a migration with:
+//   npx prisma migrate dev --name <what_changed>
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}

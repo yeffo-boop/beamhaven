@@ -93,6 +93,7 @@ docs/               DATA_MODEL.md, BUDGET_DEFINITIONS.md, UI_DIRECTION.md
 
 - `cacheComponents` is on: data is **dynamic by default**, and we opt in to caching with `"use cache"`.
 - Code that reads environment variables or the database while rendering must run at request time. Call `await connection()` (from `next/server`) first, as `src/app/api/health/route.ts` does.
+- The Prisma client is generated into `src/generated/prisma` (not committed) by `npm install`. Import it only inside `src/server/data/`; ESLint blocks it anywhere else.
 - Read settings only through `getEnv()` in `src/config/env.ts`, never `process.env` directly.
 
 ## Adding dependencies
