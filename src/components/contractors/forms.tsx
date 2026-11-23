@@ -247,6 +247,7 @@ export type WarrantyValues = {
   contractorId: string;
   projectId: string;
   roomId: string;
+  materialId?: string;
   startsOn: string;
   expiresOn: string;
   notes: string;
@@ -262,19 +263,22 @@ export function WarrantyForm({
   contractors,
   projects,
   rooms,
+  materials,
   cancelHref,
 }: {
   warranty?: WarrantyValues;
-  fixed?: { contractorId?: string; projectId?: string; roomId?: string };
+  fixed?: { contractorId?: string; projectId?: string; roomId?: string; materialId?: string };
   contractors: Choice[];
   projects: Choice[];
   rooms: Choice[];
+  /** Offered only where it makes sense (a material's own page fixes it instead). */
+  materials?: Choice[];
   cancelHref?: string;
 }) {
   const f = useForm(saveWarrantyAction);
   const value = (name: keyof WarrantyValues) => f.typed(name) ?? warranty?.[name] ?? "";
   const link = (
-    name: "contractorId" | "projectId" | "roomId",
+    name: "contractorId" | "projectId" | "roomId" | "materialId",
     label: string,
     options: Choice[],
     none: string,
@@ -314,6 +318,11 @@ export function WarrantyForm({
         {link("contractorId", "Contractor (optional)", contractors, "No contractor")}
         {link("projectId", "Project (optional)", projects, "No project")}
         {link("roomId", "Room (optional)", rooms, "No room")}
+        {materials || fixed.materialId ? (
+          link("materialId", "Material (optional)", materials ?? [], "No material")
+        ) : warranty?.materialId ? (
+          <input type="hidden" name="materialId" value={warranty.materialId} />
+        ) : null}
         <DateField
           id="warranty-starts"
           name="startsOn"

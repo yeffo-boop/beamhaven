@@ -3,6 +3,7 @@ import "server-only";
 import { assertCan } from "@/server/auth/permissions";
 import type { WorkspaceContext } from "@/server/data/context";
 import { listContractors } from "@/server/data/contractors";
+import { listMaterials } from "@/server/data/materials";
 import { listProjects } from "@/server/data/projects";
 import { listRooms } from "@/server/data/rooms";
 import { listMembers } from "@/server/data/workspaces";
@@ -13,6 +14,7 @@ export type RecordChoices = {
   projects: Choice[];
   rooms: Choice[];
   contractors: Choice[];
+  materials: Choice[];
   /** People and contractors a task can go to: "user:<id>" or "contractor:<id>". */
   assignees: Choice[];
 };
@@ -20,11 +22,12 @@ export type RecordChoices = {
 /** The pick lists that the contractor, warranty and task forms offer. */
 export async function getRecordChoices(ctx: WorkspaceContext): Promise<RecordChoices> {
   assertCan(ctx, "records:edit");
-  const [projects, rooms, contractors, members] = await Promise.all([
+  const [projects, rooms, contractors, members, materials] = await Promise.all([
     listProjects(ctx),
     listRooms(ctx),
     listContractors(ctx),
     listMembers(ctx),
+    listMaterials(ctx, {}),
   ]);
   const usable = contractors.filter((c) => c.status !== "do_not_use");
   return {
@@ -33,6 +36,9 @@ export async function getRecordChoices(ctx: WorkspaceContext): Promise<RecordCho
       .sort((a, b) => a.label.localeCompare(b.label)),
     rooms: rooms.map((r) => ({ value: r.id, label: r.name })),
     contractors: contractors.map((c) => ({ value: c.id, label: c.name })),
+    materials: materials
+      .map((m) => ({ value: m.id, label: m.name }))
+      .sort((a, b) => a.label.localeCompare(b.label)),
     assignees: [
       ...members
         .filter((m) => m.role !== "viewer")
@@ -47,5 +53,6 @@ export const NO_CHOICES: RecordChoices = {
   projects: [],
   rooms: [],
   contractors: [],
+  materials: [],
   assignees: [],
 };

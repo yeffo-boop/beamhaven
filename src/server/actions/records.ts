@@ -231,6 +231,7 @@ const targetKind = z.enum([
   "warranty",
   "quote",
   "contract",
+  "material",
 ]);
 
 export async function deletePhotoAction(formData: FormData): Promise<void> {

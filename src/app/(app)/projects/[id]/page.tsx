@@ -15,6 +15,7 @@ import { Detail, EmptyState, Panel } from "@/components/records/panel";
 import { PhotoGallery } from "@/components/records/photo-gallery";
 import { ProjectRoomsForm } from "@/components/records/project-rooms-form";
 import { StatusBadge } from "@/components/records/status-badge";
+import { MaterialList } from "@/components/materials/list";
 import { Button } from "@/components/ui/button";
 import { formatDay } from "@/lib/dates";
 import { deleteProjectAction } from "@/server/actions/records";
@@ -28,6 +29,7 @@ import { getRecordChoices, NO_CHOICES } from "@/server/services/choices";
 import { getProjectContractors } from "@/server/services/contractors";
 import { getProject } from "@/server/services/projects";
 import { getRooms } from "@/server/services/rooms";
+import { getMaterials } from "@/server/services/materials";
 import { getTasks, getWarranties } from "@/server/services/tasks";
 
 export const metadata = { title: "Project" };
@@ -50,6 +52,7 @@ export default async function ProjectPage({ params, searchParams }: PageProps<"/
     choices,
     quotes,
     contracts,
+    materials,
   ] = await Promise.all([
     getPhotos(ctx, { kind: "project", id }),
     getActivity(ctx, "project", id),
@@ -61,6 +64,7 @@ export default async function ProjectPage({ params, searchParams }: PageProps<"/
     canEdit ? getRecordChoices(ctx) : Promise.resolve(NO_CHOICES),
     getQuotes(ctx, { projectId: id }),
     getContracts(ctx, { projectId: id }),
+    getMaterials(ctx, { projectId: id }),
   ]);
   const today = new Date();
   const onProject = new Set(contractors.map((c) => c.contractorId));
@@ -259,6 +263,20 @@ export default async function ProjectPage({ params, searchParams }: PageProps<"/
           </details>
         ) : null}
         <TaskList tasks={tasks} canEdit={canEdit} today={today} show={["room"]} />
+      </Panel>
+
+      <Panel
+        title="Materials"
+        id="materials"
+        actions={
+          canEdit ? (
+            <Button asChild variant="outline" size="sm">
+              <Link href={`/materials/new?projectId=${id}`}>Add material</Link>
+            </Button>
+          ) : null
+        }
+      >
+        <MaterialList materials={materials} show="room" empty="No materials on this project yet." />
       </Panel>
 
       <Panel title="Warranties" id="warranties">

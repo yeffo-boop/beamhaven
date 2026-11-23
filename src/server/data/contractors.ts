@@ -215,10 +215,13 @@ export async function deleteContractorRow(
 export async function unlinkWarranties(
   tx: Tx,
   workspaceId: string,
-  link: { contractorId: string } | { projectId: string } | { roomId: string },
+  link:
+    { contractorId: string } | { projectId: string } | { roomId: string } | { materialId: string },
 ): Promise<string[]> {
-  const key = Object.keys(link)[0] as "contractorId" | "projectId" | "roomId";
-  const others = (["contractorId", "projectId", "roomId"] as const).filter((k) => k !== key);
+  const key = Object.keys(link)[0] as "contractorId" | "projectId" | "roomId" | "materialId";
+  const others = (["contractorId", "projectId", "roomId", "materialId"] as const).filter(
+    (k) => k !== key,
+  );
   const orphans = await tx.warranty.findMany({
     where: { workspaceId, ...link, AND: others.map((k) => ({ [k]: null })) },
     select: { id: true, attachments: { select: { fileId: true } } },
@@ -232,13 +235,21 @@ export async function unlinkWarranties(
   return orphans.flatMap((w) => w.attachments.map((a) => a.fileId));
 }
 
-/** Before a project or room is deleted: its log entries and tasks let go of it. */
+/**
+ * Before a project or room is deleted: its log entries, tasks and materials
+ * let go of it. Materials stay in the household (they're still real things
+ * you may have bought); only the link goes.
+ */
 export async function unlinkProjectOrRoom(
   tx: Tx,
   workspaceId: string,
   link: { projectId: string } | { roomId: string },
 ): Promise<string[]> {
   const fileIds = await unlinkWarranties(tx, workspaceId, link);
+  await tx.material.updateMany({
+    where: { workspaceId, ...link },
+    data: "projectId" in link ? { projectId: null } : { roomId: null },
+  });
   if ("projectId" in link) {
     await tx.communication.updateMany({
       where: { workspaceId, projectId: link.projectId },

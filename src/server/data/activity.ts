@@ -7,7 +7,15 @@ import { newId } from "./ids";
 export type ActivityInput = {
   action: string;
   entityType:
-    "property" | "project" | "room" | "expense" | "contractor" | "warranty" | "quote" | "contract";
+    | "property"
+    | "project"
+    | "room"
+    | "expense"
+    | "contractor"
+    | "warranty"
+    | "quote"
+    | "contract"
+    | "material";
   entityId: string;
   summary: string;
 };

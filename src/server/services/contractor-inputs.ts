@@ -49,7 +49,7 @@ const optionalEmail = z
   .transform((v) => (v === "" ? null : v.toLowerCase()));
 
 /** A web address; "example.com" gets https:// added. Only http(s) is allowed. */
-const optionalWebsite = z
+export const optionalWebsite = z
   .string()
   .trim()
   .max(300, "The website is too long")
@@ -103,6 +103,7 @@ export const warrantyInput = z
     contractorId: optionalText(64, "The contractor"),
     projectId: optionalText(64, "The project"),
     roomId: optionalText(64, "The room"),
+    materialId: optionalText(64, "The material"),
     startsOn: optionalDate,
     expiresOn: optionalDate,
     notes: optionalText(5000, "The notes"),
@@ -111,8 +112,8 @@ export const warrantyInput = z
     message: "It ends before it starts",
     path: ["expiresOn"],
   })
-  .refine((w) => w.contractorId || w.projectId || w.roomId, {
-    message: "Choose a contractor, project or room",
+  .refine((w) => w.contractorId || w.projectId || w.roomId || w.materialId, {
+    message: "Choose a contractor, project, room or material",
     path: ["projectId"],
   });
 

@@ -6,7 +6,15 @@ import { newId } from "./ids";
 
 export type AttachmentTarget = {
   kind:
-    "property" | "project" | "room" | "expense" | "contractor" | "warranty" | "quote" | "contract";
+    | "property"
+    | "project"
+    | "room"
+    | "expense"
+    | "contractor"
+    | "warranty"
+    | "quote"
+    | "contract"
+    | "material";
   id: string;
 };
 
@@ -28,6 +36,8 @@ function targetColumn(target: AttachmentTarget) {
       return { quoteId: target.id };
     case "contract":
       return { contractId: target.id };
+    case "material":
+      return { materialId: target.id };
   }
 }
 
@@ -55,6 +65,8 @@ export async function targetExists(
       return (await prisma.quote.count({ where })) === 1;
     case "contract":
       return (await prisma.contract.count({ where })) === 1;
+    case "material":
+      return (await prisma.material.count({ where })) === 1;
   }
 }
 

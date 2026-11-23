@@ -161,6 +161,7 @@ const WARRANTY_FIELDS = [
   "contractorId",
   "projectId",
   "roomId",
+  "materialId",
   "startsOn",
   "expiresOn",
   "notes",
@@ -171,7 +172,9 @@ function homeOf(record: {
   projectId: string | null;
   roomId: string | null;
   contractorId?: string | null;
+  materialId?: string | null;
 }): string {
+  if (record.materialId) return `/materials/${record.materialId}`;
   if (record.projectId) return `/projects/${record.projectId}`;
   if (record.roomId) return `/rooms/${record.roomId}`;
   if (record.contractorId) return `/contractors/${record.contractorId}`;

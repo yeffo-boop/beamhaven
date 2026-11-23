@@ -261,3 +261,16 @@ Statuses: **Proposed** (waiting for Jeff) · **Accepted** · **Superseded**
 - Sales tax is one household rate on materials only. Different rates per item, and tax on labor, can come later if needed.
 
 **Consequences.** Rooms are assumed to be rectangles; anything else gets a typed size. Recalculating on every change is a little more work when saving a room or a price, which is fine at household scale.
+
+## ADR-028: Materials are household records with a status you set (Milestone 6, part 1)
+
+**Date:** 2026-11-23. **Status:** accepted.
+
+**Decision.**
+
+- A material belongs to the household and can point to a project, a room, both or neither. Deleting a project or room keeps the material (it's still a real thing you may own) and only drops the link.
+- The supplier is a **Vendor**, the same record expenses and contractors use, found by the name typed.
+- The status is set by hand. Orders (part 2) will move it to Ordered and Delivered on their own, but it can always be changed back by hand, because things are often bought before they're recorded here.
+- Quantities are whole thousandths and prices whole cents, so there are no floats anywhere. The price on a material is only what you **expect** to pay; the price actually paid is saved on the order item, so it never changes when the store's price does.
+
+**Consequences.** A material adds nothing to the budget by itself. Money arrives with orders in part 2, through the existing commitments and expenses.

@@ -11,10 +11,18 @@ type Ws = string;
 
 async function linksInHousehold(
   ws: Ws,
-  links: { projectId?: string | null; roomId?: string | null; contractorId?: string | null },
+  links: {
+    projectId?: string | null;
+    roomId?: string | null;
+    contractorId?: string | null;
+    materialId?: string | null;
+  },
 ): Promise<boolean> {
   const prisma = getPrisma();
   const checks = await Promise.all([
+    links.materialId
+      ? prisma.material.count({ where: { id: links.materialId, workspaceId: ws } })
+      : 1,
     links.projectId ? prisma.project.count({ where: { id: links.projectId, workspaceId: ws } }) : 1,
     links.roomId ? prisma.room.count({ where: { id: links.roomId, workspaceId: ws } }) : 1,
     links.contractorId
@@ -173,6 +181,7 @@ export type WarrantyFields = {
   contractorId: string | null;
   projectId: string | null;
   roomId: string | null;
+  materialId: string | null;
   startsOn: Date | null;
   expiresOn: Date | null;
   notes: string | null;
@@ -183,6 +192,7 @@ export type WarrantyRecord = WarrantyFields & {
   contractorName: string | null;
   projectName: string | null;
   roomName: string | null;
+  materialName: string | null;
 };
 
 export async function insertWarranty(
@@ -228,7 +238,13 @@ export async function deleteWarrantyRow(
 
 export async function listWarranties(
   ctx: WorkspaceContext,
-  where: { id?: string; contractorId?: string; projectId?: string; roomId?: string },
+  where: {
+    id?: string;
+    contractorId?: string;
+    projectId?: string;
+    roomId?: string;
+    materialId?: string;
+  },
 ): Promise<WarrantyRecord[]> {
   const rows = await getPrisma().warranty.findMany({
     where: { workspaceId: ctx.workspaceId, ...where },
@@ -240,18 +256,21 @@ export async function listWarranties(
       contractorId: true,
       projectId: true,
       roomId: true,
+      materialId: true,
       startsOn: true,
       expiresOn: true,
       notes: true,
       contractor: { select: { vendor: { select: { name: true } } } },
       project: { select: { name: true } },
       room: { select: { name: true } },
+      material: { select: { name: true } },
     },
   });
-  return rows.map(({ contractor, project, room, ...row }) => ({
+  return rows.map(({ contractor, project, room, material, ...row }) => ({
     ...row,
     contractorName: contractor?.vendor.name ?? null,
     projectName: project?.name ?? null,
     roomName: room?.name ?? null,
+    materialName: material?.name ?? null,
   }));
 }
