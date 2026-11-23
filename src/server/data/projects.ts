@@ -160,6 +160,11 @@ export async function deleteProjectRow(
       },
       select: { fileId: true },
     });
+    // Orders go first. Their items point at the project's budget lines with
+    // NO ACTION, and when both cascade from the project in one statement,
+    // whether the lines or the items go first depends on trigger order,
+    // which differs between databases (it passed locally and failed in CI).
+    await tx.order.deleteMany({ where: { projectId: id, workspaceId: ctx.workspaceId } });
     const result = await tx.project.deleteMany({ where: { id, workspaceId: ctx.workspaceId } });
     return {
       deleted: result.count === 1,
