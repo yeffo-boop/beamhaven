@@ -49,6 +49,12 @@ export const RULE_MESSAGES = {
   order_billed:
     "This order's bill has been recorded, so its items and prices stay as they were paid. Remove the bill first.",
   order_has_bill: "This order's bill has been recorded. Remove the bill first.",
+  order_has_returns:
+    "Something from this order has been returned. Remove the returns first, then the bill.",
+  delivery_returned:
+    "Some of what this delivery brought has been returned. Remove that return first.",
+  return_needs_bill:
+    "Record the order's bill first. Before that, just change the order to what you're keeping.",
   material_on_order: "This material is on an order. Take it off the order first.",
   room_has_budget:
     "This room is used by budget lines. Remove those lines (or charge them to the whole project) first.",

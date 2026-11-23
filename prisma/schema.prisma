@@ -580,6 +580,7 @@ model Expense {
   attachments       Attachment[]
   /// Set when this expense is an order's bill.
   billFor           Order?              @relation("OrderBill")
+  returnFor         OrderReturn?        @relation("ReturnRefund")
 
   @@unique([id, workspaceId])
   @@index([workspaceId, expenseDate])
@@ -1019,25 +1020,26 @@ model Material {
 /// pays for it. The order is a commitment on each of those lines until its
 /// bill is recorded (ADR-029).
 model Order {
-  id            String       @id
-  workspaceId   String       @map("workspace_id")
-  projectId     String       @map("project_id")
-  project       Project      @relation(fields: [projectId, workspaceId], references: [id, workspaceId], onDelete: Cascade)
-  supplierId    String       @map("supplier_id")
-  supplier      Vendor       @relation(fields: [supplierId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
-  orderNumber   String?      @map("order_number")
-  orderedOn     DateTime     @map("ordered_on") @db.Date
-  shippingCents BigInt       @default(0) @map("shipping_cents")
-  taxCents      BigInt       @default(0) @map("tax_cents")
+  id            String        @id
+  workspaceId   String        @map("workspace_id")
+  projectId     String        @map("project_id")
+  project       Project       @relation(fields: [projectId, workspaceId], references: [id, workspaceId], onDelete: Cascade)
+  supplierId    String        @map("supplier_id")
+  supplier      Vendor        @relation(fields: [supplierId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
+  orderNumber   String?       @map("order_number")
+  orderedOn     DateTime      @map("ordered_on") @db.Date
+  shippingCents BigInt        @default(0) @map("shipping_cents")
+  taxCents      BigInt        @default(0) @map("tax_cents")
   notes         String?
   /// The bill or receipt, once recorded. It's an ordinary expense.
-  billId        String?      @unique @map("bill_id")
-  bill          Expense?     @relation("OrderBill", fields: [billId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
-  createdById   String?      @map("created_by_id")
-  createdAt     DateTime     @default(now()) @map("created_at")
-  updatedAt     DateTime     @updatedAt @map("updated_at")
+  billId        String?       @unique @map("bill_id")
+  bill          Expense?      @relation("OrderBill", fields: [billId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
+  createdById   String?       @map("created_by_id")
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
   items         OrderItem[]
   deliveries    Delivery[]
+  returns       OrderReturn[]
   commitments   Commitment[]
   attachments   Attachment[]
 
@@ -1065,6 +1067,7 @@ model OrderItem {
   unitPriceCents BigInt         @map("unit_price_cents")
   position       Int            @default(0)
   deliveryItems  DeliveryItem[]
+  returnItems    ReturnItem[]
 
   @@unique([id, workspaceId])
   @@index([workspaceId])
@@ -1105,4 +1108,44 @@ model DeliveryItem {
   @@index([workspaceId])
   @@index([orderItemId])
   @@map("delivery_items")
+}
+
+/// Some of an order sent back (Milestone 6, part 3, ADR-030). Only after
+/// the bill is recorded; its refund is a negative expense against the bill.
+model OrderReturn {
+  id          String       @id
+  workspaceId String       @map("workspace_id")
+  orderId     String       @map("order_id")
+  order       Order        @relation(fields: [orderId, workspaceId], references: [id, workspaceId], onDelete: Cascade)
+  returnedOn  DateTime     @map("returned_on") @db.Date
+  /// What the store gave back (0 if nothing). Kept as typed.
+  refundCents BigInt       @map("refund_cents")
+  /// The refund expense; none when nothing was given back.
+  refundId    String?      @unique @map("refund_id")
+  refund      Expense?     @relation("ReturnRefund", fields: [refundId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
+  notes       String?
+  createdById String?      @map("created_by_id")
+  createdAt   DateTime     @default(now()) @map("created_at")
+  items       ReturnItem[]
+
+  @@unique([id, workspaceId])
+  @@unique([refundId, workspaceId])
+  @@index([workspaceId])
+  @@index([orderId])
+  @@map("order_returns")
+}
+
+model ReturnItem {
+  id            String      @id
+  workspaceId   String      @map("workspace_id")
+  returnId      String      @map("return_id")
+  orderReturn   OrderReturn @relation(fields: [returnId, workspaceId], references: [id, workspaceId], onDelete: Cascade)
+  orderItemId   String      @map("order_item_id")
+  orderItem     OrderItem   @relation(fields: [orderItemId, workspaceId], references: [id, workspaceId], onDelete: Cascade)
+  quantityMilli Int         @map("quantity_milli")
+
+  @@index([workspaceId])
+  @@index([returnId])
+  @@index([orderItemId])
+  @@map("return_items")
 }

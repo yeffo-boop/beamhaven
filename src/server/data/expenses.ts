@@ -322,7 +322,7 @@ export type ExpenseDetail = ExpenseFields & {
   refundOfExpenseId: string | null;
   refundOfDescription: string | null;
   refunds: { id: string; description: string; totalCents: bigint; expenseDate: Date }[];
-  /** Set when this is an order's bill: it's then changed from the order. */
+  /** Set for an order's bill or a return's refund: those change only from the order. */
   orderId: string | null;
   allocations: { id: string; line: LineLabel; amountCents: bigint; kind: string }[];
   payments: PaymentRecord[];
@@ -353,6 +353,7 @@ export async function findExpense(
       commitment: { select: { description: true } },
       refundOf: { select: { description: true } },
       billFor: { select: { id: true } },
+      returnFor: { select: { orderId: true } },
       refunds: {
         select: { id: true, description: true, totalCents: true, expenseDate: true },
         orderBy: { expenseDate: "asc" },
@@ -393,7 +394,9 @@ export async function findExpense(
     refundOfExpenseId: row.refundOfExpenseId,
     refundOfDescription: row.refundOf?.description ?? null,
     refunds: row.refunds,
-    orderId: row.billFor?.id ?? null,
+    // An order's bill, or the refund for one of its returns: both are
+    // changed only from the order.
+    orderId: row.billFor?.id ?? row.returnFor?.orderId ?? null,
     allocations: row.allocations.map((a) => ({
       id: a.id,
       amountCents: a.amountCents,

@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 
 import { Money } from "@/components/budget/money";
 import { ProblemNotice } from "@/components/budget/problem-notice";
-import { BillForm, DeliveryForm } from "@/components/orders/forms";
+import { BillForm, DeliveryForm, ReturnForm } from "@/components/orders/forms";
 import { DeliveryBadge } from "@/components/orders/list";
 import { PageHeader } from "@/components/page-header";
 import { ActivityList } from "@/components/records/activity-list";
@@ -16,7 +16,12 @@ import { Button } from "@/components/ui/button";
 import { dayInputValue, formatDay } from "@/lib/dates";
 import { formatMoney } from "@/lib/money";
 import { formatQuantity } from "@/lib/quantity";
-import { deleteDeliveryAction, deleteOrderAction, removeBillAction } from "@/server/actions/orders";
+import {
+  deleteDeliveryAction,
+  deleteOrderAction,
+  deleteReturnAction,
+  removeBillAction,
+} from "@/server/actions/orders";
 import { can } from "@/server/auth/permissions";
 import { getWorkspaceContext } from "@/server/auth/workspace";
 import { lineTitle } from "@/server/data/budget";
@@ -42,6 +47,9 @@ export default async function OrderPage({ params, searchParams }: PageProps<"/or
   const toCome = order.items
     .map((i) => ({ ...i, remainingMilli: Math.max(i.quantityMilli - i.deliveredMilli, 0) }))
     .filter((i) => i.remainingMilli > 0);
+  const here = order.items
+    .map((i) => ({ ...i, hereMilli: i.deliveredMilli - i.returnedMilli }))
+    .filter((i) => i.hereMilli > 0);
 
   return (
     <div className="flex flex-col gap-6">
@@ -99,6 +107,19 @@ export default async function OrderPage({ params, searchParams }: PageProps<"/or
           <Detail label="Order number">
             {order.orderNumber ?? <span className="text-muted-foreground">Not set</span>}
           </Detail>
+          {order.returns.length > 0 ? (
+            <>
+              <Detail label="Refunded">
+                <Money cents={order.refundedCents} />
+              </Detail>
+              <Detail label="Cost after returns">
+                <Money
+                  cents={order.totalCents - order.refundedCents}
+                  className="text-base font-semibold"
+                />
+              </Detail>
+            </>
+          ) : null}
         </dl>
         {order.notes ? <p className="text-sm whitespace-pre-line">{order.notes}</p> : null}
         <p className="text-sm text-muted-foreground">
@@ -147,6 +168,11 @@ export default async function OrderPage({ params, searchParams }: PageProps<"/or
                   </td>
                   <td className="px-3 py-2 text-right tabular-nums">
                     {formatQuantity(item.deliveredMilli)} of {formatQuantity(item.quantityMilli)}
+                    {item.returnedMilli > 0 ? (
+                      <span className="block text-xs text-muted-foreground">
+                        {formatQuantity(item.returnedMilli)} returned
+                      </span>
+                    ) : null}
                   </td>
                   <td className="py-2 pr-5 pl-3 md:pr-0">
                     <Link href={`/budget/lines/${item.line.id}`} className="hover:underline">
@@ -241,7 +267,7 @@ export default async function OrderPage({ params, searchParams }: PageProps<"/or
                   Open the bill (payments and receipt)
                 </Link>
               </Button>
-              {canEdit ? (
+              {canEdit && order.returns.length === 0 ? (
                 <ConfirmAction
                   action={removeBillAction}
                   label="Remove the bill"
@@ -265,6 +291,86 @@ export default async function OrderPage({ params, searchParams }: PageProps<"/or
           <p className="text-sm text-muted-foreground">No bill recorded yet.</p>
         )}
       </Panel>
+
+      {order.bill ? (
+        <Panel title="Returns" id="returns">
+          {order.returns.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Nothing has been returned.</p>
+          ) : (
+            <ul aria-label="Returns" className="divide-y divide-border">
+              {order.returns.map((r) => (
+                <li
+                  key={r.id}
+                  className="flex flex-wrap items-start justify-between gap-3 py-2.5 text-sm"
+                >
+                  <div className="flex min-w-0 flex-col gap-0.5">
+                    <span className="font-medium">
+                      {formatDay(r.returnedOn)} ·{" "}
+                      {r.refundCents > 0n ? (
+                        <>
+                          <Money cents={r.refundCents} /> back
+                          {r.refundReceived ? ", received" : ", still to come"}
+                        </>
+                      ) : (
+                        "nothing back"
+                      )}
+                    </span>
+                    <span className="text-muted-foreground">
+                      {r.items
+                        .map((i) => `${formatQuantity(i.quantityMilli)} × ${i.description}`)
+                        .join(", ")}
+                    </span>
+                    {r.notes ? <span className="text-muted-foreground">{r.notes}</span> : null}
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {r.refundId ? (
+                      <Button asChild variant="outline" size="sm" className="h-7 px-2 text-xs">
+                        <Link href={`/budget/expenses/${r.refundId}`}>Open the refund</Link>
+                      </Button>
+                    ) : null}
+                    {canEdit ? (
+                      <ConfirmAction
+                        action={deleteReturnAction}
+                        label="Remove"
+                        srLabel={`return of ${formatDay(r.returnedOn)}`}
+                        question="Remove this return and its refund? The items count as kept again."
+                        confirmLabel="Yes, remove it"
+                        size="xs"
+                      >
+                        <input type="hidden" name="orderId" value={id} />
+                        <input type="hidden" name="id" value={r.id} />
+                      </ConfirmAction>
+                    ) : null}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+          {canEdit && here.length > 0 ? (
+            <details
+              className="rounded-[var(--radius-control)] border border-border p-3"
+              open={false}
+            >
+              <summary className="cursor-pointer text-sm font-medium">Record a return</summary>
+              <div className="mt-3">
+                <ReturnForm
+                  key={order.returns.length}
+                  orderId={id}
+                  items={here.map((i) => ({
+                    id: i.id,
+                    description: i.description,
+                    here: formatQuantity(i.hereMilli).replace(/,/g, ""),
+                  }))}
+                />
+              </div>
+            </details>
+          ) : null}
+          <p className="text-sm text-muted-foreground">
+            Only what has arrived can go back. A refund lowers what the order cost on its budget
+            lines.
+          </p>
+        </Panel>
+      ) : null}
 
       <Panel title="Order documents" id="documents">
         <p className="text-sm text-muted-foreground">

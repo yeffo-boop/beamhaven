@@ -102,7 +102,15 @@ The kitchen has a Labor line with an **original budget of $20,000.00**.
 - Worked example (tested in `tests/unit/order-math.test.ts`): 12 boxes of tile at $49.99 and 3 bags of grout at $18.50 on the Tile line ($655.38), a faucet at $289.00 on the Fixtures line, tax $77.91 and shipping $40.00. The Tile line gets $54.07 of the tax and $27.76 of the shipping, **$737.21**; Fixtures gets $23.84 and $12.24, **$325.08**; **$1,062.29** in all, the order total.
 - The **bill** is one expense, split per line into item, tax and shipping allocations. Each allocation is linked to its line's order commitment, so it uses that commitment up (rule 1) instead of adding to it. "Expenses linked to a commitment" means whole expenses linked to it plus allocations linked to it.
 - An order with a bill is locked: its items, prices, tax and shipping can't change until the bill is removed, so the commitment and the bill always agree.
-- Deliveries change no money. Returns and refunds (part 3) will.
+- Deliveries change no money.
+
+## Returns (Milestone 6, part 3)
+
+- A return needs the order's bill, and only what has arrived can go back.
+- **Usual refund** = the returned items at the price paid + their share of the line's tax: `tax on the line × value returned so far ÷ value of the line's items`, rounded down, less what earlier returns already got back. Shipping isn't refunded unless the amount typed includes it.
+- The refund typed can be anything from $0 to the most the returned items' lines can still give back (items, tax and shipping, as above). Anything above the usual refund goes to shipping and to what earlier returns didn't get back.
+- The refund is a negative expense linked to the bill, split by line and kind, and each line's order commitment goes **down** by its part. So on the line: commitment, committed total, expenses and forecast all go down by the refund; not yet invoiced stays $0. Unpaid goes negative (money owed back to us) until the refund is marked received.
+- Worked example (tested in `tests/integration/order-returns.test.ts`): from the order above, 4 of the 12 boxes of tile go back. Usual refund = $199.96 + $16.49 tax (54.07 × 199.96 ÷ 655.38 = 16.497…) = **$216.45**. The Tile line's commitment and expenses become $737.21 − $216.45 = **$520.76**.
 
 ## Room estimates (Milestone 5, part 3)
 

@@ -4,6 +4,29 @@ Newest entries at the top. Each entry records what was done, which files changed
 
 ---
 
+## 2026-11-23: Milestone 6, part 3 (returns and refunds), built: Milestone 6 done
+
+### Done
+
+- **Database** (one migration, `20261124020000_order_returns`): returns and their items. It adds two tables and lets an order's commitment reach $0; no existing data changes.
+- **Returns** (on the order page, once the bill is recorded): what went back, item by item (only what has arrived), the date, what the store gave back (blank for the price paid plus its tax; or a typed amount for a restocking fee, refunded shipping, or nothing), and whether the refund has come back yet.
+- **Budget**: the refund lowers what the order cost on its lines: committed, spent and the forecast (ADR-030, `docs/BUDGET_DEFINITIONS.md` "Returns").
+- **Materials** move to Returned once everything ordered has gone back, and back again if the return is removed.
+- The bill and the deliveries stay while anything has been returned; the refund can be opened from the order (for its receipt), but only changed there.
+
+### Tests (cloud workspace, 2026-11-23)
+
+- Lint, formatting and type check: passed.
+- Unit tests: 135 of 135 passed. The 4 new ones check the refund math (usual refund, rounding, what's left after a fee, sharing a typed refund).
+- Integration tests: 99 of 99 passed. The 4 new ones cover a return and its effect on the budget and the refund, a restocking fee, refunded shipping and a material marked Returned (and back), the rules (bill first, only what arrived, nothing back), household isolation in the code and the database, and viewers.
+- End-to-end tests (full run, with a production build and no secrets set): 59 passed, 20 skipped on purpose. The orders test now also returns two boxes and checks the refund and the budget.
+
+### Next
+
+Milestone 7 (tasks and scheduling), with Jeff's go-ahead. On the VM, `update.sh` applies Milestone 6's three migrations (all only add tables and columns, plus one relaxed check).
+
+---
+
 ## 2026-11-23: Milestone 6, part 2 (orders, deliveries and the bill), built
 
 ### Done

@@ -11,9 +11,11 @@ import {
   deleteBillRow,
   deleteDeliveryRow,
   deleteOrderRow,
+  deleteReturnRow,
   findOrder,
   insertBill,
   insertDelivery,
+  insertReturn,
   listOrders,
   materialProgress,
   type OrderDetail,
@@ -24,7 +26,7 @@ import {
 import { removeFiles } from "./attachments";
 import { fieldError, NotFoundError, RuleError } from "./errors";
 import type { FormInput } from "./inputs";
-import { billInput, deliveryInput, orderInput, type OrderInput } from "./order-inputs";
+import { billInput, deliveryInput, orderInput, type OrderInput, returnInput } from "./order-inputs";
 
 /**
  * Orders (Milestone 6, part 2): what was bought, at what price, on which
@@ -163,35 +165,45 @@ export async function deleteOrder(
 
 /**
  * Moves materials along with their orders: one that's on an order becomes
- * Ordered (if it was still being considered or chosen), and Delivered once
- * every bit ordered has arrived. Statuses set by hand further along are
- * left alone.
+ * Ordered (if it was still being considered or chosen), Delivered once
+ * every bit ordered has arrived, and Returned once every bit has gone
+ * back. Statuses set by hand further along are left alone. `undoReturn`
+ * (after a return is removed) moves a Returned material back again.
  */
-async function moveMaterialsAlong(ctx: WorkspaceContext, materialIds: string[]): Promise<void> {
+async function moveMaterialsAlong(
+  ctx: WorkspaceContext,
+  materialIds: string[],
+  { undoReturn = false } = {},
+): Promise<void> {
   const progress = await materialProgress(ctx, materialIds);
   for (const [id, p] of progress) {
-    let next: string | null = null;
-    if (p.orderedMilli > 0 && (p.status === "considering" || p.status === "selected")) {
-      next = "ordered";
+    if (p.orderedMilli === 0) continue;
+    let current = p.status;
+    if (undoReturn && current === "returned" && p.returnedMilli < p.orderedMilli) {
+      current = "ordered";
     }
-    const current = next ?? p.status;
-    if (p.orderedMilli > 0 && p.deliveredMilli >= p.orderedMilli && current === "ordered") {
-      next = "delivered";
+    if (current === "considering" || current === "selected") current = "ordered";
+    if (current === "ordered" && p.deliveredMilli >= p.orderedMilli) current = "delivered";
+    if ((current === "ordered" || current === "delivered") && p.returnedMilli >= p.orderedMilli) {
+      current = "returned";
     }
-    if (next && next !== p.status) {
-      await setMaterialStatus(ctx, id, next);
+    if (current !== p.status) {
+      await setMaterialStatus(ctx, id, current);
       await recordActivity(ctx, {
         action: "material.status_changed",
         entityType: "material",
         entityId: id,
-        summary:
-          next === "ordered"
-            ? "Marked as ordered (from an order)"
-            : "Marked as delivered (everything ordered has arrived)",
+        summary: STATUS_NOTES[current] ?? `Marked as ${current}`,
       });
     }
   }
 }
+
+const STATUS_NOTES: Record<string, string> = {
+  ordered: "Marked as ordered (from an order)",
+  delivered: "Marked as delivered (everything ordered has arrived)",
+  returned: "Marked as returned (everything ordered has gone back)",
+};
 
 // --- Deliveries ------------------------------------------------------------
 
@@ -233,7 +245,9 @@ export async function deleteDelivery(
   deliveryId: string,
 ): Promise<void> {
   assertCan(ctx, "records:edit");
-  if (!(await deleteDeliveryRow(ctx, orderId, deliveryId))) throw new NotFoundError("delivery");
+  const result = await deleteDeliveryRow(ctx, orderId, deliveryId);
+  if (result.status === "not_found") throw new NotFoundError("delivery");
+  if (result.status === "returned") throw new RuleError("delivery_returned");
   await recordActivity(ctx, {
     action: "order.delivery_removed",
     entityType: "order",
@@ -275,7 +289,77 @@ export async function removeBill(ctx: WorkspaceContext, orderId: string): Promis
   const order = await getOrder(ctx, orderId);
   const result = await deleteBillRow(ctx, orderId);
   if (result.status === "not_found") throw new NotFoundError("bill");
-  if (result.status === "has_refunds") throw new RuleError("expense_has_refunds");
+  if (result.status === "has_refunds") throw new RuleError("order_has_returns");
   await removeFiles(ctx, result.fileIds);
   await orderActivity(ctx, order, `Removed the bill for ${order.title}`);
+}
+
+// --- Returns (ADR-030) -----------------------------------------------------
+
+/** `quantities` maps an order item's id to how much of it went back, as typed. */
+export async function recordReturn(
+  ctx: WorkspaceContext,
+  orderId: string,
+  input: FormInput<typeof returnInput>,
+  quantities: Record<string, string>,
+): Promise<void> {
+  assertCan(ctx, "records:edit");
+  const parsed = returnInput.parse(input);
+  const amounts = new Map<string, number>();
+  for (const [itemId, typed] of Object.entries(quantities)) {
+    if (typed.trim() === "" || typed.trim() === "0") continue;
+    const milli = parseQuantity(typed);
+    if (milli === null) throw fieldError("items", "Enter how many went back, like 3 or 2.5");
+    amounts.set(itemId, milli);
+  }
+  const result = await insertReturn(
+    ctx,
+    orderId,
+    {
+      returnedOn: parsed.returnedOn,
+      notes: parsed.notes,
+      refundCents: parsed.refund,
+      received: parsed.received ? { method: parsed.method } : null,
+    },
+    amounts,
+  );
+  if (result.status === "not_found") throw new NotFoundError("order");
+  if (result.status === "not_billed") throw new RuleError("return_needs_bill");
+  if (result.status === "nothing")
+    throw fieldError("items", "Enter how much of something went back");
+  if (result.status === "too_much") {
+    throw fieldError(
+      "items",
+      `That's more of “${result.description}” than has arrived and is still here`,
+    );
+  }
+  if (result.status === "refund_too_big") {
+    throw fieldError(
+      "refund",
+      `The most this return can get back is ${formatMoney(result.largestCents)} (the items, their tax and shipping)`,
+    );
+  }
+  const order = await getOrder(ctx, orderId);
+  await orderActivity(
+    ctx,
+    order,
+    result.refundCents > 0n
+      ? `Recorded a return from ${result.title}: ${formatMoney(result.refundCents)} back${parsed.received ? ", received" : ""}`
+      : `Recorded a return from ${result.title}, with nothing back`,
+  );
+  await moveMaterialsAlong(ctx, result.materialIds);
+}
+
+export async function deleteReturn(
+  ctx: WorkspaceContext,
+  orderId: string,
+  returnId: string,
+): Promise<void> {
+  assertCan(ctx, "records:edit");
+  const result = await deleteReturnRow(ctx, orderId, returnId);
+  if (result.status === "not_found") throw new NotFoundError("return");
+  await removeFiles(ctx, result.fileIds);
+  const order = await getOrder(ctx, orderId);
+  await orderActivity(ctx, order, `Removed a return from ${order.title}`);
+  await moveMaterialsAlong(ctx, result.materialIds, { undoReturn: true });
 }

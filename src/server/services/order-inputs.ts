@@ -111,3 +111,19 @@ export const deliveryInput = z.object({
   deliveredOn: requiredDate,
   notes: optionalText(2000, "The notes"),
 });
+
+/**
+ * A return (Milestone 6, part 3). The refund is optional: blank means the
+ * usual refund (the items at the price paid and their tax); 0 means the
+ * store gave nothing back.
+ */
+export const returnInput = z.object({
+  returnedOn: requiredDate,
+  refund: optionalMoney,
+  received: z
+    .string()
+    .default("")
+    .transform((v) => v === "on"),
+  method: z.enum(PAYMENT_METHODS, { message: "Choose how it came back" }).default("card"),
+  notes: optionalText(2000, "The notes"),
+});
