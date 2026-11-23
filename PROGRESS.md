@@ -24,7 +24,7 @@ All of the files listed above are new. `README.md` was rewritten.
 None. There is no code in this milestone.
 
 ### Open questions for Jeff
-1. **UI:** the accent color (clay, spruce or slate), the consolidated navigation, and whether to design for laptop or phone first (see `docs/UI_DIRECTION.md`).
+1. ~~UI~~ Answered: spruce accent, shorter navigation approved, laptop and iPad first.
 2. **Budget:** when baselining happens, and whether Viewers can see the budget (see `docs/BUDGET_DEFINITIONS.md`).
 3. **Before Milestone 2.5:** Nginx Proxy Manager's internal IP and how it's hosted; the staging address; and the off-VM backup destination.
 4. **Before Milestone 2:** an email provider (optional; links can be copied by hand until then), and whether the GitHub repository should stay private.

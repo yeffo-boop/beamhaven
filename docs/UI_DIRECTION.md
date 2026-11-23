@@ -1,13 +1,13 @@
 # UI Direction and Navigation (Proposal)
 
-**Status:** Proposed in Milestone 0, waiting for Jeff's approval. Visual preview (private to Jeff): https://claude.ai/artifact/6oWWEFTCikusLseEv43sBJ. It shows the desktop dashboard in light mode, the phone in dark mode, and colors, type and components. Its accent color can be switched to compare the options.
+**Status:** Approved by Jeff on 2026-11-23: spruce accent, shorter navigation, laptop and iPad first. Visual preview (private to Jeff): https://claude.ai/artifact/6oWWEFTCikusLseEv43sBJ. It shows the desktop dashboard in light mode, the phone in dark mode, and the colors, type and components, all in spruce.
 
 ## The feel we're aiming for
 
 **"The architect's notebook, kept on a warm kitchen table."** Precise and calm, with a little warmth.
 
 - **Precision:** a strict spacing grid, thin hairline borders, aligned numbers (all figures the same width), and measurements shown the way a drawing would show them (`12′ 4½″`).
-- **Warmth:** off-white "plaster" backgrounds instead of pure white, warm greys instead of blue-greys, and one earthy accent color.
+- **Warmth:** off-white "plaster" backgrounds instead of pure white, warm greys instead of blue-greys, and one deep spruce-green accent.
 - **Quiet:** one accent color, used sparingly. No gradients and no decorative charts. Every chart answers a question.
 - **Consumer, not enterprise:** plain words ("Spent", "Still to pay", "Left to plan") rather than accounting jargon, with the precise term in a tooltip.
 
@@ -20,8 +20,8 @@
 | `border` | `#E4E0D8` | `#2E2C28` | Hairlines |
 | `text` | `#1F1E1C` ink | `#EDEAE4` | Body text |
 | `text-muted` | `#6B665E` | `#A39D93` | Labels, secondary text |
-| `accent` | `#A4532F` clay | `#D9825A` | Main buttons, active nav, focus rings |
-| `positive` | `#3F6B4E` sage | `#7FB08F` | Under budget, done |
+| `accent` | `#2F5D50` spruce | `#6FA593` | Main buttons, active nav, focus rings |
+| `positive` | `#557A2E` moss | `#9BC06A` | Under budget, done. This is a yellower green than spruce, so "good" never looks like the accent, and it always comes with a check icon or a text label. |
 | `warning` | `#A8741A` ochre | `#E0AE55` | Due soon, close to the limit |
 | `danger` | `#A63A32` brick | `#E57B72` | Over budget, overdue |
 | `info` | `#3C5E7A` slate | `#8DB0CF` | Scheduled, informational |
@@ -87,7 +87,11 @@ A project page has a header (name, status, dates and a budget health bar) and ta
 
 Room pages follow the same pattern: **Overview · Measurements · Projects · Budget · Files · Inspiration**.
 
-### Mobile
+### Screen sizes
+
+We design for **laptop and iPad first**, which is how Jeff expects to use it. On iPad, the sidebar collapses to icons in portrait and stays fully open in landscape. Every touch target is at least 44px, so it works with fingers as well as a mouse.
+
+### Phone (comes later, but kept usable)
 
 - A bottom tab bar: **Home · Projects · Budget · Schedule · More**.
 - A floating **+** button for the three most common quick actions: add an expense (with a receipt photo), add a photo, add a task.
@@ -108,8 +112,8 @@ The layout, from top to bottom:
 
 App shell, page header, stat tile, money display, measurement display and input (accepts `12' 4 1/2"`), status badge, data table, empty state, confirm dialog, form field (label, help text, error), file drop zone, activity item, and progress or budget bar.
 
-## Questions for Jeff
+## Decisions (2026-11-23)
 
-1. Does the **clay** accent feel right, or would you prefer a deep **spruce green** (`#2F5D50`) or **slate blue** (`#3C5E7A`)?
-2. Are you happy with the **consolidated navigation**: Files, Inspiration, and budget reports living inside Budget?
-3. Will you use this mostly on a laptop, or mostly on your phone on site? This sets which one we design first.
+1. **Accent color:** spruce green (`#2F5D50` in light mode, `#6FA593` in dark mode).
+2. **Navigation:** the consolidated version above is approved.
+3. **Main devices:** laptop and iPad. The phone layout must work, but gets less polish at first.
