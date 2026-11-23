@@ -75,19 +75,20 @@ docs/               DATA_MODEL.md, BUDGET_DEFINITIONS.md, UI_DIRECTION.md
 
 ## Commands
 
-| Task                                 | Command                                                            |
-| ------------------------------------ | ------------------------------------------------------------------ |
-| Install dependencies                 | `npm ci` (exact versions from the lock file)                       |
-| Run the dev server                   | `npm run dev` (then open http://localhost:3000)                    |
-| Lint                                 | `npm run lint`                                                     |
-| Check / fix formatting               | `npm run format:check` / `npm run format`                          |
-| Type check                           | `npm run typecheck`                                                |
-| Unit tests                           | `npm test` (or `npm run test:watch` while working)                 |
-| All fast checks at once              | `npm run check`                                                    |
-| Production build                     | `npm run build`                                                    |
-| Start the local database (next step) | `docker compose -f docker-compose.dev.yml up -d`                   |
-| New migration (next step)            | `npx prisma migrate dev --name <what_changed>`                     |
-| End-to-end tests (real browser)      | `npm run test:e2e` (first time: `npx playwright install chromium`) |
+| Task                            | Command                                                            |
+| ------------------------------- | ------------------------------------------------------------------ |
+| Install dependencies            | `npm ci` (exact versions from the lock file)                       |
+| Run the dev server              | `npm run dev` (then open http://localhost:3000)                    |
+| Lint                            | `npm run lint`                                                     |
+| Check / fix formatting          | `npm run format:check` / `npm run format`                          |
+| Type check                      | `npm run typecheck`                                                |
+| Unit tests                      | `npm test` (or `npm run test:watch` while working)                 |
+| All fast checks at once         | `npm run check`                                                    |
+| Production build                | `npm run build`                                                    |
+| Start the local database        | `npm run db:up`                                                    |
+| New migration                   | `npx prisma migrate dev --name <what_changed>`                     |
+| Create the first login (once)   | `npm run create-first-account`                                     |
+| End-to-end tests (real browser) | `npm run test:e2e` (first time: `npx playwright install chromium`) |
 
 ## Next.js 16 rules for this project
 
@@ -102,6 +103,9 @@ docs/               DATA_MODEL.md, BUDGET_DEFINITIONS.md, UI_DIRECTION.md
 - New shadcn/ui components can be added on the Mac with `npx shadcn@latest add <name>` (`components.json` is set up). Review what it changes in `globals.css` before committing.
 - Navigation lives in `src/config/navigation.ts`; the sidebar, iPad rail and phone tab bar all read it.
 - Sections that aren't built yet use `<SectionPlaceholder>`, which says which milestone builds them.
+- Pages in `src/app/(app)/` are signed-in only: the layout wraps them in `<SignedIn>`. Server Actions and route handlers must still call `requireUser()` themselves.
+- Anything that reads the session (`getCurrentUser()`) must sit inside `<Suspense>`, and must read `headers()` before touching settings, so `next build` doesn't need secrets.
+- Integration and e2e tests use the `<name>_test` database; never point a test that deletes rows at any other database.
 - The theme boot script in `src/app/layout.tsx` is inline. The Content-Security-Policy added in Milestone 2 must allow it (hash or nonce).
 
 ## Adding dependencies

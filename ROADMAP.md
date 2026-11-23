@@ -51,7 +51,7 @@ The MVP is not "finished" until **Milestone 10** puts it in production with auto
 
 **Acceptance:** Jeff approves the documents in the Milestone 0 pull request. No application code is written in this milestone.
 
-## Milestone 1: Local Development Foundation 🟨
+## Milestone 1: Local Development Foundation ✅
 
 **Depends on:** Milestone 0.
 
@@ -66,7 +66,7 @@ The MVP is not "finished" until **Milestone 10** puts it in production with auto
 
 **Acceptance:** `npm run dev` shows the shell on the Mac, every check passes in CI, and Jeff can follow the README to start the app himself.
 
-## Milestone 2: Authentication and Households ⬜
+## Milestone 2: Authentication and Households 🟨
 
 **Depends on:** Milestone 1.
 
@@ -200,3 +200,14 @@ The MVP is not "finished" until **Milestone 10** puts it in production with auto
 - A security review.
 - A review of how ready the app is for multiple households.
 - A list of what a commercial release would need. No billing or public sign-up unless Jeff asks for it.
+
+---
+
+## Future direction: small contracting companies (not scheduled)
+
+Jeff may later offer BeamHaven to small construction and contracting companies, not only homeowners. A company would create projects and bids, and give each client a portal into their own project. **None of this is being built now** (ADR-017), but we design so it can be added without a rewrite:
+
+- A "household" is stored as a general **workspace**, which could later be a company.
+- All permission checks go through one `can()` function, so a **client** role that only sees one project can be added later.
+- Every record stays scoped to its workspace, and records that clients might see later (projects, budgets, files) also link to their project.
+- Bids would grow out of the existing quote and budget models rather than being a separate system.

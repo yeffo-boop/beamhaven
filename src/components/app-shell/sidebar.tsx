@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import type { ReactNode } from "react";
 
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { brand } from "@/config/brand";
@@ -14,8 +15,11 @@ import { BrandMark } from "./brand-mark";
  * Left navigation for iPad and laptop screens (hidden on phones).
  * - md (iPad portrait): a narrow icon rail; labels are kept for screen readers.
  * - lg and up (iPad landscape, laptop): the full sidebar with labels.
+ *
+ * `account` is the signed-in person's name and sign-out button. It is passed
+ * in from the server because it reads the login session.
  */
-export function Sidebar() {
+export function Sidebar({ account }: { account?: ReactNode }) {
   const pathname = usePathname();
 
   return (
@@ -52,6 +56,7 @@ export function Sidebar() {
         <div className="hidden px-1 lg:block">
           <ThemeToggle compact />
         </div>
+        {account}
       </div>
     </nav>
   );
