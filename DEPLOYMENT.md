@@ -121,7 +121,7 @@ The script takes a few minutes. It:
 1. installs every update and turns on automatic security updates;
 2. installs Docker from Docker's own repository;
 3. turns on the firewall: SSH only from `10.0.0.x`, port 3000 only from Nginx Proxy Manager, and the same limit inside Docker's own rules, because Docker's published ports skip the normal firewall;
-4. turns off password logins for SSH, so only your key works. It refuses to do this if step 4's key isn't there, so you can't lock yourself out. If you ever do, the Proxmox **Console** still works with your password.
+4. turns off password logins for SSH, so only your key works. It refuses to do this if step 4's key isn't there, so you can't lock yourself out. If you ever do, the Proxmox **Console** still works with your password. Haven't set up your key yet? Add `--skip-ssh` to the end of the command, and run the script again without it once your key works.
 
 **Success:** it ends with `Setup finished.` If it says updates need a restart, run `sudo reboot`, wait a minute, and SSH in again. Otherwise log out (`exit`) and back in, so `docker` works without `sudo`. **If it fails:** paste the last 30 lines.
 
