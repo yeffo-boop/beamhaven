@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 
 test("every section opens and is marked as the current page", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name === "phone", "The phone uses the tab bar; tested below.");

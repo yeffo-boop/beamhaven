@@ -127,3 +127,25 @@ Statuses: **Proposed** (waiting for Jeff) · **Accepted** · **Superseded**
   - Install new packages with a cut-off date about two weeks back (`npm install --before=<date>`).
 - **Why:** a release that's only days old is where both bugs and supply-chain attacks concentrate. On the first install, a package published a minute earlier was not yet even downloadable.
 - **Known issue:** `npm audit` reports 7 moderate findings, all from one denial-of-service bug in `minimatch`, which is pulled in by the ESLint tooling. That code only runs on a developer's machine and in CI, never in the deployed app. We'll pick up the fixed version at the next dependency update once it is two weeks old.
+
+## ADR-017: Leave room for contracting companies and client portals
+
+- **Status:** Accepted (2026-11-23)
+- **Context:** Jeff may later market BeamHaven to small construction and contracting companies. They would create projects and bids and give their clients a portal into their project.
+- **Decision:** don't build any of it yet, but don't block it:
+  - Better Auth's organization is treated as a generic **workspace**. In the interface it is called a household, but nothing in the data assumes a homeowner, and a workspace could later have a type such as `household` or `company`.
+  - Permissions stay in one `can(context, action, resource)` function (ADR-007), so a project-scoped **client** role can be added later.
+  - Every table stays scoped by workspace (`householdId`). Records a client might later see (projects, budget, files, schedule) also carry their `projectId`, so access can be narrowed to one project.
+  - Bids should grow out of the quote, commitment and budget models, rather than a parallel system.
+- **Not decided:** billing, public sign-up and the client portal's design. Each needs Jeff's go-ahead first.
+
+## ADR-018: How sign-in works
+
+- **Status:** Accepted (2026-11-23)
+- **Decision:**
+  - The sign-in form sends the email and password from the browser to Better Auth's own endpoint (`/api/auth/sign-in/email`), so its rate limits and cross-site request checks apply. Server Actions that call Better Auth directly skip those checks, so we don't use them for signing in.
+  - `src/proxy.ts` redirects visitors who have no login cookie straight to `/sign-in`. That's only for speed: the real check is `requireUser()` on the server, which looks the session up in the database. The page content in the app shell waits behind it.
+  - The first account is created by `npm run create-first-account` (run with `tsx`, which runs TypeScript files directly). It refuses to run once any account exists.
+  - The client IP used for rate limiting is read only from `X-Real-IP`, and only when `TRUST_PROXY=true`, because Nginx Proxy Manager overwrites that header with the real address, so visitors can't fake it. To check during Milestone 2.5: that NPM sets it.
+  - Integration and end-to-end tests use a separate database named `<your database>_test`, which they create and empty themselves. They refuse to empty any database whose name doesn't end in `_test`.
+- **Why:** these keep the safety checks in Better Auth's hands, and make it impossible for a test run to wipe the data you use with `npm run dev`.

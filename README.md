@@ -38,7 +38,8 @@ gh repo clone yeffo-boop/beamhaven
 cd beamhaven
 
 # 2. Create your local settings file (once). Open .env and replace both
-#    CHANGE_ME passwords with the same new password of your choice.
+#    CHANGE_ME passwords with the same new password of your choice, and set
+#    BETTER_AUTH_SECRET to the output of: openssl rand -base64 32
 cp .env.example .env
 
 # 3. Install the exact package versions from package-lock.json
@@ -48,13 +49,22 @@ npm ci
 # 4. Start the local database (OrbStack must be running)
 npm run db:up
 
-# 5. Start the app, then open http://localhost:3000
+# 5. Create or update the database tables
+npm run db:migrate
+
+# 6. Create your login (once). It asks for your name, email and a password.
+npm run create-first-account
+
+# 7. Start the app, then open http://localhost:3000 and sign in
 npm run dev
 ```
+
+There is no sign-up page. After the first account, people join by invitation (coming later in Milestone 2).
 
 Press `Ctrl+C` in Terminal to stop the app. The database keeps running in the background; stop it with `npm run db:down` (your data is kept).
 
 Check everything is connected at http://localhost:3000/api/health, which should show `"database":"ok"`.
 
 Before opening a pull request, run all the fast checks with `npm run check`, then `npm run test:integration` (needs the database) and `npm run build`.
+Integration and end-to-end tests use their own database (`beamhaven_test`), which they create and empty by themselves, so your own data is never touched.
 The same checks run automatically on GitHub for every pull request.

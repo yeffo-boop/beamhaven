@@ -21,6 +21,12 @@ export const envSchema = z.object({
   DATABASE_URL: z
     .string()
     .regex(/^postgres(ql)?:\/\//, "DATABASE_URL must start with postgresql://"),
+  // Signs session cookies and tokens. Changing it signs everyone out.
+  BETTER_AUTH_SECRET: z
+    .string()
+    .min(32, "BETTER_AUTH_SECRET must be at least 32 characters (use: openssl rand -base64 32)")
+    .refine((value) => !value.startsWith("CHANGE_ME"), "BETTER_AUTH_SECRET is still the example"),
+  SESSION_MAX_AGE_DAYS: z.coerce.number().int().min(1).max(365).default(30),
   TRUST_PROXY: z
     .enum(["true", "false"])
     .default("false")
@@ -39,12 +45,22 @@ export function parseEnv(raw: Record<string, string | undefined>): Env {
     throw new Error(`Invalid environment configuration:\n${problems}`);
   }
   const env = result.data;
-  if (env.NODE_ENV === "production" && !env.APP_URL.startsWith("https://")) {
+  if (env.NODE_ENV === "production" && !isHttpsOrLoopback(env.APP_URL)) {
     throw new Error(
       "Invalid environment configuration:\n  - APP_URL: must use https:// in production",
     );
   }
   return env;
+}
+
+/**
+ * Production needs https so login cookies are only ever sent encrypted.
+ * The one exception is this computer's own address (localhost), which the
+ * end-to-end tests use; it can never be reached from another machine.
+ */
+function isHttpsOrLoopback(url: string): boolean {
+  const { protocol, hostname } = new URL(url);
+  return protocol === "https:" || hostname === "localhost" || hostname === "127.0.0.1";
 }
 
 let cached: Env | undefined;

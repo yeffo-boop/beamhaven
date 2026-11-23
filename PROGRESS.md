@@ -4,7 +4,43 @@ Newest entries at the top. Each entry records what was done, which files changed
 
 ---
 
-## 2026-11-23: Milestone 1, step 3 (app shell), in review
+## 2026-11-23: Milestone 2, step 1 (sign-in and sign-out), in review
+
+### Done
+
+- **Better Auth** (ADR-004, ADR-018) with email and password. Public sign-up is switched off, passwords need 12 to 128 characters, and logins last 30 days from the last visit (`SESSION_MAX_AGE_DAYS`).
+- **Database:** the first real migration adds `users`, `sessions`, `accounts` and `verifications`.
+- **`npm run create-first-account`:** asks for a name, email and password (hidden while typing) and creates the first login. It refuses once any account exists, and explains what to do if the tables haven't been created yet.
+- **Sign-in page** at `/sign-in`, which returns you to the page you were going to. Wrong passwords get one message that doesn't reveal whether the email exists. After 3 tries in 10 seconds it asks you to wait.
+- **Every app page needs a login:** `src/proxy.ts` redirects quickly when there is no cookie, and the server checks the session in the database before showing any page content.
+- **Sign out:** a button at the bottom of the sidebar (laptop and iPad) and in **Settings → Account** (all sizes, including the phone).
+- **Settings:** new required `BETTER_AUTH_SECRET` (checked on startup; the app refuses the example value). In production, `http://` is still refused except for `localhost`, which the browser tests use.
+- **Tests use their own database** (`beamhaven_test`), created automatically, so they can never wipe your real data.
+- **Product direction recorded** (ADR-017 and the end of `ROADMAP.md`): leave room for contracting companies and client portals later.
+- New development tool: **tsx**, which runs a TypeScript file directly from Terminal (used by the account command).
+
+### Tests (cloud workspace, 2026-11-23)
+
+- Lint, formatting and type check: passed.
+- Unit tests: 12 of 12 passed.
+- Integration tests: 8 of 8 passed (real PostgreSQL 16). They include: the first account can sign in; a wrong password fails; the command only works once; short passwords are refused; sign-up is off; signing out makes the old cookie useless.
+- End-to-end tests: 24 passed, 4 skipped on purpose, at laptop, iPad and phone sizes. They cover the redirect to sign-in and back, the wrong-password message, the rate limit, the missing sign-up, and signing out.
+- Production build with no secrets set: passed.
+- The account command was also run in a real terminal: the password didn't appear on screen.
+- Not yet run on Jeff's Mac.
+
+### Open issues
+
+- Running the account command on the production server is planned for Milestone 2.5 (the Docker image needs to include it).
+- `npm audit`: same findings as before (ADR-016), none in the code the app runs.
+
+### Next step
+
+Jeff signs in on his Mac. Then step 2: households, roles and the isolation tests.
+
+---
+
+## 2026-11-23: Milestone 1, step 3 (app shell), done (merged in PR #4)
 
 ### Done
 
