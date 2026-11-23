@@ -14,7 +14,13 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { brand } from "@/config/brand";
-import { allNavItems, getNavItem, isActive, phoneTabIds } from "@/config/navigation";
+import {
+  allNavItems,
+  getNavItem,
+  isActive as isActiveFor,
+  type NavItem,
+  phoneTabIds,
+} from "@/config/navigation";
 import { cn } from "@/lib/utils";
 
 import { BrandMark } from "./brand-mark";
@@ -33,11 +39,16 @@ export function PhoneTopBar() {
 
 /** Phone-only bottom tab bar: four main sections plus "More" for the rest. */
 export function PhoneTabBar() {
-  const pathname = usePathname();
+  return <PhoneTabBarView pathname={usePathname()} />;
+}
+
+/** The tab bar for a known page, or with nothing highlighted (see SidebarView). */
+export function PhoneTabBarView({ pathname }: { pathname: string | null }) {
+  const isActive = (item: NavItem) => pathname !== null && isActiveFor(item, pathname);
   const [moreOpen, setMoreOpen] = useState(false);
   const tabs = phoneTabIds.map((id) => getNavItem(id));
   const moreItems = allNavItems.filter((item) => !tabs.includes(item));
-  const moreActive = moreItems.some((item) => isActive(item, pathname));
+  const moreActive = moreItems.some((item) => isActive(item));
 
   const tabClass = (active: boolean) =>
     cn(
@@ -52,7 +63,7 @@ export function PhoneTabBar() {
     >
       {tabs.map((item) => {
         const Icon = item.icon;
-        const active = isActive(item, pathname);
+        const active = isActive(item);
         return (
           <Link
             key={item.id}
@@ -77,7 +88,7 @@ export function PhoneTabBar() {
           <ul className="mt-3 flex flex-col">
             {moreItems.map((item) => {
               const Icon = item.icon;
-              const active = isActive(item, pathname);
+              const active = isActive(item);
               return (
                 <li key={item.id}>
                   <Link

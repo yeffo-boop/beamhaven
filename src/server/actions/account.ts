@@ -15,6 +15,13 @@ export type FormResult = {
   status: "idle" | "saved" | "error";
   message?: string;
   fields?: Record<string, string>;
+  /**
+   * What was typed, sent back after a validation error. React resets a form
+   * once its action returns, so the form shows these instead of going blank.
+   */
+  values?: Record<string, string>;
+  /** Changes on every failed attempt, so the form can redraw with `values`. */
+  attempt?: number;
 };
 
 const householdNameSchema = z

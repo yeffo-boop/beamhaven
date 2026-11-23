@@ -4,7 +4,105 @@ Newest entries at the top. Each entry records what was done, which files changed
 
 ---
 
-## 2026-11-23: Milestone 2.5 (staging on Proxmox), files ready, VM setup next
+## 2026-11-23: Milestone 5, part 1 (contractor directory, log, warranties, tasks), built
+
+Jeff approved Milestone 5. It comes in two parts; part 2 (quotes, contracts, change orders and contractor payments) follows.
+
+### Done
+
+- **Database** (one migration, `20261123210000_contractors`): contractors, contractors on projects, a communication log, warranties and simple tasks, plus documents on contractors and warranties. It only adds tables and columns; no existing data changes.
+- **Contractor directory** (Contractors in the menu): contact details, trade, license and insurance with expiry dates, and a status (prospect, active, worked with before, do not use). A warning shows from 30 days before a license or insurance runs out, and once it has.
+- **Linked to the budget:** a contractor is the same record as the budget's "shop or supplier" (ADR-024), so bills already recorded under that name appear on their page under "Agreed and billed".
+- **Communication log:** calls, emails, texts, meetings and notes, optionally about a project.
+- **Warranties** on a contractor, project or room, with an expiry warning and their own documents.
+- **Simple tasks** on projects and rooms, assigned to a household member or a contractor, with a due date, priority, and Mark done.
+- **Documents** (license, insurance certificate and the like): photos or PDFs, checked by their contents.
+- **Deleting** a project, room or contractor keeps the related warranties and tasks where they still belong, and removes the ones that belonged only to it.
+
+### Tests (cloud workspace, 2026-11-23)
+
+- Lint, formatting and type check: passed.
+- Unit tests: 114 of 114 passed.
+- Integration tests: 63 of 63 passed. The 9 new ones cover the directory, the link to the budget's vendors, the log, warranties and documents, tasks and assignees, what happens on delete, household isolation (in the code and in the database), and viewers.
+- End-to-end tests: 43 passed, 12 skipped on purpose. New: adding a contractor (with a typo explained), putting them on a project, logging a call, a task marked done, a warranty with a PDF, and the insurance warning; and no sideways scrolling at laptop, iPad and phone sizes.
+- Production build with no secrets set: passed.
+
+### Next
+
+Part 2: quotes with revisions, approval into the budget, contracts, change orders and contractor payments.
+
+---
+
+## 2026-11-23: Milestone 4 (budget), built
+
+Jeff approved Milestone 4, chose a "Lock in budget" button for fixing the original budget, and asked for the pull request to be merged once everything passes.
+
+### Done
+
+- **Database** (one migration, `20261123200113_budget`): budget categories, budget lines, adjustments, transfers, shops and suppliers, commitments (quotes, contracts, change orders), expenses split across lines, payments and refunds, plus receipts on expenses. It only adds tables and columns; no existing data changes. The database itself refuses an expense whose split doesn't add up, a change to transfer or adjustment history, and links between households.
+- **Money** is stored as whole cents everywhere and typed the way people write it (`$18,500`, `(250.00)`).
+- **Budget math** follows `docs/BUDGET_DEFINITIONS.md` exactly: original, current, estimate, committed, not yet billed, spent, paid, unpaid, forecast, available and variance. `docs/budget-worked-example.csv` works the example by hand, and a test checks the app gets the same numbers.
+- **Lock in:** while a project is planning, planned amounts can change. Once someone with approval rights locks it in, the original budget is fixed and changes go through adjustments or transfers, each with a reason. Projects marked In progress show a reminder to lock in.
+- **Pages:** the household Budget page (every project, recent expenses, categories), each project's budget (by line, category and room, with history), each line (commitments, expenses, transfers), and expenses (split across lines, tax and shipping, payments, refunds and returns, receipts as photos or PDFs).
+- **Safety:** a project or room with money recorded against it can't be deleted; the page explains why. Viewers can see the budget but not change it.
+
+### Tests (cloud workspace, 2026-11-23)
+
+- Lint, formatting and type check: passed.
+- Unit tests: 114 of 114 passed (new: 29 for money, 18 for budget math).
+- Integration tests: 54 of 54 passed. The 16 new ones cover the worked example and spreadsheet check, lock-in, adjustment and transfer rules, refusing to overdraw without "Allow going over", reversing a transfer, the database refusing unbalanced splits and history changes, refunds, receipts, household isolation (household A can't see or touch household B's budget, by code or by database), and viewers.
+- End-to-end tests: 37 passed, 10 skipped on purpose, and 2 failed: the navigation test still expected the "Coming in Milestone 4" placeholder on Budget. I changed it to check the Schedule placeholder instead and re-ran just that test at laptop and iPad sizes: passed. New: one full run of plan → lock in → contract → deposit → payment → receipt → change order → transfer → household totals, and no sideways scrolling on the Budget page.
+- Production build with no secrets set: passed.
+- `npm audit`: 10 known issues (7 moderate, 3 high) in development tools, the same as before. No dependencies were added or changed.
+
+### What Jeff should check
+
+On the VM: `git pull`, then `./scripts/server/update.sh` (it takes a backup first). Then open a project, Open budget, add a couple of lines, lock it in, and record an expense with a receipt.
+
+### Next
+
+Milestone 5 (contractors and quotes), with Jeff's go-ahead.
+
+---
+
+## 2026-11-23: Milestone 3 (properties, projects, rooms and photos), built, waiting for Jeff to check
+
+Jeff approved Milestone 3 and confirmed step 9 of DEPLOYMENT.md (backup and restore test) is done, so Milestone 2.5 is complete apart from the SSH key (reminder set for 2026-11-24).
+
+### Done
+
+- **Database** (one migration, `20261123192557_properties_projects_rooms_files`): properties, projects, rooms, project–room links, windows and doors, files, attachments and activity history, plus the household's measurement choice. It only adds tables and one column with a default; no existing data changes. Links between households are refused by the database itself (ADR-022).
+- **Measurements:** type lengths the way you'd read a tape (`12' 4 1/2"`, `10ft`, `3.76 m`). They're stored in millimetres and shown in feet and inches or metric (Settings → Properties). Floor and wall areas are labelled estimates; windows and doors come off the wall area.
+- **Pages:** Projects (list, new, detail, edit, delete), Rooms (list, new, detail with size and estimates, windows and doors, edit, delete), and a property page. A project can include several rooms, each with its planned work. The first time, Projects and Rooms ask for your home's name and city.
+- **Photos** on properties, projects and rooms: stored privately outside the website folder under random names, checked by their contents (SVG and HTML refused), and shown only to the household. Anyone else gets a plain 404.
+- **Recent activity** on each project and room.
+- **Forms keep what you typed** when something needs fixing.
+- **`scripts/server/update.sh`:** one command on the VM to back up, download the newest version and restart (DEPLOYMENT.md, "Updating BeamHaven").
+
+### Tests (cloud workspace, 2026-11-23)
+
+- Lint, formatting and type check: passed.
+- Unit tests: 67 of 67 passed (new: 36 for measurements, 2 for the photo type check).
+- Integration tests: 38 of 38 passed. The 11 new isolation tests show household A can't see, change, delete, link to, or upload onto household B's properties, projects, rooms, windows or photos; that the database refuses cross-household links even without the code's checks; that viewers can look but not change; and that deleting removes the stored files.
+- End-to-end tests: 35 passed, 8 skipped on purpose. New: one full run of room → measurements → a typo explained → a window → a project with a date error → linking the room → a photo that a signed-out visitor can't open → a disguised SVG refused → activity; and no sideways scrolling at laptop, iPad and phone sizes.
+- Production build with no secrets set: passed.
+- Not yet run on the VM. `update.sh` hasn't run on Ubuntu yet; it's checked when Jeff updates.
+
+### Next
+
+Jeff updates the VM with `update.sh` and tries it out. Then Milestone 4 (budget), with his go-ahead.
+
+---
+
+## 2026-11-23: Milestone 2.5 (staging on Proxmox), live on the VM
+
+Jeff reported on 2026-11-23 that the VM is running and the DEPLOYMENT.md step 8 checks all passed. These include HTTPS, sign-in, the secure cookie, the app port open only to Nginx Proxy Manager, and the database port closed. The setup script ran with `--skip-ssh`, because Jeff wasn't home to set up a key.
+
+Still to do: confirm step 9 (a backup, a test restore and the nightly cron job), and set up the SSH key, then re-run setup without `--skip-ssh`.
+
+---
+
+## 2026-11-23: Milestone 2.5 (staging on Proxmox), files ready
 
 ### Done
 

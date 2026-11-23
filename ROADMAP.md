@@ -82,7 +82,7 @@ The MVP is not "finished" until **Milestone 10** puts it in production with auto
 
 **Acceptance:** both of us can log in; an invitation works from end to end; the isolation tests pass.
 
-## Milestone 2.5: Staging Deployment 🟡 (files ready; setting up the VM with Jeff)
+## Milestone 2.5: Staging Deployment ✅ (SSH keys still to set up)
 
 **Depends on:** Milestone 2.
 
@@ -96,7 +96,7 @@ The MVP is not "finished" until **Milestone 10** puts it in production with auto
 
 **Acceptance:** we can log in over the public HTTPS URL, and the database port cannot be reached from outside the VM.
 
-## Milestone 3: Properties, Projects, Rooms and File Storage ⬜
+## Milestone 3: Properties, Projects, Rooms and File Storage ✅ (merged; check on the VM after updating)
 
 **Depends on:** Milestone 2 (2.5 recommended).
 
@@ -110,7 +110,7 @@ The MVP is not "finished" until **Milestone 10** puts it in production with auto
 
 **Acceptance:** a property with projects and rooms can be created and edited; photos upload and are only visible to members of the household; the tests pass.
 
-## Milestone 4: Budget Management ⬜
+## Milestone 4: Budget Management 🟡 (built; check on the VM after updating)
 
 **Depends on:** Milestone 3.
 
@@ -124,7 +124,7 @@ The MVP is not "finished" until **Milestone 10** puts it in production with auto
 
 **Acceptance:** the numbers match a hand-worked example spreadsheet; transfers preserve the totals; the tests pass.
 
-## Milestone 5: Contractors (MVP Complete) ⬜
+## Milestone 5: Contractors (MVP Complete) 🟡
 
 **Depends on:** Milestone 4.
 

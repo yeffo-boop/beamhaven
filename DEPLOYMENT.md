@@ -224,15 +224,33 @@ Then run the backup every night at 2:00 AM. Run `crontab -e` (choose `nano` if a
 
 ## Updating BeamHaven
 
-**Where:** the VM, in `/opt/beamhaven`.
+Nothing on the VM changes by itself. When a pull request has been merged into `main` and you want the server to have it, run one command.
+
+**Where:** the VM, in `/opt/beamhaven` (Terminal on your Mac, connected with `ssh`, or the Proxmox console).
 
 ```
-./scripts/server/backup.sh
-git pull
+cd /opt/beamhaven
+./scripts/server/update.sh
+```
+
+The very first time, `update.sh` doesn't exist on the VM yet, so run `git pull` first, then the command above.
+
+**What it does:** takes a backup, downloads the newest code (`git pull`), rebuilds and restarts (the `migrate` step updates the database tables before the new website starts), and clears out old build images. It takes a few minutes.
+
+**Success looks like:** it ends with `Done. BeamHaven is running version <abc1234>.` and `docker compose ps` shows `app` and `db` as `healthy`.
+
+**If it fails,** it stops and says why. Nothing is lost: the backup was taken first. Paste the output to Claude.
+
+### If an update goes wrong
+
+The script prints the version you were on before (for example `abc1234`). To go back to it:
+
+```
+git checkout abc1234
 docker compose up -d --build --wait
 ```
 
-The `migrate` step updates the database tables before the new website starts. If something breaks: `git checkout <previous commit>`, run `docker compose up -d --build --wait` again, and if the update changed data, restore the backup you just took.
+If the update had changed the database (the pull request will say so), also restore the backup it took: see `BACKUP_AND_RECOVERY.md`. When the fix is ready, `git checkout main` and run `update.sh` again.
 
 ## Everyday commands
 

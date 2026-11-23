@@ -105,3 +105,23 @@ export async function getMemberStanding(
 export async function renameWorkspace(ctx: WorkspaceContext, name: string): Promise<void> {
   await getPrisma().workspace.update({ where: { id: ctx.workspaceId }, data: { name } });
 }
+
+/** How this household types and sees measurements by default. */
+export async function getMeasurementSystem(ctx: WorkspaceContext): Promise<"imperial" | "metric"> {
+  const row = await getPrisma().workspace.findUniqueOrThrow({
+    where: { id: ctx.workspaceId },
+    select: { measurementSystem: true },
+  });
+  return row.measurementSystem === "metric" ? "metric" : "imperial";
+}
+
+/** Callers check the role first (workspace:manage). */
+export async function setMeasurementSystem(
+  ctx: WorkspaceContext,
+  system: "imperial" | "metric",
+): Promise<void> {
+  await getPrisma().workspace.update({
+    where: { id: ctx.workspaceId },
+    data: { measurementSystem: system },
+  });
+}

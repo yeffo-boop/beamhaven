@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 
-import { PhoneTabBar, PhoneTopBar } from "@/components/app-shell/phone-nav";
-import { Sidebar } from "@/components/app-shell/sidebar";
+import { PhoneTabBar, PhoneTabBarView, PhoneTopBar } from "@/components/app-shell/phone-nav";
+import { Sidebar, SidebarView } from "@/components/app-shell/sidebar";
 import { AccountSummary } from "@/components/auth/account-summary";
 import { SignedIn } from "@/components/auth/signed-in";
 
@@ -14,15 +14,16 @@ import { SignedIn } from "@/components/auth/signed-in";
  * server and sends anyone who isn't signed in to /sign-in.
  */
 export default function AppLayout({ children }: LayoutProps<"/">) {
+  const account = (
+    <Suspense fallback={<div className="h-10" />}>
+      <AccountSummary />
+    </Suspense>
+  );
   return (
     <div className="flex min-h-dvh">
-      <Sidebar
-        account={
-          <Suspense fallback={<div className="h-10" />}>
-            <AccountSummary />
-          </Suspense>
-        }
-      />
+      <Suspense fallback={<SidebarView pathname={null} account={account} />}>
+        <Sidebar account={account} />
+      </Suspense>
       <div className="flex min-w-0 flex-1 flex-col">
         <PhoneTopBar />
         <main
@@ -34,7 +35,9 @@ export default function AppLayout({ children }: LayoutProps<"/">) {
           </Suspense>
         </main>
       </div>
-      <PhoneTabBar />
+      <Suspense fallback={<PhoneTabBarView pathname={null} />}>
+        <PhoneTabBar />
+      </Suspense>
     </div>
   );
 }

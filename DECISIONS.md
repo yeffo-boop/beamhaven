@@ -184,7 +184,47 @@ Statuses: **Proposed** (waiting for Jeff) · **Accepted** · **Superseded**
   - CI builds both images and starts the stack on every pull request.
 - **Why:** each piece stays small and replaceable. The website image carries nothing it doesn't need. Migrations run before every start. Building on the VM is the simplest thing that works while there's one server.
 
-## ADR-022: The "Post & Beam" logo
+## ADR-022: Records, measurements and private photo storage (Milestone 3)
+
+- **Status:** Accepted (2026-11-23)
+- **Decision:**
+  - **Composite foreign keys** `(id, workspace_id)` on every household table, so the database itself refuses links between households (see `docs/DATA_MODEL.md`). The code still checks first and answers 404.
+  - **Measurements** are typed as text (`12' 4 1/2"`, `10ft`, `3.76 m`) and parsed by `src/lib/units.ts` into whole millimetres, with the unit that was typed. They are shown to the nearest ⅛ inch or in metres. Floor and wall areas are worked out when shown and labelled "estimate"; they're never stored.
+  - **Photos** go to `POST /api/uploads` (a route handler, not a Server Action: Server Actions accept only 1 MB by default, and the route can refuse an oversized upload before reading it). The route checks the household and role, that the request came from our own address, a rate limit (300 an hour per person), and the size. The type is read from the file's first bytes (JPEG, PNG, WebP, HEIC, AVIF); SVG, HTML and anything else are refused.
+  - **Storage:** a `StorageProvider` interface with one implementation, the local disk (`STORAGE_LOCAL_PATH`, a Docker volume on the server). Keys are `<workspaceId>/<random hex>`, never from the file name. Files are written to a temporary name and then renamed, so a half-written file is never served.
+  - **Downloads** go through `GET /api/files/<id>`, which answers 404 unless the file belongs to the viewer's household, and sends `nosniff`, a locked-down Content-Security-Policy and a private cache header.
+  - Deleting a project or room deletes its photos' records and bytes. The activity history (`activity_events`) is written by the services and never deleted.
+- **Why:** the database refusal is a second lock behind the code. Text input for lengths matches how people read a tape measure. Checking file contents, not names, is what stops a disguised script from being served back to a browser. An S3-compatible provider can be added later behind the same interface.
+
+## ADR-023: How the budget is built (Milestone 4)
+
+- **Status:** Accepted (2026-11-23)
+- **Decision:**
+  - **One source of truth for the math:** `src/server/services/budget-math.ts` holds every formula from `docs/BUDGET_DEFINITIONS.md` as plain functions with no database, each tested, including the worked example step by step. The data layer only gathers the facts per line; totals for a room, category, project or household are always sums of lines.
+  - **The database guards the money rules too:** a deferred trigger refuses an expense whose allocations don't add up to its total; triggers refuse changing or deleting transfers and adjustments; CHECK constraints keep amounts' signs right; composite foreign keys keep everything inside one household.
+  - **Transfers lock the source line** (`SELECT … FOR UPDATE`) while checking what's available, so two transfers at once can't both overdraw it. Payments lock the expense the same way.
+  - **Splitting money** uses the largest-remainder method (`splitByWeights` in `src/lib/money.ts`), so a split is always exact to the cent. Rows left blank on an expense share the rest evenly.
+  - **Locking in** is a button (Jeff's choice), not automatic.
+  - **Receipts** reuse the Milestone 3 storage. PDFs are accepted for receipts only (detected by their first bytes) and are always sent as downloads.
+  - Paid status is calculated from payments rather than stored, so it can never disagree with them.
+- **Why:** money mistakes are the costliest kind, so each rule is enforced twice (code and database), and the math is kept in one small, heavily tested file.
+
+## ADR-024: Contractors are vendors with more details (Milestone 5)
+
+**Date:** 2026-11-23. **Status:** accepted.
+
+**Context.** The budget (Milestone 4) already records a "shop or supplier" (a `Vendor`) on commitments and expenses. Contractors need a directory with license, insurance and a log, and their bills need to show up on their page.
+
+**Decision.**
+
+- A `Contractor` row points at one `Vendor`, and the **name lives on the vendor**. Adding a contractor whose name matches an existing shop or supplier takes that record over, so earlier bills appear on the contractor's page. Renaming the contractor renames the vendor. Deleting a contractor keeps the vendor, because bills in the budget still name it.
+- Links between records always include the household (composite foreign keys). Optional ones use `RESTRICT`, and the services clear them before deleting the other side, because `SET NULL` on a composite key would also clear `workspace_id`.
+- Documents (license, insurance certificate, warranty paperwork) are attachments with purpose `document`: photos or PDFs, checked by their contents like receipts.
+- License, insurance and warranty dates show a warning from 30 days before they run out. There are no email reminders yet (no email is set up, ADR-020).
+
+**Consequences.** One place for a contractor's money, with no copying of names. A typo in an old bill's shop name stays a separate vendor until it's corrected there.
+
+## ADR-025: The "Post & Beam" logo
 
 - **Status:** Accepted (2026-11-23)
 - **Decision:** the mark is a gable roof resting on one long beam that runs past two posts, drawn on the same 24-unit grid and 2-unit stroke as our Lucide icons, in spruce. In the app it sits on a spruce rounded-square tile (`BrandMark`), and the same drawing makes the favicon, `icon.svg` and the Apple touch icon. The wordmark is the product name in Geist semibold with slightly tight letter spacing, so it still comes from `brand.name` and changes with it. The bare mark is kept in `docs/brand/mark.svg`.

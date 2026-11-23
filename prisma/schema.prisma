@@ -96,17 +96,23 @@ model Verification {
 // ---------------------------------------------------------------------------
 
 model Workspace {
-  id          String       @id
-  name        String
+  id                String           @id
+  name              String
   /// Required and unique by Better Auth; not shown or used in addresses.
-  slug        String       @unique
-  logo        String?
-  metadata    String?
+  slug              String           @unique
+  logo              String?
+  metadata          String?
   /// "household" for now. A company could be added later (ADR-017).
-  kind        String       @default("household")
-  createdAt   DateTime     @default(now()) @map("created_at")
-  memberships Membership[]
-  invitations Invitation[]
+  kind              String           @default("household")
+  /// How measurements are shown and typed by default: "imperial" or "metric".
+  measurementSystem String           @default("imperial") @map("measurement_system")
+  createdAt         DateTime         @default(now()) @map("created_at")
+  memberships       Membership[]
+  invitations       Invitation[]
+  properties        Property[]
+  budgetCategories  BudgetCategory[]
+  vendors           Vendor[]
+  contractors       Contractor[]
 
   @@map("workspaces")
 }
@@ -143,4 +149,580 @@ model Invitation {
   @@index([workspaceId])
   @@index([email])
   @@map("invitations")
+}
+
+// ---------------------------------------------------------------------------
+// Properties, projects and rooms (Milestone 3). docs/DATA_MODEL.md, section 2.
+//
+// Every table has workspace_id. Child records point at their parent with
+// BOTH the parent's id and workspace_id (a composite foreign key), so the
+// database itself refuses, for example, a project in household A that
+// belongs to a property in household B.
+// ---------------------------------------------------------------------------
+
+model Property {
+  id           String       @id
+  workspaceId  String       @map("workspace_id")
+  workspace    Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  name         String
+  addressLine1 String?      @map("address_line1")
+  addressLine2 String?      @map("address_line2")
+  city         String?
+  region       String?
+  postalCode   String?      @map("postal_code")
+  country      String?
+  notes        String?
+  createdById  String?      @map("created_by_id")
+  createdAt    DateTime     @default(now()) @map("created_at")
+  updatedAt    DateTime     @updatedAt @map("updated_at")
+  projects     Project[]
+  rooms        Room[]
+  attachments  Attachment[]
+
+  @@unique([id, workspaceId])
+  @@index([workspaceId])
+  @@map("properties")
+}
+
+/// A renovation project. Status values are checked by the database.
+model Project {
+  id               String              @id
+  workspaceId      String              @map("workspace_id")
+  propertyId       String              @map("property_id")
+  property         Property            @relation(fields: [propertyId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
+  name             String
+  description      String?
+  status           String              @default("planning")
+  plannedStart     DateTime?           @map("planned_start") @db.Date
+  plannedEnd       DateTime?           @map("planned_end") @db.Date
+  actualStart      DateTime?           @map("actual_start") @db.Date
+  actualEnd        DateTime?           @map("actual_end") @db.Date
+  createdById      String?             @map("created_by_id")
+  createdAt        DateTime            @default(now()) @map("created_at")
+  updatedAt        DateTime            @updatedAt @map("updated_at")
+  rooms            ProjectRoom[]
+  attachments      Attachment[]
+  /// When the original budget was locked in ("baselined"); null until then.
+  budgetLockedAt   DateTime?           @map("budget_locked_at")
+  budgetLockedById String?             @map("budget_locked_by_id")
+  budgetLines      BudgetLine[]
+  contractors      ContractorProject[]
+  communications   Communication[]
+  warranties       Warranty[]
+  tasks            Task[]
+
+  @@unique([id, workspaceId])
+  @@index([workspaceId])
+  @@index([propertyId])
+  @@map("projects")
+}
+
+/// A room or area of a property. Lengths are whole millimetres; enteredUnit
+/// remembers whether the person typed feet and inches or metric.
+model Room {
+  id              String        @id
+  workspaceId     String        @map("workspace_id")
+  propertyId      String        @map("property_id")
+  property        Property      @relation(fields: [propertyId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
+  name            String
+  type            String        @default("other")
+  floorLevel      String?       @map("floor_level")
+  lengthMm        Int?          @map("length_mm")
+  widthMm         Int?          @map("width_mm")
+  ceilingHeightMm Int?          @map("ceiling_height_mm")
+  enteredUnit     String        @default("imperial") @map("entered_unit")
+  description     String?
+  notes           String?
+  createdById     String?       @map("created_by_id")
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+  projects        ProjectRoom[]
+  openings        Opening[]
+  attachments     Attachment[]
+  budgetLines     BudgetLine[]
+  warranties      Warranty[]
+  tasks           Task[]
+
+  @@unique([id, workspaceId])
+  @@index([workspaceId])
+  @@index([propertyId])
+  @@map("rooms")
+}
+
+/// Which rooms a project works on. A room can be part of many projects over time.
+model ProjectRoom {
+  workspaceId         String   @map("workspace_id")
+  projectId           String   @map("project_id")
+  project             Project  @relation(fields: [projectId, workspaceId], references: [id, workspaceId], onDelete: Cascade)
+  roomId              String   @map("room_id")
+  room                Room     @relation(fields: [roomId, workspaceId], references: [id, workspaceId], onDelete: Cascade)
+  plannedImprovements String?  @map("planned_improvements")
+  createdAt           DateTime @default(now()) @map("created_at")
+
+  @@id([projectId, roomId])
+  @@index([workspaceId])
+  @@index([roomId])
+  @@map("project_rooms")
+}
+
+/// A window, door or other opening in a room, with its size in millimetres.
+model Opening {
+  id           String   @id
+  workspaceId  String   @map("workspace_id")
+  roomId       String   @map("room_id")
+  room         Room     @relation(fields: [roomId, workspaceId], references: [id, workspaceId], onDelete: Cascade)
+  kind         String
+  label        String?
+  widthMm      Int      @map("width_mm")
+  heightMm     Int      @map("height_mm")
+  sillHeightMm Int?     @map("sill_height_mm")
+  enteredUnit  String   @default("imperial") @map("entered_unit")
+  notes        String?
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@index([workspaceId])
+  @@index([roomId])
+  @@map("openings")
+}
+
+// ---------------------------------------------------------------------------
+// Files (Milestone 3). The file itself lives in storage under storageKey
+// (random, never built from the file name). docs/DATA_MODEL.md, section 5.
+// ---------------------------------------------------------------------------
+
+model FileObject {
+  id           String       @id
+  workspaceId  String       @map("workspace_id")
+  storageKey   String       @unique @map("storage_key")
+  originalName String       @map("original_name")
+  /// Worked out from the file's contents, never from its name or the browser.
+  mimeType     String       @map("mime_type")
+  sizeBytes    Int          @map("size_bytes")
+  sha256       String
+  uploadedById String?      @map("uploaded_by_id")
+  createdAt    DateTime     @default(now()) @map("created_at")
+  attachments  Attachment[]
+
+  @@unique([id, workspaceId])
+  @@index([workspaceId])
+  @@map("files")
+}
+
+/// Links a file to exactly one record (a database check enforces "exactly one").
+model Attachment {
+  id           String      @id
+  workspaceId  String      @map("workspace_id")
+  fileId       String      @map("file_id")
+  file         FileObject  @relation(fields: [fileId, workspaceId], references: [id, workspaceId], onDelete: Cascade)
+  purpose      String      @default("photo")
+  caption      String?
+  propertyId   String?     @map("property_id")
+  property     Property?   @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  projectId    String?     @map("project_id")
+  project      Project?    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  roomId       String?     @map("room_id")
+  room         Room?       @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  expenseId    String?     @map("expense_id")
+  expense      Expense?    @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  contractorId String?     @map("contractor_id")
+  contractor   Contractor? @relation(fields: [contractorId, workspaceId], references: [id, workspaceId], onDelete: Cascade)
+  warrantyId   String?     @map("warranty_id")
+  warranty     Warranty?   @relation(fields: [warrantyId, workspaceId], references: [id, workspaceId], onDelete: Cascade)
+  createdById  String?     @map("created_by_id")
+  createdAt    DateTime    @default(now()) @map("created_at")
+
+  @@index([workspaceId])
+  @@index([fileId])
+  @@index([propertyId])
+  @@index([projectId])
+  @@index([roomId])
+  @@index([expenseId])
+  @@index([contractorId])
+  @@index([warrantyId])
+  @@map("attachments")
+}
+
+// ---------------------------------------------------------------------------
+// Activity history (from Milestone 3). Written by the services whenever
+// something important changes; never edited or deleted.
+// ---------------------------------------------------------------------------
+
+model ActivityEvent {
+  id          String   @id
+  workspaceId String   @map("workspace_id")
+  actorUserId String?  @map("actor_user_id")
+  /// For example "project.created" or "room.updated".
+  action      String
+  entityType  String   @map("entity_type")
+  entityId    String   @map("entity_id")
+  summary     String
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([workspaceId, createdAt])
+  @@index([entityType, entityId])
+  @@map("activity_events")
+}
+
+// --- Budget (Milestone 4). What each number means: docs/BUDGET_DEFINITIONS.md.
+// All money is whole cents in BIGINT columns (ADR-008).
+
+model BudgetCategory {
+  id          String       @id
+  workspaceId String       @map("workspace_id")
+  workspace   Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  name        String
+  /// "standard", or "contingency" for the safety buffer.
+  kind        String       @default("standard")
+  sortOrder   Int          @default(0) @map("sort_order")
+  createdAt   DateTime     @default(now()) @map("created_at")
+  lines       BudgetLine[]
+
+  @@unique([id, workspaceId])
+  @@unique([workspaceId, name])
+  @@map("budget_categories")
+}
+
+/// One bucket of money: a project, a category and optionally a room.
+/// Unique per (project, category, room, name). The migration creates that
+/// index with NULLS NOT DISTINCT, so "no room" also counts as one value.
+model BudgetLine {
+  id            String              @id
+  workspaceId   String              @map("workspace_id")
+  projectId     String              @map("project_id")
+  project       Project             @relation(fields: [projectId, workspaceId], references: [id, workspaceId], onDelete: Cascade)
+  categoryId    String              @map("category_id")
+  category      BudgetCategory      @relation(fields: [categoryId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
+  roomId        String?             @map("room_id")
+  room          Room?               @relation(fields: [roomId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
+  /// Optional label to tell apart two lines with the same category and room.
+  name          String              @default("")
+  /// The plan; can be edited only until the project budget is locked in.
+  plannedCents  BigInt              @default(0) @map("planned_cents")
+  /// Copied from plannedCents when the budget is locked in; never changes after.
+  originalCents BigInt?             @map("original_cents")
+  estimateCents BigInt?             @map("estimate_cents")
+  notes         String?
+  createdAt     DateTime            @default(now()) @map("created_at")
+  updatedAt     DateTime            @updatedAt @map("updated_at")
+  adjustments   BudgetAdjustment[]
+  transfersOut  BudgetTransfer[]    @relation("TransferFrom")
+  transfersIn   BudgetTransfer[]    @relation("TransferTo")
+  commitments   Commitment[]
+  allocations   ExpenseAllocation[]
+
+  @@unique([id, workspaceId])
+  @@unique([projectId, categoryId, roomId, name], map: "budget_lines_unique_bucket")
+  @@index([workspaceId])
+  @@index([projectId])
+  @@map("budget_lines")
+}
+
+/// A deliberate change to the budget total. Kept permanently.
+model BudgetAdjustment {
+  id            String     @id
+  workspaceId   String     @map("workspace_id")
+  lineId        String     @map("line_id")
+  line          BudgetLine @relation(fields: [lineId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
+  amountCents   BigInt     @map("amount_cents")
+  reason        String
+  effectiveDate DateTime   @map("effective_date") @db.Date
+  createdById   String?    @map("created_by_id")
+  createdAt     DateTime   @default(now()) @map("created_at")
+
+  @@index([workspaceId])
+  @@index([lineId])
+  @@map("budget_adjustments")
+}
+
+/// Moves money between lines; the total stays the same. Never edited or
+/// deleted: undone by a reversing transfer (BUDGET_DEFINITIONS rule 7).
+model BudgetTransfer {
+  id                  String          @id
+  workspaceId         String          @map("workspace_id")
+  fromLineId          String          @map("from_line_id")
+  fromLine            BudgetLine      @relation("TransferFrom", fields: [fromLineId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
+  toLineId            String          @map("to_line_id")
+  toLine              BudgetLine      @relation("TransferTo", fields: [toLineId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
+  amountCents         BigInt          @map("amount_cents")
+  reason              String
+  effectiveDate       DateTime        @map("effective_date") @db.Date
+  allowOverAllocation Boolean         @default(false) @map("allow_over_allocation")
+  /// Set on a reversing transfer; each transfer can be reversed once.
+  reversesTransferId  String?         @map("reverses_transfer_id")
+  reverses            BudgetTransfer? @relation("Reversal", fields: [reversesTransferId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
+  reversedBy          BudgetTransfer? @relation("Reversal")
+  createdById         String?         @map("created_by_id")
+  createdAt           DateTime        @default(now()) @map("created_at")
+
+  @@unique([id, workspaceId])
+  @@unique([reversesTransferId, workspaceId])
+  @@index([workspaceId])
+  @@index([fromLineId])
+  @@index([toLineId])
+  @@map("budget_transfers")
+}
+
+/// Shops, suppliers and (from Milestone 5) contractors that get paid.
+model Vendor {
+  id          String       @id
+  workspaceId String       @map("workspace_id")
+  workspace   Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  name        String
+  /// "store", "online", "contractor" or "other".
+  kind        String       @default("store")
+  website     String?
+  notes       String?
+  createdAt   DateTime     @default(now()) @map("created_at")
+  commitments Commitment[]
+  expenses    Expense[]
+  contractor  Contractor?
+
+  @@unique([id, workspaceId])
+  @@unique([workspaceId, name])
+  @@map("vendors")
+}
+
+/// Money we've agreed to spend: an approved quote, a contract, a change
+/// order or a placed order.
+model Commitment {
+  id          String     @id
+  workspaceId String     @map("workspace_id")
+  lineId      String     @map("line_id")
+  line        BudgetLine @relation(fields: [lineId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
+  vendorId    String?    @map("vendor_id")
+  vendor      Vendor?    @relation(fields: [vendorId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
+  /// "quote", "contract", "change_order", "order" or "manual".
+  source      String     @default("manual")
+  description String
+  amountCents BigInt     @map("amount_cents")
+  committedOn DateTime   @map("committed_on") @db.Date
+  notes       String?
+  createdById String?    @map("created_by_id")
+  createdAt   DateTime   @default(now()) @map("created_at")
+  updatedAt   DateTime   @updatedAt @map("updated_at")
+  expenses    Expense[]
+
+  @@unique([id, workspaceId])
+  @@index([workspaceId])
+  @@index([lineId])
+  @@map("commitments")
+}
+
+/// A cost that has happened: a bill received or a purchase made. A refund
+/// is a negative expense pointing at the original. Whether it's paid is
+/// worked out from its payments, never stored.
+model Expense {
+  id                String              @id
+  workspaceId       String              @map("workspace_id")
+  vendorId          String?             @map("vendor_id")
+  vendor            Vendor?             @relation(fields: [vendorId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
+  commitmentId      String?             @map("commitment_id")
+  commitment        Commitment?         @relation(fields: [commitmentId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
+  refundOfExpenseId String?             @map("refund_of_expense_id")
+  refundOf          Expense?            @relation("Refund", fields: [refundOfExpenseId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
+  refunds           Expense[]           @relation("Refund")
+  description       String
+  expenseDate       DateTime            @map("expense_date") @db.Date
+  dueDate           DateTime?           @map("due_date") @db.Date
+  totalCents        BigInt              @map("total_cents")
+  notes             String?
+  createdById       String?             @map("created_by_id")
+  createdAt         DateTime            @default(now()) @map("created_at")
+  updatedAt         DateTime            @updatedAt @map("updated_at")
+  allocations       ExpenseAllocation[]
+  payments          Payment[]
+  attachments       Attachment[]
+
+  @@unique([id, workspaceId])
+  @@index([workspaceId, expenseDate])
+  @@index([commitmentId])
+  @@map("expenses")
+}
+
+/// Which budget line(s) an expense is charged to. They must add up to the
+/// expense total, to the cent (checked by the service and by the database).
+model ExpenseAllocation {
+  id          String     @id
+  workspaceId String     @map("workspace_id")
+  expenseId   String     @map("expense_id")
+  expense     Expense    @relation(fields: [expenseId, workspaceId], references: [id, workspaceId], onDelete: Cascade)
+  lineId      String     @map("line_id")
+  line        BudgetLine @relation(fields: [lineId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
+  amountCents BigInt     @map("amount_cents")
+  /// "item", "tax" or "shipping".
+  kind        String     @default("item")
+  /// The row's place on the expense, so splits always show in the order typed.
+  position    Int        @default(0)
+  createdAt   DateTime   @default(now()) @map("created_at")
+
+  @@index([workspaceId])
+  @@index([expenseId])
+  @@index([lineId])
+  @@map("expense_allocations")
+}
+
+/// Money that has left our account (or, for a refund, come back).
+model Payment {
+  id          String   @id
+  workspaceId String   @map("workspace_id")
+  expenseId   String   @map("expense_id")
+  expense     Expense  @relation(fields: [expenseId, workspaceId], references: [id, workspaceId], onDelete: Cascade)
+  amountCents BigInt   @map("amount_cents")
+  paidOn      DateTime @map("paid_on") @db.Date
+  /// "card", "check", "transfer", "cash" or "other".
+  method      String   @default("other")
+  reference   String?
+  notes       String?
+  createdById String?  @map("created_by_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([workspaceId])
+  @@index([expenseId])
+  @@map("payments")
+}
+
+// ---------------------------------------------------------------------------
+// Contractors (Milestone 5). docs/DATA_MODEL.md, section 4.
+//
+// A contractor is a Vendor (the "shop or supplier" a budget records money
+// against) with more details, so every bill already recorded under that
+// name shows up on the contractor's page. The name lives on the vendor.
+//
+// Optional links between records use Restrict: Postgres would otherwise
+// clear workspace_id along with the link. The services clear the link
+// themselves when the other record is deleted.
+// ---------------------------------------------------------------------------
+
+model Contractor {
+  id                 String              @id
+  workspaceId        String              @map("workspace_id")
+  workspace          Workspace           @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  vendorId           String              @map("vendor_id")
+  vendor             Vendor              @relation(fields: [vendorId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
+  contactName        String?             @map("contact_name")
+  trade              String?
+  phone              String?
+  email              String?
+  website            String?
+  address            String?
+  licenseNumber      String?             @map("license_number")
+  licenseState       String?             @map("license_state")
+  licenseExpiresOn   DateTime?           @map("license_expires_on") @db.Date
+  insuranceProvider  String?             @map("insurance_provider")
+  insuranceExpiresOn DateTime?           @map("insurance_expires_on") @db.Date
+  /// "prospect", "active", "past" or "do_not_use".
+  status             String              @default("active")
+  notes              String?
+  createdById        String?             @map("created_by_id")
+  createdAt          DateTime            @default(now()) @map("created_at")
+  updatedAt          DateTime            @updatedAt @map("updated_at")
+  projects           ContractorProject[]
+  communications     Communication[]
+  warranties         Warranty[]
+  tasks              Task[]
+  attachments        Attachment[]
+
+  @@unique([id, workspaceId])
+  @@unique([vendorId, workspaceId])
+  @@index([workspaceId])
+  @@map("contractors")
+}
+
+/// Which contractors work on which projects, and doing what.
+model ContractorProject {
+  workspaceId  String     @map("workspace_id")
+  contractorId String     @map("contractor_id")
+  contractor   Contractor @relation(fields: [contractorId, workspaceId], references: [id, workspaceId], onDelete: Cascade)
+  projectId    String     @map("project_id")
+  project      Project    @relation(fields: [projectId, workspaceId], references: [id, workspaceId], onDelete: Cascade)
+  role         String?
+  createdAt    DateTime   @default(now()) @map("created_at")
+
+  @@id([contractorId, projectId])
+  @@index([workspaceId])
+  @@index([projectId])
+  @@map("contractor_projects")
+}
+
+/// A call, email, text, meeting or note with a contractor, typed in by hand.
+model Communication {
+  id           String     @id
+  workspaceId  String     @map("workspace_id")
+  contractorId String     @map("contractor_id")
+  contractor   Contractor @relation(fields: [contractorId, workspaceId], references: [id, workspaceId], onDelete: Cascade)
+  projectId    String?    @map("project_id")
+  project      Project?   @relation(fields: [projectId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
+  /// "call", "email", "text", "meeting" or "note".
+  channel      String     @default("note")
+  occurredOn   DateTime   @map("occurred_on") @db.Date
+  summary      String
+  createdById  String?    @map("created_by_id")
+  createdAt    DateTime   @default(now()) @map("created_at")
+
+  @@index([workspaceId])
+  @@index([contractorId, occurredOn])
+  @@index([projectId])
+  @@map("communications")
+}
+
+/// A warranty on work or an item. Linked to a contractor, a project or a
+/// room (at least one; a database check makes sure).
+model Warranty {
+  id           String       @id
+  workspaceId  String       @map("workspace_id")
+  contractorId String?      @map("contractor_id")
+  contractor   Contractor?  @relation(fields: [contractorId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
+  projectId    String?      @map("project_id")
+  project      Project?     @relation(fields: [projectId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
+  roomId       String?      @map("room_id")
+  room         Room?        @relation(fields: [roomId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
+  coverage     String
+  /// Who honours it, when that isn't the contractor (a manufacturer, say).
+  provider     String?
+  startsOn     DateTime?    @map("starts_on") @db.Date
+  expiresOn    DateTime?    @map("expires_on") @db.Date
+  notes        String?
+  createdById  String?      @map("created_by_id")
+  createdAt    DateTime     @default(now()) @map("created_at")
+  updatedAt    DateTime     @updatedAt @map("updated_at")
+  attachments  Attachment[]
+
+  @@unique([id, workspaceId])
+  @@index([workspaceId])
+  @@index([contractorId])
+  @@index([projectId])
+  @@index([roomId])
+  @@map("warranties")
+}
+
+/// A simple to-do on a project or a room (at least one; checked by the
+/// database). The full schedule arrives in Milestone 7.
+model Task {
+  id                   String      @id
+  workspaceId          String      @map("workspace_id")
+  projectId            String?     @map("project_id")
+  project              Project?    @relation(fields: [projectId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
+  roomId               String?     @map("room_id")
+  room                 Room?       @relation(fields: [roomId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
+  title                String
+  description          String?
+  /// "todo", "doing" or "done".
+  status               String      @default("todo")
+  /// "low", "normal" or "high".
+  priority             String      @default("normal")
+  /// A household member (checked by the service when assigning).
+  assigneeUserId       String?     @map("assignee_user_id")
+  assigneeContractorId String?     @map("assignee_contractor_id")
+  assigneeContractor   Contractor? @relation(fields: [assigneeContractorId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
+  dueDate              DateTime?   @map("due_date") @db.Date
+  completedAt          DateTime?   @map("completed_at")
+  createdById          String?     @map("created_by_id")
+  createdAt            DateTime    @default(now()) @map("created_at")
+  updatedAt            DateTime    @updatedAt @map("updated_at")
+
+  @@index([workspaceId])
+  @@index([projectId])
+  @@index([roomId])
+  @@index([assigneeContractorId])
+  @@map("tasks")
 }

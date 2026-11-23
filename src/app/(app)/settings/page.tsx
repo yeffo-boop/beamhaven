@@ -4,6 +4,7 @@ import { ChangePasswordForm } from "@/components/account/change-password-form";
 import { InlineNameForm } from "@/components/forms/inline-name-form";
 import { HouseholdMembers } from "@/components/household/household-members";
 import { PageHeader } from "@/components/page-header";
+import { PropertiesSettings } from "@/components/records/properties-settings";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { signOutEverywhereAction, updateNameAction } from "@/server/actions/account";
@@ -55,6 +56,18 @@ export default function SettingsPage() {
         </h2>
         <Suspense fallback={<div className="h-24" />}>
           <HouseholdMembers />
+        </Suspense>
+      </section>
+
+      <section
+        aria-labelledby="properties-heading"
+        className="flex flex-col gap-3 rounded-[var(--radius-card)] border border-border bg-surface p-5 md:p-6"
+      >
+        <h2 id="properties-heading" className="font-semibold">
+          Properties
+        </h2>
+        <Suspense fallback={<div className="h-16" />}>
+          <PropertiesSettings />
         </Suspense>
       </section>
 
