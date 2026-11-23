@@ -3,6 +3,7 @@ import "server-only";
 import { formatMoney, splitByWeights, splitEvenly, sumCents } from "@/lib/money";
 import { assertCan } from "@/server/auth/permissions";
 import { recordActivity } from "@/server/data/activity";
+import { commitmentAgreement } from "@/server/data/agreements";
 import { findLine, lineTitle } from "@/server/data/budget";
 import type { WorkspaceContext } from "@/server/data/context";
 import {
@@ -80,6 +81,9 @@ export async function updateCommitment(
   input: CommitmentInput,
 ): Promise<void> {
   assertCan(ctx, "records:edit");
+  // A quote's, contract's or change order's money is changed on that page,
+  // so the two never disagree.
+  if (await commitmentAgreement(ctx, id)) throw new RuleError("agreement_commitment");
   const fields = await commitmentFields(ctx, input);
   if (!(await updateCommitmentRow(ctx, id, fields))) throw new NotFoundError("commitment");
   await commitmentActivity(ctx, fields.lineId, `Changed the commitment “${fields.description}”`);
@@ -91,6 +95,10 @@ export async function deleteCommitment(
 ): Promise<{ lineId: string }> {
   assertCan(ctx, "records:edit");
   const [commitment] = await listCommitments(ctx, { id });
+  const agreement = await commitmentAgreement(ctx, id);
+  if (agreement?.kind === "quote" || agreement?.kind === "contract") {
+    throw new RuleError("agreement_commitment");
+  }
   const result = await deleteCommitmentRow(ctx, id);
   if (result.status === "not_found" || !commitment) throw new NotFoundError("commitment");
   if (result.status === "in_use") {
@@ -132,6 +140,17 @@ export async function getVendorMoney(
     listExpenses(ctx, { vendorId, limit: 100 }),
   ]);
   return { commitments, expenses };
+}
+
+/** The bills linked to a quote's or contract's commitments, oldest first. */
+export async function getBillsFor(
+  ctx: WorkspaceContext,
+  commitmentIds: string[],
+): Promise<ExpenseSummary[]> {
+  assertCan(ctx, "records:view");
+  if (commitmentIds.length === 0) return [];
+  const bills = await listExpenses(ctx, { commitmentIds });
+  return bills.reverse();
 }
 
 export async function getExpense(ctx: WorkspaceContext, id: string): Promise<ExpenseDetail> {
@@ -190,6 +209,7 @@ async function expenseFields(ctx: WorkspaceContext, input: ExpenseInput) {
       dueDate: parsed.dueDate,
       totalCents: parsed.total,
       notes: parsed.notes,
+      stage: parsed.stage,
     },
     allocations,
   };
@@ -289,6 +309,7 @@ export async function refundExpense(
       dueDate: null,
       totalCents: -amount,
       notes: null,
+      stage: null,
     },
     original.allocations.map((a, index) => ({
       lineId: a.line.id,

@@ -29,7 +29,7 @@ import {
   contractorProjectInput,
   type ContractorStatus,
 } from "./contractor-inputs";
-import { fieldError, NotFoundError } from "./errors";
+import { fieldError, NotFoundError, RuleError } from "./errors";
 import type { FormInput } from "./inputs";
 
 export type ContractorInput = FormInput<typeof contractorInput>;
@@ -90,9 +90,10 @@ export async function updateContractor(
 
 export async function deleteContractor(ctx: WorkspaceContext, id: string): Promise<void> {
   assertCan(ctx, "records:edit");
-  const { deleted, fileIds } = await deleteContractorRow(ctx, id);
-  if (!deleted) throw new NotFoundError("contractor");
-  await removeFiles(ctx, fileIds);
+  const result = await deleteContractorRow(ctx, id);
+  if (result.status === "not_found") throw new NotFoundError("contractor");
+  if (result.status === "has_agreements") throw new RuleError("contractor_has_agreements");
+  await removeFiles(ctx, result.fileIds);
 }
 
 // --- Projects --------------------------------------------------------------

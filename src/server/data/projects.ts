@@ -149,8 +149,14 @@ export async function deleteProjectRow(
     });
     if (recorded > 0) return { deleted: false, hasBudget: true, fileIds: [] };
     const warrantyFiles = await unlinkProjectOrRoom(tx, ctx.workspaceId, { projectId: id });
+    // The project's photos, and the documents of its open or turned-down
+    // quotes (which go with it). Contracts always hold budget money, so a
+    // project with one never gets this far.
     const attachments = await tx.attachment.findMany({
-      where: { projectId: id, workspaceId: ctx.workspaceId },
+      where: {
+        workspaceId: ctx.workspaceId,
+        OR: [{ projectId: id }, { quote: { projectId: id } }],
+      },
       select: { fileId: true },
     });
     const result = await tx.project.deleteMany({ where: { id, workspaceId: ctx.workspaceId } });

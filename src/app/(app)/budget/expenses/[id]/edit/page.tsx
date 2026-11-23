@@ -47,6 +47,7 @@ export default async function EditExpensePage({ params }: PageProps<"/budget/exp
           dueDate: dayInputValue(expense.dueDate),
           total: moneyInputValue(expense.totalCents),
           notes: expense.notes ?? "",
+          stage: expense.stage ?? "",
           rows: expense.allocations.map((a) => ({
             lineId: a.line.id,
             amount: moneyInputValue(a.amountCents),

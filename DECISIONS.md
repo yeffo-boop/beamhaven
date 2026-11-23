@@ -229,3 +229,35 @@ Statuses: **Proposed** (waiting for Jeff) · **Accepted** · **Superseded**
 - **Status:** Accepted (2026-11-23)
 - **Decision:** the mark is a gable roof resting on one long beam that runs past two posts, drawn on the same 24-unit grid and 2-unit stroke as our Lucide icons, in spruce. In the app it sits on a spruce rounded-square tile (`BrandMark`), and the same drawing makes the favicon, `icon.svg` and the Apple touch icon. The wordmark is the product name in Geist semibold with slightly tight letter spacing, so it still comes from `brand.name` and changes with it. The bare mark is kept in `docs/brand/mark.svg`.
 - **Why:** Jeff chose it from four directions (Post & Beam, Callout, Two-bowl B, Fanlight). It reads clearly at 16 pixels and doesn't depend on the name, which is still provisional (ADR-015). The roof, beam and posts tie it to the "Beam" in the name and to timber framing.
+
+## ADR-026: Quotes and contracts share one commitment (Milestone 5)
+
+**Date:** 2026-11-23. **Status:** accepted.
+
+**Context.** A quote that gets approved and then becomes a signed contract is the same money. If each made its own commitment, the budget would count it twice, or someone would have to remember to delete one.
+
+**Decision.**
+
+- Approving a quote creates a commitment (source `quote`) for its latest revision. A contract from that quote **takes the same commitment over** (source `contract`, the contract amount). Deleting the contract hands it back to the quote at the quote's price.
+- Change orders are ordinary commitments (source `change_order`) with a link to the contract.
+- Contractor payments are expenses linked to those commitments, with an optional stage (deposit, progress, final), and payments against the expenses. No separate payment table.
+- The budget's own commitment page refuses to change or delete these commitments and sends people to the quote or contract instead.
+- Approving, turning down, reopening a turned-down quote and taking an approval back need `budget:approve`; everything else needs `records:edit`.
+- Quote and contract rows are locked (`SELECT … FOR UPDATE`) while they change, so two people deciding at once can't both win.
+
+**Consequences.** The budget formulas in `docs/BUDGET_DEFINITIONS.md` didn't change. A quote can't be repriced once decided; reopen it (or take the approval back) first.
+
+## ADR-027: Room estimates fill in budget estimates, from a reusable price list (Milestone 5, part 3)
+
+**Date:** 2026-11-23. **Status:** accepted. Jeff asked for flooring (price per sq ft, pick the rooms) and paint estimates, and chose to add them, with a price list, sales tax and quote comparison, to Milestone 5.
+
+**Decision.**
+
+- One calculator with four measures (floor, walls, ceiling, around the room), so flooring, tile, paint, ceilings and trim are all the same feature. Presets only fill in the form.
+- Prices live on a household **price list** and estimates link to them, so changing a price updates every estimate that uses it.
+- An estimate writes only the budget line's **estimate**, never its plan. The plan is still Jeff's decision; the estimate shows up in the forecast until a quote or contract is agreed (`docs/BUDGET_DEFINITIONS.md`).
+- Numbers are recalculated when anything they depend on changes, and stored on the budget lines then, rather than worked out each time the budget is read. That keeps the budget's own queries unchanged.
+- The arithmetic is a pure module (`src/lib/room-estimate.ts`) with integer millimetres and cents throughout, tested against hand calculations.
+- Sales tax is one household rate on materials only. Different rates per item, and tax on labor, can come later if needed.
+
+**Consequences.** Rooms are assumed to be rectangles; anything else gets a typed size. Recalculating on every change is a little more work when saving a room or a price, which is fine at household scale.

@@ -106,6 +106,8 @@ model Workspace {
   kind              String           @default("household")
   /// How measurements are shown and typed by default: "imperial" or "metric".
   measurementSystem String           @default("imperial") @map("measurement_system")
+  /// Sales tax added to material estimates, in hundredths of a percent (925 = 9.25%).
+  materialsTaxBp    Int              @default(0) @map("materials_tax_bp")
   createdAt         DateTime         @default(now()) @map("created_at")
   memberships       Membership[]
   invitations       Invitation[]
@@ -113,6 +115,7 @@ model Workspace {
   budgetCategories  BudgetCategory[]
   vendors           Vendor[]
   contractors       Contractor[]
+  priceItems        PriceItem[]
 
   @@map("workspaces")
 }
@@ -210,6 +213,9 @@ model Project {
   communications   Communication[]
   warranties       Warranty[]
   tasks            Task[]
+  quotes           Quote[]
+  contracts        Contract[]
+  roomEstimates    RoomEstimate[]
 
   @@unique([id, workspaceId])
   @@index([workspaceId])
@@ -220,28 +226,29 @@ model Project {
 /// A room or area of a property. Lengths are whole millimetres; enteredUnit
 /// remembers whether the person typed feet and inches or metric.
 model Room {
-  id              String        @id
-  workspaceId     String        @map("workspace_id")
-  propertyId      String        @map("property_id")
-  property        Property      @relation(fields: [propertyId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
+  id              String             @id
+  workspaceId     String             @map("workspace_id")
+  propertyId      String             @map("property_id")
+  property        Property           @relation(fields: [propertyId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
   name            String
-  type            String        @default("other")
-  floorLevel      String?       @map("floor_level")
-  lengthMm        Int?          @map("length_mm")
-  widthMm         Int?          @map("width_mm")
-  ceilingHeightMm Int?          @map("ceiling_height_mm")
-  enteredUnit     String        @default("imperial") @map("entered_unit")
+  type            String             @default("other")
+  floorLevel      String?            @map("floor_level")
+  lengthMm        Int?               @map("length_mm")
+  widthMm         Int?               @map("width_mm")
+  ceilingHeightMm Int?               @map("ceiling_height_mm")
+  enteredUnit     String             @default("imperial") @map("entered_unit")
   description     String?
   notes           String?
-  createdById     String?       @map("created_by_id")
-  createdAt       DateTime      @default(now()) @map("created_at")
-  updatedAt       DateTime      @updatedAt @map("updated_at")
+  createdById     String?            @map("created_by_id")
+  createdAt       DateTime           @default(now()) @map("created_at")
+  updatedAt       DateTime           @updatedAt @map("updated_at")
   projects        ProjectRoom[]
   openings        Opening[]
   attachments     Attachment[]
   budgetLines     BudgetLine[]
   warranties      Warranty[]
   tasks           Task[]
+  estimateAreas   RoomEstimateArea[]
 
   @@unique([id, workspaceId])
   @@index([workspaceId])
@@ -326,6 +333,10 @@ model Attachment {
   expense      Expense?    @relation(fields: [expenseId], references: [id], onDelete: Cascade)
   contractorId String?     @map("contractor_id")
   contractor   Contractor? @relation(fields: [contractorId, workspaceId], references: [id, workspaceId], onDelete: Cascade)
+  quoteId      String?     @map("quote_id")
+  quote        Quote?      @relation(fields: [quoteId, workspaceId], references: [id, workspaceId], onDelete: Cascade)
+  contractId   String?     @map("contract_id")
+  contract     Contract?   @relation(fields: [contractId, workspaceId], references: [id, workspaceId], onDelete: Cascade)
   warrantyId   String?     @map("warranty_id")
   warranty     Warranty?   @relation(fields: [warrantyId, workspaceId], references: [id, workspaceId], onDelete: Cascade)
   createdById  String?     @map("created_by_id")
@@ -339,6 +350,8 @@ model Attachment {
   @@index([expenseId])
   @@index([contractorId])
   @@index([warrantyId])
+  @@index([quoteId])
+  @@index([contractId])
   @@map("attachments")
 }
 
@@ -367,15 +380,17 @@ model ActivityEvent {
 // All money is whole cents in BIGINT columns (ADR-008).
 
 model BudgetCategory {
-  id          String       @id
-  workspaceId String       @map("workspace_id")
-  workspace   Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  name        String
+  id                String         @id
+  workspaceId       String         @map("workspace_id")
+  workspace         Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  name              String
   /// "standard", or "contingency" for the safety buffer.
-  kind        String       @default("standard")
-  sortOrder   Int          @default(0) @map("sort_order")
-  createdAt   DateTime     @default(now()) @map("created_at")
-  lines       BudgetLine[]
+  kind              String         @default("standard")
+  sortOrder         Int            @default(0) @map("sort_order")
+  createdAt         DateTime       @default(now()) @map("created_at")
+  lines             BudgetLine[]
+  materialEstimates RoomEstimate[] @relation("EstimateMaterialCategory")
+  laborEstimates    RoomEstimate[] @relation("EstimateLaborCategory")
 
   @@unique([id, workspaceId])
   @@unique([workspaceId, name])
@@ -386,32 +401,37 @@ model BudgetCategory {
 /// Unique per (project, category, room, name). The migration creates that
 /// index with NULLS NOT DISTINCT, so "no room" also counts as one value.
 model BudgetLine {
-  id            String              @id
-  workspaceId   String              @map("workspace_id")
-  projectId     String              @map("project_id")
-  project       Project             @relation(fields: [projectId, workspaceId], references: [id, workspaceId], onDelete: Cascade)
-  categoryId    String              @map("category_id")
-  category      BudgetCategory      @relation(fields: [categoryId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
-  roomId        String?             @map("room_id")
-  room          Room?               @relation(fields: [roomId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
+  id               String              @id
+  workspaceId      String              @map("workspace_id")
+  projectId        String              @map("project_id")
+  project          Project             @relation(fields: [projectId, workspaceId], references: [id, workspaceId], onDelete: Cascade)
+  categoryId       String              @map("category_id")
+  category         BudgetCategory      @relation(fields: [categoryId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
+  roomId           String?             @map("room_id")
+  room             Room?               @relation(fields: [roomId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
   /// Optional label to tell apart two lines with the same category and room.
-  name          String              @default("")
+  name             String              @default("")
   /// The plan; can be edited only until the project budget is locked in.
-  plannedCents  BigInt              @default(0) @map("planned_cents")
+  plannedCents     BigInt              @default(0) @map("planned_cents")
   /// Copied from plannedCents when the budget is locked in; never changes after.
-  originalCents BigInt?             @map("original_cents")
-  estimateCents BigInt?             @map("estimate_cents")
-  notes         String?
-  createdAt     DateTime            @default(now()) @map("created_at")
-  updatedAt     DateTime            @updatedAt @map("updated_at")
-  adjustments   BudgetAdjustment[]
-  transfersOut  BudgetTransfer[]    @relation("TransferFrom")
-  transfersIn   BudgetTransfer[]    @relation("TransferTo")
-  commitments   Commitment[]
-  allocations   ExpenseAllocation[]
+  originalCents    BigInt?             @map("original_cents")
+  estimateCents    BigInt?             @map("estimate_cents")
+  /// Set when a room estimate (Milestone 5, part 3) keeps this line\'s estimate up to date.
+  estimateSourceId String?             @map("estimate_source_id")
+  estimateSource   RoomEstimate?       @relation("EstimateLines", fields: [estimateSourceId, workspaceId], references: [id, workspaceId], onDelete: NoAction)
+  notes            String?
+  createdAt        DateTime            @default(now()) @map("created_at")
+  updatedAt        DateTime            @updatedAt @map("updated_at")
+  adjustments      BudgetAdjustment[]
+  transfersOut     BudgetTransfer[]    @relation("TransferFrom")
+  transfersIn      BudgetTransfer[]    @relation("TransferTo")
+  commitments      Commitment[]
+  quotes           Quote[]
+  allocations      ExpenseAllocation[]
 
   @@unique([id, workspaceId])
   @@unique([projectId, categoryId, roomId, name], map: "budget_lines_unique_bucket")
+  @@index([estimateSourceId])
   @@index([workspaceId])
   @@index([projectId])
   @@map("budget_lines")
@@ -497,14 +517,20 @@ model Commitment {
   amountCents BigInt     @map("amount_cents")
   committedOn DateTime   @map("committed_on") @db.Date
   notes       String?
+  /// Set on a change order: the contract it changes.
+  contractId  String?    @map("contract_id")
+  contract    Contract?  @relation("ChangeOrders", fields: [contractId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
   createdById String?    @map("created_by_id")
   createdAt   DateTime   @default(now()) @map("created_at")
   updatedAt   DateTime   @updatedAt @map("updated_at")
   expenses    Expense[]
+  quote       Quote?
+  contractFor Contract?  @relation("ContractCommitment")
 
   @@unique([id, workspaceId])
   @@index([workspaceId])
   @@index([lineId])
+  @@index([contractId])
   @@map("commitments")
 }
 
@@ -526,6 +552,8 @@ model Expense {
   dueDate           DateTime?           @map("due_date") @db.Date
   totalCents        BigInt              @map("total_cents")
   notes             String?
+  /// For a contractor's bill: "deposit", "progress" or "final".
+  stage             String?
   createdById       String?             @map("created_by_id")
   createdAt         DateTime            @default(now()) @map("created_at")
   updatedAt         DateTime            @updatedAt @map("updated_at")
@@ -621,6 +649,8 @@ model Contractor {
   warranties         Warranty[]
   tasks              Task[]
   attachments        Attachment[]
+  quotes             Quote[]
+  contracts          Contract[]
 
   @@unique([id, workspaceId])
   @@unique([vendorId, workspaceId])
@@ -725,4 +755,180 @@ model Task {
   @@index([roomId])
   @@index([assigneeContractorId])
   @@map("tasks")
+}
+
+/// A price a contractor has given. Each new price is a revision; the
+/// latest is the one that counts. Approving it puts it in the budget as a
+/// commitment.
+model Quote {
+  id           String          @id
+  workspaceId  String          @map("workspace_id")
+  contractorId String          @map("contractor_id")
+  contractor   Contractor      @relation(fields: [contractorId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
+  projectId    String          @map("project_id")
+  project      Project         @relation(fields: [projectId, workspaceId], references: [id, workspaceId], onDelete: Cascade)
+  /// The budget line it was approved onto.
+  lineId       String?         @map("line_id")
+  line         BudgetLine?     @relation(fields: [lineId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
+  title        String
+  /// "received", "under_review", "approved" or "rejected".
+  status       String          @default("received")
+  validUntil   DateTime?       @map("valid_until") @db.Date
+  notes        String?
+  commitmentId String?         @unique @map("commitment_id")
+  commitment   Commitment?     @relation(fields: [commitmentId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
+  decidedAt    DateTime?       @map("decided_at")
+  decidedById  String?         @map("decided_by_id")
+  decisionNote String?         @map("decision_note")
+  createdById  String?         @map("created_by_id")
+  createdAt    DateTime        @default(now()) @map("created_at")
+  updatedAt    DateTime        @updatedAt @map("updated_at")
+  revisions    QuoteRevision[]
+  /// Optional: a room estimate to compare this quote\'s price with.
+  estimateId   String?         @map("estimate_id")
+  estimate     RoomEstimate?   @relation(fields: [estimateId, workspaceId], references: [id, workspaceId], onDelete: NoAction)
+  contract     Contract?
+  attachments  Attachment[]
+
+  @@unique([id, workspaceId])
+  @@unique([commitmentId, workspaceId])
+  @@index([workspaceId])
+  @@index([contractorId])
+  @@index([projectId])
+  @@map("quotes")
+}
+
+model QuoteRevision {
+  id             String   @id
+  workspaceId    String   @map("workspace_id")
+  quoteId        String   @map("quote_id")
+  quote          Quote    @relation(fields: [quoteId, workspaceId], references: [id, workspaceId], onDelete: Cascade)
+  revisionNumber Int      @map("revision_number")
+  amountCents    BigInt   @map("amount_cents")
+  receivedOn     DateTime @map("received_on") @db.Date
+  summary        String?
+  createdById    String?  @map("created_by_id")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  @@unique([quoteId, revisionNumber])
+  @@index([workspaceId])
+  @@map("quote_revisions")
+}
+
+/// A signed agreement with a contractor. Its value is its commitment's
+/// amount (one place for the number); change orders are commitments that
+/// point back at it.
+model Contract {
+  id           String       @id
+  workspaceId  String       @map("workspace_id")
+  contractorId String       @map("contractor_id")
+  contractor   Contractor   @relation(fields: [contractorId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
+  projectId    String       @map("project_id")
+  project      Project      @relation(fields: [projectId, workspaceId], references: [id, workspaceId], onDelete: Cascade)
+  quoteId      String?      @unique @map("quote_id")
+  quote        Quote?       @relation(fields: [quoteId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
+  commitmentId String       @unique @map("commitment_id")
+  commitment   Commitment   @relation("ContractCommitment", fields: [commitmentId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
+  title        String
+  signedOn     DateTime?    @map("signed_on") @db.Date
+  startDate    DateTime?    @map("start_date") @db.Date
+  endDate      DateTime?    @map("end_date") @db.Date
+  notes        String?
+  createdById  String?      @map("created_by_id")
+  createdAt    DateTime     @default(now()) @map("created_at")
+  updatedAt    DateTime     @updatedAt @map("updated_at")
+  changeOrders Commitment[] @relation("ChangeOrders")
+  attachments  Attachment[]
+
+  @@unique([id, workspaceId])
+  @@unique([quoteId, workspaceId])
+  @@unique([commitmentId, workspaceId])
+  @@index([workspaceId])
+  @@index([contractorId])
+  @@index([projectId])
+  @@map("contracts")
+}
+
+// ---------------------------------------------------------------------------
+// Room-based cost estimates (Milestone 5, part 3). docs/DATA_MODEL.md,
+// section 3, and docs/BUDGET_DEFINITIONS.md, "Room estimates".
+// ---------------------------------------------------------------------------
+
+/// A price the household reuses: flooring per sq ft, paint per gallon, trim per linear foot.
+model PriceItem {
+  id           String         @id
+  workspaceId  String         @map("workspace_id")
+  workspace    Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  name         String
+  /// What it's measured by: floor, walls, ceiling or perimeter.
+  measure      String
+  /// sq_ft, sq_m, lin_ft, lin_m (priced by size) or gallon, litre (priced by the can).
+  unit         String
+  priceCents   BigInt         @map("price_cents")
+  /// For paint: the area one gallon or litre covers, in square millimetres.
+  coverageMm2  Int?           @map("coverage_mm2")
+  coats        Int            @default(1)
+  /// Optional install price per sq ft, sq m, linear foot or metre (no waste, no tax).
+  laborCents   BigInt?        @map("labor_cents")
+  wastePercent Int            @default(0) @map("waste_percent")
+  taxable      Boolean        @default(true)
+  notes        String?
+  createdAt    DateTime       @default(now()) @map("created_at")
+  updatedAt    DateTime       @updatedAt @map("updated_at")
+  estimates    RoomEstimate[]
+
+  @@unique([id, workspaceId])
+  @@unique([workspaceId, name])
+  @@map("price_items")
+}
+
+/// One price-list item used in some of a project's rooms, kept in step with the budget.
+model RoomEstimate {
+  id                 String             @id
+  workspaceId        String             @map("workspace_id")
+  projectId          String             @map("project_id")
+  project            Project            @relation(fields: [projectId, workspaceId], references: [id, workspaceId], onDelete: Cascade)
+  priceItemId        String             @map("price_item_id")
+  priceItem          PriceItem          @relation(fields: [priceItemId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
+  name               String
+  materialCategoryId String             @map("material_category_id")
+  materialCategory   BudgetCategory     @relation("EstimateMaterialCategory", fields: [materialCategoryId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
+  laborCategoryId    String?            @map("labor_category_id")
+  laborCategory      BudgetCategory?    @relation("EstimateLaborCategory", fields: [laborCategoryId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
+  /// per_room: a budget line for each room; one_line: one line for the whole project.
+  lineMode           String             @default("per_room") @map("line_mode")
+  notes              String?
+  createdById        String?            @map("created_by_id")
+  createdAt          DateTime           @default(now()) @map("created_at")
+  updatedAt          DateTime           @updatedAt @map("updated_at")
+  areas              RoomEstimateArea[]
+  lines              BudgetLine[]       @relation("EstimateLines")
+  quotes             Quote[]
+
+  @@unique([id, workspaceId])
+  @@unique([projectId, name])
+  @@index([workspaceId])
+  @@index([priceItemId])
+  @@map("room_estimates")
+}
+
+/// A room in an estimate (measured from its size), or an area typed by hand.
+model RoomEstimateArea {
+  id          String       @id
+  workspaceId String       @map("workspace_id")
+  estimateId  String       @map("estimate_id")
+  estimate    RoomEstimate @relation(fields: [estimateId, workspaceId], references: [id, workspaceId], onDelete: Cascade)
+  roomId      String?      @map("room_id")
+  room        Room?        @relation(fields: [roomId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
+  label       String?
+  /// Typed by hand: square millimetres (or millimetres for a perimeter). Null: measure the room.
+  typedAmount Int?         @map("typed_amount")
+  enteredUnit String       @default("imperial") @map("entered_unit")
+  createdAt   DateTime     @default(now()) @map("created_at")
+
+  @@unique([id, workspaceId])
+  @@index([workspaceId])
+  @@index([estimateId])
+  @@index([roomId])
+  @@map("room_estimate_areas")
 }

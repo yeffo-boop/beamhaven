@@ -29,6 +29,7 @@ import {
   getProjectBudget,
   type GroupTotal,
 } from "@/server/services/budget";
+import { getEstimates } from "@/server/services/estimates";
 import { getProject } from "@/server/services/projects";
 import { getRooms } from "@/server/services/rooms";
 
@@ -41,11 +42,12 @@ export default async function ProjectBudgetPage({ params }: PageProps<"/projects
   const project = await orNotFound(getProject(ctx, id));
   const canEdit = can(ctx, "records:edit");
   const canApprove = can(ctx, "budget:approve");
-  const [budget, categories, rooms, choices] = await Promise.all([
+  const [budget, categories, rooms, choices, estimates] = await Promise.all([
     getProjectBudget(ctx, id),
     getCategories(ctx),
     canEdit ? getRooms(ctx) : Promise.resolve([]),
     canApprove ? getLineChoices(ctx) : Promise.resolve([]),
+    getEstimates(ctx, id),
   ]);
   const locked = budget.lock.lockedAt !== null;
   const transferChoices = choices
@@ -122,6 +124,54 @@ export default async function ProjectBudgetPage({ params }: PageProps<"/projects
             </div>
           </details>
         ) : null}
+      </Panel>
+
+      <Panel
+        title="Room estimates"
+        id="estimates"
+        actions={
+          canEdit ? (
+            <Button asChild size="sm" variant="outline">
+              <Link href={`/projects/${id}/estimates/new`}>Add a room estimate</Link>
+            </Button>
+          ) : null
+        }
+      >
+        <p className="text-sm text-muted-foreground">
+          Flooring, paint, trim and the like, priced from the{" "}
+          <Link href="/budget/prices" className="text-primary hover:underline">
+            price list
+          </Link>{" "}
+          and each room&apos;s size. They fill in the estimate on their budget lines.
+        </p>
+        {estimates.length === 0 ? (
+          <EmptyState>No room estimates yet.</EmptyState>
+        ) : (
+          <ul aria-label="Room estimates" className="divide-y divide-border">
+            {estimates.map((e) => (
+              <li
+                key={e.id}
+                className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 py-2.5"
+              >
+                <div className="flex min-w-0 flex-col">
+                  <Link href={`/estimates/${e.id}`} className="font-medium hover:underline">
+                    {e.name}
+                  </Link>
+                  <span className="text-xs text-muted-foreground">
+                    {[
+                      e.priceItem.name,
+                      `${e.areas.length} ${e.areas.length === 1 ? "room or area" : "rooms and areas"}`,
+                      e.result.unmeasured > 0 ? `${e.result.unmeasured} still to measure` : null,
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </span>
+                </div>
+                <Money cents={e.result.totalCents} className="text-sm" />
+              </li>
+            ))}
+          </ul>
+        )}
       </Panel>
 
       {budget.byRoom.length > 1 ? (

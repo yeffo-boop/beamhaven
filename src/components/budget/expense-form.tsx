@@ -8,6 +8,7 @@ import { FormFooter } from "@/components/records/form-footer";
 import { Button } from "@/components/ui/button";
 import { formatMoney, parseMoney } from "@/lib/money";
 import { saveExpenseAction } from "@/server/actions/budget";
+import { PAYMENT_STAGES, STAGE_LABELS } from "@/server/services/budget-inputs";
 
 import type { Choice } from "./forms";
 import { VendorList } from "./forms";
@@ -16,6 +17,8 @@ import { DateField } from "./today-input";
 import { useForm } from "./use-form";
 
 type Row = { key: number; lineId: string; amount: string; kind: string };
+
+const stageOptions = PAYMENT_STAGES.map((value) => ({ value, label: STAGE_LABELS[value] }));
 
 export type ExpenseFormValues = {
   id: string;
@@ -26,6 +29,7 @@ export type ExpenseFormValues = {
   dueDate: string;
   total: string;
   notes: string;
+  stage?: string;
   rows: { lineId: string; amount: string; kind: string }[];
 };
 
@@ -40,6 +44,7 @@ export function ExpenseForm({
   commitments,
   expense,
   defaultLineId,
+  defaults,
   cancelHref,
 }: {
   lines: Choice[];
@@ -47,6 +52,8 @@ export function ExpenseForm({
   commitments: Choice[];
   expense?: ExpenseFormValues;
   defaultLineId?: string;
+  /** A new contractor's bill starts linked to its agreement and named after them. */
+  defaults?: { commitmentId: string; vendorName: string };
   cancelHref: string;
 }) {
   const f = useForm(saveExpenseAction);
@@ -56,7 +63,10 @@ export function ExpenseForm({
   );
   const [total, setTotal] = useState(expense?.total ?? "");
   const value = (name: keyof ExpenseFormValues) =>
-    f.typed(name) ?? (expense?.[name] as string | undefined) ?? "";
+    f.typed(name) ??
+    (expense?.[name] as string | undefined) ??
+    (defaults as Record<string, string> | undefined)?.[name] ??
+    "";
 
   const totalCents = parseMoney(total);
   const typedCents = rows.reduce((sum, r) => sum + (parseMoney(r.amount) ?? 0n), 0n);
@@ -120,6 +130,17 @@ export function ExpenseForm({
             options={[{ value: "", label: "Not linked" }, ...commitments]}
             defaultValue={value("commitmentId")}
             error={f.error("commitmentId")}
+          />
+        ) : null}
+        {commitments.length > 0 ? (
+          <SelectField
+            id="expense-stage"
+            name="stage"
+            label="Payment stage (optional)"
+            hint="For a contractor's bill."
+            options={[{ value: "", label: "Not a stage payment" }, ...stageOptions]}
+            defaultValue={value("stage")}
+            error={f.error("stage")}
           />
         ) : null}
       </div>

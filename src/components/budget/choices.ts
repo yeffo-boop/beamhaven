@@ -18,6 +18,8 @@ export async function expenseFormChoices(ctx: WorkspaceContext) {
     commitments: commitments.map((c) => ({
       value: c.id,
       label: `${c.description} (${formatMoney(c.amountCents)}, ${lineTitle(c.line)})`,
+      lineId: c.line.id,
+      vendorName: c.vendorName,
     })),
     vendors: vendors.map((v) => v.name),
   };

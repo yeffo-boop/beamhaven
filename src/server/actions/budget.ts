@@ -224,6 +224,7 @@ function expenseFields(formData: FormData): ExpenseInput {
     dueDate: text(formData, "dueDate"),
     total: text(formData, "total"),
     notes: text(formData, "notes"),
+    stage: text(formData, "stage"),
     allocations: lines
       .map((lineId, index) => ({
         lineId,

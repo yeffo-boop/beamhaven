@@ -86,3 +86,25 @@ The kitchen has a Labor line with an **original budget of $20,000.00**.
 - **Viewers can see the budget**, read-only, like everything else in the household.
 - An expense's **paid status** (unpaid, partly paid, paid) is worked out from its payments, never stored. Payments can't add up to more than the expense.
 - A **refund** is charged back to the original expense's lines in the same proportions, and linked to the same commitment.
+
+## Decisions (Milestone 5)
+
+- A quote adds nothing to the budget until it is **approved**. Approving creates one commitment for the latest price, on a line of the quote's own project.
+- A **contract made from an approved quote takes over that same commitment** and sets it to the contract amount. It is never a second commitment, so the money is counted once.
+- A **change order** is a commitment of its own, linked to the contract, and can be negative (a credit). It can go on another line of the same project.
+- A contract's **total** = its commitment + its change orders. **Billed** and **paid** add up the expenses (and their payments) linked to any of those commitments.
+- A quote's, contract's or change order's commitment is changed **only on its own page**, never in the budget, so the two always agree. Bills linked to one keep it from being deleted.
+- Each bill can say which **payment stage** it is: deposit, progress payment or final payment. The stage is a label only; it changes no totals.
+
+## Room estimates (Milestone 5, part 3)
+
+A room estimate fills in the **estimate** of budget lines. It never sets the planned amount, and never creates a commitment or an expense, so the rules above don't change: an estimate still counts in the forecast only while the line has no commitment.
+
+- **Sizes** come from the room, assumed rectangular: floor and ceiling = length × width; walls = 2 × (length + width) × ceiling height, less every window and door; around the room (for baseboard and trim) = 2 × (length + width), less door widths. A room missing a size it needs shows "still to measure" and counts as zero until it's measured or a size is typed in.
+- **Material** = size × (1 + waste %) × price per sq ft, m², linear foot or metre. Paint (and anything priced by the can) is bought in **whole cans for all the rooms together**: cans = ⌈ total area × coats × (1 + waste %) ÷ coverage ⌉; that cost is shared out between the rooms by area, to the cent.
+- **Tax** = material × the household's sales tax rate, on taxable items only. Never on install.
+- **Install** = size × the install price (no waste).
+- Each row rounds to the cent once. The estimate's total is the sum of its rows.
+- **Where it goes:** material and tax on the material category's line, install on the labor category's line (or on the material line if none is chosen); one line per room, or one for the whole project. Areas typed in with no room go on a whole-project line. Lines are found by category, room and the estimate's name, and made when missing (after lock-in at $0, like any new line).
+- When a price, a room's size or openings, the tax rate or the estimate itself changes, its lines are updated straight away. A line it no longer needs loses the estimate; if the estimate made it and nothing else is on it, it's deleted.
+- A **quote can be compared** with one of its project's estimates: the difference, and both prices per sq ft (or per foot) over the estimate's measured size.

@@ -18,7 +18,16 @@ import { createRateLimiter } from "@/server/security/rate-limit";
 const uploadLimiter = createRateLimiter({ max: 300, windowMs: 60 * 60 * 1000 });
 
 const targetSchema = z.object({
-  targetKind: z.enum(["property", "project", "room", "expense", "contractor", "warranty"]),
+  targetKind: z.enum([
+    "property",
+    "project",
+    "room",
+    "expense",
+    "contractor",
+    "warranty",
+    "quote",
+    "contract",
+  ]),
   targetId: z.string().min(1).max(64),
   caption: z.string().max(300).optional(),
 });

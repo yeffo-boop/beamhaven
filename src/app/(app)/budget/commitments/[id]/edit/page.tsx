@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 import { CommitmentForm } from "@/components/budget/forms";
 import { ProblemNotice } from "@/components/budget/problem-notice";
@@ -12,6 +12,7 @@ import { deleteCommitmentAction } from "@/server/actions/budget";
 import { can } from "@/server/auth/permissions";
 import { getWorkspaceContext } from "@/server/auth/workspace";
 import { lineTitle } from "@/server/data/budget";
+import { getCommitmentAgreement } from "@/server/services/agreements";
 import { getLineChoices } from "@/server/services/budget";
 import { getCommitment, getVendors } from "@/server/services/expenses";
 
@@ -26,6 +27,9 @@ export default async function EditCommitmentPage({
   const ctx = await getWorkspaceContext();
   if (!ctx) notFound();
   const commitment = await orNotFound(getCommitment(ctx, id));
+  // A quote's or contract's money is changed on its own page.
+  const agreement = await getCommitmentAgreement(ctx, id);
+  if (agreement) redirect(agreement.path);
   const canEdit = can(ctx, "records:edit");
   const [lines, vendors] = await Promise.all([
     canEdit ? getLineChoices(ctx) : Promise.resolve([]),

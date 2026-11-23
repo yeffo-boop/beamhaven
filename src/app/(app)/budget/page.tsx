@@ -28,14 +28,19 @@ export default async function BudgetPage() {
         title="Budget"
         description="Every project's budget, what's agreed, spent and paid."
         actions={
-          canEdit && withLines.length > 0 ? (
-            <Button asChild>
-              <Link href="/budget/expenses/new">
-                <Plus aria-hidden="true" />
-                Add expense
-              </Link>
+          <>
+            <Button asChild variant="outline">
+              <Link href="/budget/prices">Price list</Link>
             </Button>
-          ) : null
+            {canEdit && withLines.length > 0 ? (
+              <Button asChild>
+                <Link href="/budget/expenses/new">
+                  <Plus aria-hidden="true" />
+                  Add expense
+                </Link>
+              </Button>
+            ) : null}
+          </>
         }
       />
 

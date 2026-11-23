@@ -4,6 +4,59 @@ Newest entries at the top. Each entry records what was done, which files changed
 
 ---
 
+## 2026-11-23: Milestone 5, part 3 (room estimates, price list, sales tax), built
+
+Jeff asked for flooring estimates (a price per sq ft, pick the rooms), then paint, and said to include the price list, sales tax and quote comparison too.
+
+### Done
+
+- **Database** (one migration, `20261123230000_room_estimates`): a price list, room estimates and their rooms or typed areas, a household sales tax rate, and links from budget lines and quotes to an estimate. It only adds tables and columns; no existing data changes.
+- **Price list** (Budget → Price list): items priced per sq ft, m², linear foot or metre, or per gallon or litre with coverage and coats, an optional install price, a waste allowance and whether tax applies. Presets for flooring, tile, wall paint (per gallon or per sq ft), ceiling paint and baseboard.
+- **Sales tax** on materials, set once for the household.
+- **Room estimates** (on a project's budget page): pick an item and tick the rooms. Each room's floor, wall or ceiling area, or the length around it, is worked out from its size (walls leave out windows and doors, trim leaves out doorways), with waste, tax and install. Paint is bought in whole gallons for all the rooms together. Rooms that aren't rectangles, and spaces like shower walls, can have a size typed in.
+- **Into the budget:** the result fills in the estimate on its own budget lines (one per room, or one for the project), material and install on their own categories. It updates by itself when a price, a room's size, the tax rate or the estimate changes (ADR-027).
+- **Quote comparison:** a quote can be compared with one of its project's estimates: the difference, and both as a price per sq ft.
+
+### Tests (cloud workspace, 2026-11-23)
+
+- Lint, formatting and type check: passed.
+- Unit tests: 123 of 123 passed. The 9 new ones check floor, wall, ceiling and trim sizes and the flooring, paint, trim and metric prices against hand calculations.
+- Integration tests: 82 of 82 passed. The 8 new ones cover flooring into budget lines, updates after price, room, tax and room-choice changes, paint by the gallon with typed sizes, letting go of lines (keeping one with money on it), the price list rules, the quote comparison, household isolation (in the code and in the database), and viewers.
+- End-to-end tests: 51 passed, 16 skipped on purpose. New: adding flooring from a preset, the tax rate, a room estimate over two rooms with the exact totals, a typed closet, and the budget lines; and no sideways scrolling on the price list.
+- Production build with no secrets set: passed.
+
+### Next
+
+Jeff's review of the three Milestone 5 pull requests, then updating the VM.
+
+---
+
+## 2026-11-23: Milestone 5, part 2 (quotes, contracts, change orders, contractor payments), built
+
+### Done
+
+- **Database** (one migration, `20261123220000_quotes_contracts`): quotes, quote revisions and contracts; change orders as commitments linked to a contract; a payment stage on expenses; documents on quotes and contracts. It only adds tables and columns; no existing data changes.
+- **Quotes** (from a contractor's or project's page): every price the contractor sends is kept as a version. Mark as under review, approve onto a budget line of the quote's project (the latest price becomes a commitment), turn down with a reason, reopen, or take an approval back.
+- **Contracts**: made from an approved quote (it takes over the quote's place in the budget, so nothing is counted twice, ADR-026) or from scratch with a contractor and a budget line. Signed, start and end dates; documents.
+- **Change orders** on a contract: extra work or a credit (a minus amount), on the contract's line or another line of the same project.
+- **Contractor payments**: "Add a bill" on the contract opens a new expense already linked to it, with a payment stage (deposit, progress payment, final payment). The contract page shows the contract amount, change orders, total agreed, billed, paid and what's still to pay.
+- **The budget stays in step**: a quote's or contract's commitment can only be changed on its own page; the budget's commitment page sends you there.
+- Contractor and project pages list their quotes and contracts.
+
+### Tests (cloud workspace, 2026-11-23)
+
+- Lint, formatting and type check: passed.
+- Unit tests: 114 of 114 passed.
+- Integration tests: 74 of 74 passed. The 11 new ones cover revisions, approval into the budget, the budget-side lock, taking an approval back, turning down and reopening, a contract taking over the quote's commitment (budget totals checked line by line), change orders including a credit, staged bills and payments, what can and can't be deleted, contracts without a quote, household isolation (in the code and in the database), and viewers.
+- End-to-end tests: 47 passed, 14 skipped on purpose. New: the whole journey from a quote, a revised price and approval, to a contract, a change order and a deposit bill; and no sideways scrolling on quote and contract pages at laptop, iPad and phone sizes.
+- Production build with no secrets set: passed.
+
+### Next
+
+Part 3 (Jeff, 2026-11-23): room-based cost estimates for flooring, paint and trim, typed areas for odd spaces, a price list, sales tax on materials, and a quote compared with your own estimate.
+
+---
+
 ## 2026-11-23: Milestone 5, part 1 (contractor directory, log, warranties, tasks), built
 
 Jeff approved Milestone 5. It comes in two parts; part 2 (quotes, contracts, change orders and contractor payments) follows.
