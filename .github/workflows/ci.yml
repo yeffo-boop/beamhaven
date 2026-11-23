@@ -51,3 +51,7 @@ jobs:
         run: npm run test:integration
       - name: Production build
         run: npm run build
+      - name: Install the browser for end-to-end tests
+        run: npx playwright install --with-deps chromium
+      - name: End-to-end tests (laptop, iPad and phone sizes)
+        run: npm run test:e2e

@@ -4,7 +4,37 @@ Newest entries at the top. Each entry records what was done, which files changed
 
 ---
 
-## 2026-11-23: Milestone 1, step 2 (local database and Prisma), in review
+## 2026-11-23: Milestone 1, step 3 (app shell), in review
+
+### Done
+
+- **The app shell** from `docs/UI_DIRECTION.md`:
+  - laptop and iPad landscape: the full sidebar with groups;
+  - iPad portrait: a 72px icon rail;
+  - phone: a top bar, a bottom tab bar (Home, Projects, Budget, Schedule) and a "More" sheet.
+- **Navigation:** defined once in `src/config/navigation.ts`, with Lucide icons and the current page highlighted (`aria-current`).
+- **Placeholder pages** for every section, each saying which milestone builds it. Settings has a working **Appearance** switch (match device, light or dark), saved per browser and applied before the page paints, so there's no flash.
+- **shadcn/ui-style building blocks:** `Button` and `Sheet` (on Radix), the `cn()` helper, and `components.json`. The shadcn website is blocked from the cloud workspace, so these two were written by hand in shadcn's style. Jeff's Mac can use `npx shadcn add` for more.
+- **Tailwind color names** now follow shadcn's convention, mapped to the spruce palette.
+- **Accessibility:** a "Skip to content" link, labelled navigation landmarks, and 40–48px touch targets.
+- **Playwright end-to-end tests** at laptop, iPad-portrait and phone sizes, now also run in CI.
+
+### Tests (cloud workspace, 2026-11-23)
+
+- Lint, formatting and type check: passed.
+- Unit tests: 8 of 8 passed.
+- Production build: passed. All pages are static except `/api/health`.
+- End-to-end tests: 8 passed. 4 were skipped on purpose (each test only runs at the screen sizes it applies to).
+- Screenshots reviewed at laptop (light and dark), iPad portrait and phone sizes.
+- Not yet checked on Jeff's Mac or iPad.
+
+### Next step
+
+Jeff reviews the shell on his Mac (and iPad, if he likes). Then we wrap up Milestone 1 and plan Milestone 2 (sign-in and households).
+
+---
+
+## 2026-11-23: Milestone 1, step 2 (local database and Prisma), done (merged in PR #3)
 
 ### Done
 
