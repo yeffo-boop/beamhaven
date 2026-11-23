@@ -183,3 +183,15 @@ Statuses: **Proposed** (waiting for Jeff) · **Accepted** · **Superseded**
   - Backups: `scripts/server/backup.sh` (a `pg_dump` plus a tar of uploads, kept 14 days on the VM) and `restore.sh` (asks you to type RESTORE first). Off-site copies wait for Milestone 10, since there is no backup destination yet.
   - CI builds both images and starts the stack on every pull request.
 - **Why:** each piece stays small and replaceable. The website image carries nothing it doesn't need. Migrations run before every start. Building on the VM is the simplest thing that works while there's one server.
+
+## ADR-022: Records, measurements and private photo storage (Milestone 3)
+
+- **Status:** Accepted (2026-11-23)
+- **Decision:**
+  - **Composite foreign keys** `(id, workspace_id)` on every household table, so the database itself refuses links between households (see `docs/DATA_MODEL.md`). The code still checks first and answers 404.
+  - **Measurements** are typed as text (`12' 4 1/2"`, `10ft`, `3.76 m`) and parsed by `src/lib/units.ts` into whole millimetres, with the unit that was typed. They are shown to the nearest ⅛ inch or in metres. Floor and wall areas are worked out when shown and labelled "estimate"; they're never stored.
+  - **Photos** go to `POST /api/uploads` (a route handler, not a Server Action: Server Actions accept only 1 MB by default, and the route can refuse an oversized upload before reading it). The route checks the household and role, that the request came from our own address, a rate limit (300 an hour per person), and the size. The type is read from the file's first bytes (JPEG, PNG, WebP, HEIC, AVIF); SVG, HTML and anything else are refused.
+  - **Storage:** a `StorageProvider` interface with one implementation, the local disk (`STORAGE_LOCAL_PATH`, a Docker volume on the server). Keys are `<workspaceId>/<random hex>`, never from the file name. Files are written to a temporary name and then renamed, so a half-written file is never served.
+  - **Downloads** go through `GET /api/files/<id>`, which answers 404 unless the file belongs to the viewer's household, and sends `nosniff`, a locked-down Content-Security-Policy and a private cache header.
+  - Deleting a project or room deletes its photos' records and bytes. The activity history (`activity_events`) is written by the services and never deleted.
+- **Why:** the database refusal is a second lock behind the code. Text input for lengths matches how people read a tape measure. Checking file contents, not names, is what stops a disguised script from being served back to a browser. An S3-compatible provider can be added later behind the same interface.

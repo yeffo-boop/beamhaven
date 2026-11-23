@@ -8,4 +8,6 @@ export const e2eServerEnv = {
   BETTER_AUTH_SECRET: "e2e-tests-only-secret-0123456789abcdef",
   // Read the per-test X-Real-IP header (see fixtures.ts), as in production.
   TRUST_PROXY: "true",
+  // Uploaded files from the tests stay in the (Git-ignored) test-results folder.
+  STORAGE_LOCAL_PATH: "test-results/e2e-uploads",
 };

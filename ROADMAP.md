@@ -82,7 +82,7 @@ The MVP is not "finished" until **Milestone 10** puts it in production with auto
 
 **Acceptance:** both of us can log in; an invitation works from end to end; the isolation tests pass.
 
-## Milestone 2.5: Staging Deployment 🟡 (live; backup test and SSH keys left)
+## Milestone 2.5: Staging Deployment ✅ (SSH keys still to set up)
 
 **Depends on:** Milestone 2.
 
@@ -96,7 +96,7 @@ The MVP is not "finished" until **Milestone 10** puts it in production with auto
 
 **Acceptance:** we can log in over the public HTTPS URL, and the database port cannot be reached from outside the VM.
 
-## Milestone 3: Properties, Projects, Rooms and File Storage ⬜
+## Milestone 3: Properties, Projects, Rooms and File Storage 🟡 (built; waiting for Jeff to check)
 
 **Depends on:** Milestone 2 (2.5 recommended).
 

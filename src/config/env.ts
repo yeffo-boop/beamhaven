@@ -31,6 +31,11 @@ export const envSchema = z.object({
     .enum(["true", "false"])
     .default("false")
     .transform((value) => value === "true"),
+  // Where uploaded files are kept: a Docker volume on the server, a folder
+  // in the project (ignored by Git) on your Mac. Never inside public/.
+  STORAGE_LOCAL_PATH: z.string().min(1).default("./data/uploads"),
+  // Largest single upload. Nginx Proxy Manager's client_max_body_size must be at least this.
+  UPLOAD_MAX_MB: z.coerce.number().int().min(1).max(500).default(25),
 });
 
 export type Env = z.infer<typeof envSchema>;
