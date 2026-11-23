@@ -183,3 +183,9 @@ Statuses: **Proposed** (waiting for Jeff) · **Accepted** · **Superseded**
   - Backups: `scripts/server/backup.sh` (a `pg_dump` plus a tar of uploads, kept 14 days on the VM) and `restore.sh` (asks you to type RESTORE first). Off-site copies wait for Milestone 10, since there is no backup destination yet.
   - CI builds both images and starts the stack on every pull request.
 - **Why:** each piece stays small and replaceable. The website image carries nothing it doesn't need. Migrations run before every start. Building on the VM is the simplest thing that works while there's one server.
+
+## ADR-022: The "Post & Beam" logo
+
+- **Status:** Accepted (2026-11-23)
+- **Decision:** the mark is a gable roof resting on one long beam that runs past two posts, drawn on the same 24-unit grid and 2-unit stroke as our Lucide icons, in spruce. In the app it sits on a spruce rounded-square tile (`BrandMark`), and the same drawing makes the favicon, `icon.svg` and the Apple touch icon. The wordmark is the product name in Geist semibold with slightly tight letter spacing, so it still comes from `brand.name` and changes with it. The bare mark is kept in `docs/brand/mark.svg`.
+- **Why:** Jeff chose it from four directions (Post & Beam, Callout, Two-bowl B, Fanlight). It reads clearly at 16 pixels and doesn't depend on the name, which is still provisional (ADR-015). The roof, beam and posts tie it to the "Beam" in the name and to timber framing.
