@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useId, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import type { AttachmentTarget } from "@/server/data/files";
 
 /**
  * Picks one or more photos and uploads them to the record. On an iPad or
@@ -13,14 +14,14 @@ import { Button } from "@/components/ui/button";
 export function PhotoUploader({
   targetKind,
   targetId,
-  receipts = false,
+  noun = "photo",
 }: {
-  targetKind: "property" | "project" | "room" | "expense";
+  targetKind: AttachmentTarget["kind"];
   targetId: string;
-  /** Receipts also accept PDFs. */
-  receipts?: boolean;
+  /** Receipts and documents also accept PDFs. */
+  noun?: "photo" | "receipt" | "document";
 }) {
-  const noun = receipts ? "receipt" : "photo";
+  const acceptsPdf = noun !== "photo";
   const router = useRouter();
   const inputId = useId();
   const input = useRef<HTMLInputElement>(null);
@@ -63,7 +64,7 @@ export function PhotoUploader({
         ref={input}
         id={inputId}
         type="file"
-        accept={`image/jpeg,image/png,image/webp,image/heic,image/heif,image/avif${receipts ? ",application/pdf" : ""}`}
+        accept={`image/jpeg,image/png,image/webp,image/heic,image/heif,image/avif${acceptsPdf ? ",application/pdf" : ""}`}
         multiple
         className="sr-only"
         onChange={(event) => void upload(event.target.files)}
@@ -75,7 +76,7 @@ export function PhotoUploader({
           className={status.busy ? "pointer-events-none opacity-50" : "cursor-pointer"}
         >
           <ImagePlus aria-hidden="true" />
-          {receipts ? "Add receipt" : "Add photos"}
+          {noun === "receipt" ? "Add receipt" : noun === "document" ? "Add document" : "Add photos"}
         </label>
       </Button>
       <p

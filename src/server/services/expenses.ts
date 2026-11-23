@@ -12,11 +12,13 @@ import {
   deleteExpenseRow,
   deletePaymentRow,
   type ExpenseDetail,
+  type ExpenseSummary,
   findExpense,
   findOrCreateVendor,
   insertCommitment,
   insertPaymentChecked,
   listCommitments,
+  listExpenses,
   listVendors,
   refundedSoFar,
   saveExpenseRows,
@@ -118,6 +120,19 @@ async function commitmentActivity(ctx: WorkspaceContext, lineId: string, summary
 export type ExpenseInput = Omit<FormInput<typeof expenseInput>, "allocations"> & {
   allocations?: { lineId?: string; amount?: string; kind?: string }[];
 };
+
+/** What's been agreed with and billed by one shop, supplier or contractor. */
+export async function getVendorMoney(
+  ctx: WorkspaceContext,
+  vendorId: string,
+): Promise<{ commitments: CommitmentRecord[]; expenses: ExpenseSummary[] }> {
+  assertCan(ctx, "records:view");
+  const [commitments, expenses] = await Promise.all([
+    listCommitments(ctx, { vendorId }),
+    listExpenses(ctx, { vendorId, limit: 100 }),
+  ]);
+  return { commitments, expenses };
+}
 
 export async function getExpense(ctx: WorkspaceContext, id: string): Promise<ExpenseDetail> {
   assertCan(ctx, "records:view");

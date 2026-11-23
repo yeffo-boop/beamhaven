@@ -4,6 +4,8 @@ import { notFound } from "next/navigation";
 
 import { Available, Money } from "@/components/budget/money";
 import { ProblemNotice } from "@/components/budget/problem-notice";
+import { AddContractorToProjectForm, TaskForm, WarrantyForm } from "@/components/contractors/forms";
+import { ProjectContractorList, TaskList, WarrantyList } from "@/components/contractors/lists";
 import { PageHeader } from "@/components/page-header";
 import { ActivityList } from "@/components/records/activity-list";
 import { ConfirmAction } from "@/components/records/confirm-action";
@@ -20,8 +22,11 @@ import { getWorkspaceContext } from "@/server/auth/workspace";
 import { getActivity } from "@/server/services/activity";
 import { getPhotos } from "@/server/services/attachments";
 import { getProjectBudget } from "@/server/services/budget";
+import { getRecordChoices, NO_CHOICES } from "@/server/services/choices";
+import { getProjectContractors } from "@/server/services/contractors";
 import { getProject } from "@/server/services/projects";
 import { getRooms } from "@/server/services/rooms";
+import { getTasks, getWarranties } from "@/server/services/tasks";
 
 export const metadata = { title: "Project" };
 
@@ -32,12 +37,20 @@ export default async function ProjectPage({ params, searchParams }: PageProps<"/
   if (!ctx) notFound();
   const project = await orNotFound(getProject(ctx, id));
   const canEdit = can(ctx, "records:edit");
-  const [photos, activity, allRooms, budget] = await Promise.all([
-    getPhotos(ctx, { kind: "project", id }),
-    getActivity(ctx, "project", id),
-    canEdit ? getRooms(ctx) : Promise.resolve([]),
-    getProjectBudget(ctx, id),
-  ]);
+  const [photos, activity, allRooms, budget, contractors, tasks, warranties, choices] =
+    await Promise.all([
+      getPhotos(ctx, { kind: "project", id }),
+      getActivity(ctx, "project", id),
+      canEdit ? getRooms(ctx) : Promise.resolve([]),
+      getProjectBudget(ctx, id),
+      getProjectContractors(ctx, id),
+      getTasks(ctx, { projectId: id }),
+      getWarranties(ctx, { projectId: id }),
+      canEdit ? getRecordChoices(ctx) : Promise.resolve(NO_CHOICES),
+    ]);
+  const today = new Date();
+  const onProject = new Set(contractors.map((c) => c.contractorId));
+  const projectRoomChoices = project.rooms.map((r) => ({ value: r.roomId, label: r.roomName }));
   const needsLockIn =
     project.status === "in_progress" && budget.lock.lockedAt === null && budget.lines.length > 0;
   const propertyRooms = allRooms.filter((room) => room.propertyId === project.propertyId);
@@ -167,6 +180,65 @@ export default async function ProjectPage({ params, searchParams }: PageProps<"/
               to link it to this project.
             </p>
           )
+        ) : null}
+      </Panel>
+
+      <Panel
+        title="Contractors"
+        id="contractors"
+        actions={
+          canEdit ? (
+            <Button asChild variant="outline" size="sm">
+              <Link href="/contractors/new">New contractor</Link>
+            </Button>
+          ) : null
+        }
+      >
+        <ProjectContractorList contractors={contractors} projectId={id} canEdit={canEdit} />
+        {canEdit && choices.contractors.some((c) => !onProject.has(c.value)) ? (
+          <details className="rounded-[var(--radius-control)] border border-border p-3">
+            <summary className="cursor-pointer text-sm font-medium">Add a contractor</summary>
+            <div className="mt-3">
+              <AddContractorToProjectForm
+                projectId={id}
+                contractors={choices.contractors.filter((c) => !onProject.has(c.value))}
+              />
+            </div>
+          </details>
+        ) : null}
+      </Panel>
+
+      <Panel title="Tasks" id="tasks">
+        {canEdit ? (
+          <details className="rounded-[var(--radius-control)] border border-border p-3">
+            <summary className="cursor-pointer text-sm font-medium">Add a task</summary>
+            <div className="mt-3">
+              <TaskForm
+                fixed={{ projectId: id }}
+                assignees={choices.assignees}
+                projects={choices.projects}
+                rooms={projectRoomChoices}
+              />
+            </div>
+          </details>
+        ) : null}
+        <TaskList tasks={tasks} canEdit={canEdit} today={today} show={["room"]} />
+      </Panel>
+
+      <Panel title="Warranties" id="warranties">
+        <WarrantyList warranties={warranties} today={today} show={["contractor", "room"]} />
+        {canEdit ? (
+          <details className="rounded-[var(--radius-control)] border border-border p-3">
+            <summary className="cursor-pointer text-sm font-medium">Add a warranty</summary>
+            <div className="mt-3">
+              <WarrantyForm
+                fixed={{ projectId: id }}
+                contractors={choices.contractors}
+                projects={choices.projects}
+                rooms={projectRoomChoices}
+              />
+            </div>
+          </details>
         ) : null}
       </Panel>
 

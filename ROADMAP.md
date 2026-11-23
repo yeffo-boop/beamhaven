@@ -124,7 +124,7 @@ The MVP is not "finished" until **Milestone 10** puts it in production with auto
 
 **Acceptance:** the numbers match a hand-worked example spreadsheet; transfers preserve the totals; the tests pass.
 
-## Milestone 5: Contractors (MVP Complete) ⬜
+## Milestone 5: Contractors (MVP Complete) 🟡
 
 **Depends on:** Milestone 4.
 

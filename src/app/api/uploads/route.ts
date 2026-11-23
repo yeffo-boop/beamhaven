@@ -4,7 +4,13 @@ import { z } from "zod";
 import { getEnv } from "@/config/env";
 import { PermissionError } from "@/server/auth/permissions";
 import { getWorkspaceContext } from "@/server/auth/workspace";
-import { UploadError, uploadPhoto, uploadReceipt } from "@/server/services/attachments";
+import {
+  purposeFor,
+  uploadDocument,
+  UploadError,
+  uploadPhoto,
+  uploadReceipt,
+} from "@/server/services/attachments";
 import { NotFoundError } from "@/server/services/errors";
 import { createRateLimiter } from "@/server/security/rate-limit";
 
@@ -12,14 +18,15 @@ import { createRateLimiter } from "@/server/security/rate-limit";
 const uploadLimiter = createRateLimiter({ max: 300, windowMs: 60 * 60 * 1000 });
 
 const targetSchema = z.object({
-  targetKind: z.enum(["property", "project", "room", "expense"]),
+  targetKind: z.enum(["property", "project", "room", "expense", "contractor", "warranty"]),
   targetId: z.string().min(1).max(64),
   caption: z.string().max(300).optional(),
 });
 
 /**
- * Uploads photos to a property, project or room, or receipts (photos or
- * PDFs) to an expense: POST multipart/form-data with targetKind, targetId
+ * Uploads photos to a property, project or room, receipts (photos or
+ * PDFs) to an expense, or documents (photos or PDFs) to a contractor or
+ * warranty: POST multipart/form-data with targetKind, targetId
  * and one or more "file" fields.
  *
  * Server Actions check the request's origin for us; this route does it
@@ -69,10 +76,13 @@ export async function POST(request: Request) {
     for (const file of files) {
       const bytes = new Uint8Array(await file.arrayBuffer());
       const upload = { name: file.name, bytes, caption: parsed.data.caption ?? null };
+      const purpose = purposeFor(target.kind);
       const { attachmentId } =
-        target.kind === "expense"
+        purpose === "receipt"
           ? await uploadReceipt(ctx, target.id, upload)
-          : await uploadPhoto(ctx, target, upload);
+          : purpose === "document"
+            ? await uploadDocument(ctx, target, upload)
+            : await uploadPhoto(ctx, target, upload);
       uploaded.push(attachmentId);
     }
   } catch (error) {

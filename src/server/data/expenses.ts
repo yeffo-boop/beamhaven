@@ -115,7 +115,7 @@ export async function deleteCommitmentRow(
 
 export async function listCommitments(
   ctx: WorkspaceContext,
-  where: { projectId?: string; lineId?: string; id?: string } = {},
+  where: { projectId?: string; lineId?: string; id?: string; vendorId?: string } = {},
 ): Promise<CommitmentRecord[]> {
   const prisma = getPrisma();
   const rows = await prisma.commitment.findMany({
@@ -123,6 +123,7 @@ export async function listCommitments(
       workspaceId: ctx.workspaceId,
       ...(where.id ? { id: where.id } : {}),
       ...(where.lineId ? { lineId: where.lineId } : {}),
+      ...(where.vendorId ? { vendorId: where.vendorId } : {}),
       ...(where.projectId ? { line: { projectId: where.projectId } } : {}),
     },
     orderBy: [{ committedOn: "desc" }, { createdAt: "desc" }],
@@ -241,7 +242,7 @@ export type ExpenseSummary = {
 
 export async function listExpenses(
   ctx: WorkspaceContext,
-  where: { projectId?: string; lineId?: string; limit?: number } = {},
+  where: { projectId?: string; lineId?: string; vendorId?: string; limit?: number } = {},
 ): Promise<ExpenseSummary[]> {
   const prisma = getPrisma();
   const allocationFilter = where.lineId
@@ -252,6 +253,7 @@ export async function listExpenses(
   const rows = await prisma.expense.findMany({
     where: {
       workspaceId: ctx.workspaceId,
+      ...(where.vendorId ? { vendorId: where.vendorId } : {}),
       ...(allocationFilter ? { allocations: { some: allocationFilter } } : {}),
     },
     orderBy: [{ expenseDate: "desc" }, { createdAt: "desc" }],

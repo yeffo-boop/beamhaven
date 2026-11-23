@@ -208,3 +208,18 @@ Statuses: **Proposed** (waiting for Jeff) · **Accepted** · **Superseded**
   - **Receipts** reuse the Milestone 3 storage. PDFs are accepted for receipts only (detected by their first bytes) and are always sent as downloads.
   - Paid status is calculated from payments rather than stored, so it can never disagree with them.
 - **Why:** money mistakes are the costliest kind, so each rule is enforced twice (code and database), and the math is kept in one small, heavily tested file.
+
+## ADR-024: Contractors are vendors with more details (Milestone 5)
+
+**Date:** 2026-11-23. **Status:** accepted.
+
+**Context.** The budget (Milestone 4) already records a "shop or supplier" (a `Vendor`) on commitments and expenses. Contractors need a directory with license, insurance and a log, and their bills need to show up on their page.
+
+**Decision.**
+
+- A `Contractor` row points at one `Vendor`, and the **name lives on the vendor**. Adding a contractor whose name matches an existing shop or supplier takes that record over, so earlier bills appear on the contractor's page. Renaming the contractor renames the vendor. Deleting a contractor keeps the vendor, because bills in the budget still name it.
+- Links between records always include the household (composite foreign keys). Optional ones use `RESTRICT`, and the services clear them before deleting the other side, because `SET NULL` on a composite key would also clear `workspace_id`.
+- Documents (license, insurance certificate, warranty paperwork) are attachments with purpose `document`: photos or PDFs, checked by their contents like receipts.
+- License, insurance and warranty dates show a warning from 30 days before they run out. There are no email reminders yet (no email is set up, ADR-020).
+
+**Consequences.** One place for a contractor's money, with no copying of names. A typo in an old bill's shop name stays a separate vendor until it's corrected there.

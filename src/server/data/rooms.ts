@@ -1,6 +1,7 @@
 import "server-only";
 
 import { getPrisma } from "./client";
+import { unlinkProjectOrRoom } from "./contractors";
 import type { WorkspaceContext } from "./context";
 import { newId } from "./ids";
 
@@ -156,6 +157,7 @@ export async function deleteRoomRow(
       where: { roomId: id, workspaceId: ctx.workspaceId },
     });
     if (lines > 0) return { deleted: false, hasBudget: true, fileIds: [] };
+    const warrantyFiles = await unlinkProjectOrRoom(tx, ctx.workspaceId, { roomId: id });
     const attachments = await tx.attachment.findMany({
       where: { roomId: id, workspaceId: ctx.workspaceId },
       select: { fileId: true },
@@ -164,7 +166,7 @@ export async function deleteRoomRow(
     return {
       deleted: result.count === 1,
       hasBudget: false,
-      fileIds: attachments.map((a) => a.fileId),
+      fileIds: [...warrantyFiles, ...attachments.map((a) => a.fileId)],
     };
   });
 }
