@@ -61,8 +61,8 @@ Statuses: **Proposed** (waiting for Jeff) · **Accepted** · **Superseded**
 - **Decision:**
   - `src/app/`: pages and Server Actions only. Kept thin.
   - `src/server/services/`: business rules (for example "transfer budget"). These are plain TypeScript and easy to test.
-  - `src/server/data/`: the **only** code that talks to Prisma. Every function requires a `HouseholdContext` (the user ID, household ID and role) and filters by `householdId`.
-  - `src/server/auth/`: functions that check the session and permissions (`requireUser()`, `requireHouseholdRole()`).
+  - `src/server/data/`: the **only** code that talks to Prisma. Every household function requires a `WorkspaceContext` (the user ID, household ID and role) and filters by `workspaceId`. _(Renamed from `HouseholdContext` / `householdId` in Milestone 2, see ADR-017.)_
+  - `src/server/auth/`: functions that check the session and permissions (`requireUser()`, `requireWorkspace()`, `can()`, `assertCan()`).
 - **Why:** if a page forgets to check permissions, the data layer still refuses to return another household's data. A lint rule will block importing Prisma anywhere outside `src/server/data/`.
 - **Later option:** PostgreSQL Row-Level Security as a second layer of protection, before any commercial launch.
 
@@ -135,7 +135,7 @@ Statuses: **Proposed** (waiting for Jeff) · **Accepted** · **Superseded**
 - **Decision:** don't build any of it yet, but don't block it:
   - Better Auth's organization is treated as a generic **workspace**. In the interface it is called a household, but nothing in the data assumes a homeowner, and a workspace could later have a type such as `household` or `company`.
   - Permissions stay in one `can(context, action, resource)` function (ADR-007), so a project-scoped **client** role can be added later.
-  - Every table stays scoped by workspace (`householdId`). Records a client might later see (projects, budget, files, schedule) also carry their `projectId`, so access can be narrowed to one project.
+  - Every table stays scoped by workspace (`workspaceId`; in code a household is a _workspace_). Records a client might later see (projects, budget, files, schedule) also carry their `projectId`, so access can be narrowed to one project.
   - Bids should grow out of the quote, commitment and budget models, rather than a parallel system.
 - **Not decided:** billing, public sign-up and the client portal's design. Each needs Jeff's go-ahead first.
 
@@ -149,3 +149,14 @@ Statuses: **Proposed** (waiting for Jeff) · **Accepted** · **Superseded**
   - The client IP used for rate limiting is read only from `X-Real-IP`, and only when `TRUST_PROXY=true`, because Nginx Proxy Manager overwrites that header with the real address, so visitors can't fake it. To check during Milestone 2.5: that NPM sets it.
   - Integration and end-to-end tests use a separate database named `<your database>_test`, which they create and empty themselves. They refuse to empty any database whose name doesn't end in `_test`.
 - **Why:** these keep the safety checks in Better Auth's hands, and make it impossible for a test run to wipe the data you use with `npm run dev`.
+
+## ADR-019: Households in the database
+
+- **Status:** Accepted (2026-11-23)
+- **Decision:**
+  - Better Auth's organization plugin provides households, stored in the `workspaces`, `memberships` and `invitations` tables, with our own roles `owner`, `member` and `viewer` (a database check refuses anything else).
+  - Nobody can create a household from the browser. The setup command creates the first one, and the migration gave any existing account (Jeff's) its own household with them as owner.
+  - Deleting a household through Better Auth is switched off.
+  - Which household someone is working in comes from their session's active household if they still belong to it, otherwise their oldest one. `resolveWorkspaceContext()` is the only code that builds a `WorkspaceContext`, after checking membership.
+  - Better Auth's own permission list only covers its endpoints (inviting and managing people: owners only). Rules for BeamHaven's records live in `can()`.
+- **Why:** it reuses Better Auth's tested membership and invitation code, while keeping every rule we write in one place and every query scoped by `workspaceId`.

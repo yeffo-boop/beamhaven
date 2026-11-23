@@ -1,12 +1,12 @@
 /**
- * One-time setup: creates the first BeamHaven login.
+ * One-time setup: creates the first BeamHaven login and its household.
  *
  *   npm run create-first-account
  *
- * It asks for a name, email and password (the password is not shown while
+ * It asks for a name, household name, email and password (the password is not shown while
  * you type and never lands in your shell history). For automated tests, the
- * answers can come from FIRST_ACCOUNT_NAME, FIRST_ACCOUNT_EMAIL and
- * FIRST_ACCOUNT_PASSWORD instead.
+ * answers can come from FIRST_ACCOUNT_NAME, FIRST_ACCOUNT_HOUSEHOLD,
+ * FIRST_ACCOUNT_EMAIL and FIRST_ACCOUNT_PASSWORD instead.
  */
 import { stdin, stdout } from "node:process";
 import { createInterface } from "node:readline/promises";
@@ -60,12 +60,14 @@ async function main() {
   if (fromEnv) {
     input = {
       name: process.env["FIRST_ACCOUNT_NAME"] ?? "",
+      householdName: process.env["FIRST_ACCOUNT_HOUSEHOLD"] ?? "",
       email: process.env["FIRST_ACCOUNT_EMAIL"] ?? "",
       password: process.env["FIRST_ACCOUNT_PASSWORD"] ?? "",
     };
   } else {
     console.log("Create the first BeamHaven account.\n");
     const name = await ask("Your name: ");
+    const householdName = await ask("Household name (for example, The Smith House): ");
     const email = await ask("Email: ");
     const password = await askHidden("Password (at least 12 characters, hidden): ");
     const again = await askHidden("Same password again: ");
@@ -73,7 +75,7 @@ async function main() {
       console.error("\nThe two passwords don't match. Nothing was created; please run it again.");
       process.exit(1);
     }
-    input = { name, email, password };
+    input = { name, householdName, email, password };
   }
 
   try {

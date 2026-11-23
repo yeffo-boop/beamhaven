@@ -7,6 +7,7 @@ export { expect } from "@playwright/test";
 /** The account the end-to-end tests sign in with (created in global-setup.ts). */
 export const testAccount = {
   name: "Test Owner",
+  household: "Test Household",
   email: "owner@beamhaven.test",
   password: "e2e-only-password-123",
 };

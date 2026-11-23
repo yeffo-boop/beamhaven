@@ -21,30 +21,34 @@ datasource db {
 // ---------------------------------------------------------------------------
 
 model User {
-  id            String    @id
+  id            String       @id
   name          String
-  email         String    @unique
-  emailVerified Boolean   @default(false) @map("email_verified")
+  email         String       @unique
+  emailVerified Boolean      @default(false) @map("email_verified")
   image         String?
-  createdAt     DateTime  @default(now()) @map("created_at")
-  updatedAt     DateTime  @updatedAt @map("updated_at")
+  createdAt     DateTime     @default(now()) @map("created_at")
+  updatedAt     DateTime     @updatedAt @map("updated_at")
   sessions      Session[]
   accounts      Account[]
+  memberships   Membership[]
+  invitations   Invitation[]
 
   @@map("users")
 }
 
 /// One row per signed-in browser. Deleting a row signs that browser out.
 model Session {
-  id        String   @id
-  token     String   @unique
-  expiresAt DateTime @map("expires_at")
-  ipAddress String?  @map("ip_address")
-  userAgent String?  @map("user_agent")
-  userId    String   @map("user_id")
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  id                String   @id
+  token             String   @unique
+  expiresAt         DateTime @map("expires_at")
+  ipAddress         String?  @map("ip_address")
+  userAgent         String?  @map("user_agent")
+  /// The household this browser is currently working in.
+  activeWorkspaceId String?  @map("active_workspace_id")
+  userId            String   @map("user_id")
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
 
   @@index([userId])
   @@map("sessions")
@@ -83,4 +87,60 @@ model Verification {
 
   @@index([identifier])
   @@map("verifications")
+}
+
+// ---------------------------------------------------------------------------
+// Households (Milestone 2). Stored as general "workspaces" so a contracting
+// company could be one later (ADR-017). Better Auth's organization plugin
+// manages these three tables, so their field names follow Better Auth.
+// ---------------------------------------------------------------------------
+
+model Workspace {
+  id          String       @id
+  name        String
+  /// Required and unique by Better Auth; not shown or used in addresses.
+  slug        String       @unique
+  logo        String?
+  metadata    String?
+  /// "household" for now. A company could be added later (ADR-017).
+  kind        String       @default("household")
+  createdAt   DateTime     @default(now()) @map("created_at")
+  memberships Membership[]
+  invitations Invitation[]
+
+  @@map("workspaces")
+}
+
+/// Who belongs to which household, and with which role
+/// (owner, member or viewer; a database check allows nothing else).
+model Membership {
+  id          String    @id
+  workspaceId String    @map("workspace_id")
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  userId      String    @map("user_id")
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role        String
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  @@unique([workspaceId, userId])
+  @@index([userId])
+  @@map("memberships")
+}
+
+/// Invitations to join a household (used from Milestone 2, step 3).
+model Invitation {
+  id          String    @id
+  workspaceId String    @map("workspace_id")
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  email       String
+  role        String?
+  status      String
+  expiresAt   DateTime  @map("expires_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  inviterId   String    @map("inviter_id")
+  inviter     User      @relation(fields: [inviterId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+  @@index([email])
+  @@map("invitations")
 }
