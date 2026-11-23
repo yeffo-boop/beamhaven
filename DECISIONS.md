@@ -223,3 +223,9 @@ Statuses: **Proposed** (waiting for Jeff) · **Accepted** · **Superseded**
 - License, insurance and warranty dates show a warning from 30 days before they run out. There are no email reminders yet (no email is set up, ADR-020).
 
 **Consequences.** One place for a contractor's money, with no copying of names. A typo in an old bill's shop name stays a separate vendor until it's corrected there.
+
+## ADR-025: The "Post & Beam" logo
+
+- **Status:** Accepted (2026-11-23)
+- **Decision:** the mark is a gable roof resting on one long beam that runs past two posts, drawn on the same 24-unit grid and 2-unit stroke as our Lucide icons, in spruce. In the app it sits on a spruce rounded-square tile (`BrandMark`), and the same drawing makes the favicon, `icon.svg` and the Apple touch icon. The wordmark is the product name in Geist semibold with slightly tight letter spacing, so it still comes from `brand.name` and changes with it. The bare mark is kept in `docs/brand/mark.svg`.
+- **Why:** Jeff chose it from four directions (Post & Beam, Callout, Two-bowl B, Fanlight). It reads clearly at 16 pixels and doesn't depend on the name, which is still provisional (ADR-015). The roof, beam and posts tie it to the "Beam" in the name and to timber framing.
