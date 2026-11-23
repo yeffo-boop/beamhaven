@@ -54,6 +54,8 @@ services:
     environment:
       <<: *database-url
       NODE_ENV: production
+      # Always the "uploads" volume below, whatever .env says.
+      STORAGE_LOCAL_PATH: /data/uploads
     ports:
       # Published only on the VM's own network address (never 0.0.0.0).
       # The firewall then lets only Nginx Proxy Manager reach it.

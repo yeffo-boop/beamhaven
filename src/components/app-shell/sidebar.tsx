@@ -20,8 +20,23 @@ import { BrandMark } from "./brand-mark";
  * in from the server because it reads the login session.
  */
 export function Sidebar({ account }: { account?: ReactNode }) {
-  const pathname = usePathname();
+  return <SidebarView pathname={usePathname()} account={account} />;
+}
 
+/**
+ * The sidebar for a known page, or with nothing highlighted (pathname null).
+ * The layout shows the unhighlighted one while a page whose address has an
+ * id in it (like /projects/abc) is still loading (Next.js needs the address
+ * to come from inside <Suspense> for those pages).
+ */
+export function SidebarView({
+  pathname,
+  account,
+}: {
+  pathname: string | null;
+  account?: ReactNode;
+}) {
+  const active = (item: NavItem) => pathname !== null && isActive(item, pathname);
   return (
     <nav
       aria-label="Main"
@@ -46,13 +61,13 @@ export function Sidebar({ account }: { account?: ReactNode }) {
             </div>
           ) : null}
           {group.items.map((item) => (
-            <SidebarLink key={item.id} item={item} active={isActive(item, pathname)} />
+            <SidebarLink key={item.id} item={item} active={active(item)} />
           ))}
         </div>
       ))}
 
       <div className="mt-auto flex flex-col gap-3 border-t border-border pt-3">
-        <SidebarLink item={settingsItem} active={isActive(settingsItem, pathname)} />
+        <SidebarLink item={settingsItem} active={active(settingsItem)} />
         <div className="hidden px-1 lg:block">
           <ThemeToggle compact />
         </div>

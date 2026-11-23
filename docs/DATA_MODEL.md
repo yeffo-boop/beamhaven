@@ -7,7 +7,7 @@ This describes **what** we store and how records connect. Column types and index
 ## Ground rules
 
 1. **Every household-owned table has a `workspaceId` column** (a household is stored as a general _workspace_, ADR-017), which is indexed and required. All queries go through the data layer, which always filters by it (ADR-007).
-2. **IDs** are random strings (`cuid2`), never counting numbers like 1, 2, 3, so nobody can guess another record's ID.
+2. **IDs** are random strings, never counting numbers like 1, 2, 3, so nobody can guess another record's ID. Better Auth makes its own; our tables use a random UUID written without hyphens (`src/server/data/ids.ts`).
 3. **Money** is stored as `BigInt` cents in columns ending in `Cents`. Currency is stored on the household (ADR-008).
 4. **Measurements** are stored in millimetres as integers (`lengthMm`), whatever unit the user typed. The unit they typed is saved too, so we can show it back exactly as entered. Calculated values such as area are computed on the fly and labeled as estimates.
 5. **Timestamps:** every table has `createdAt` and `updatedAt`. Most also have `createdById`.
@@ -71,6 +71,10 @@ Permissions are checked by a single `can(context, action, resource)` function, s
 
 ## 2. Properties, projects and rooms (Milestone 3)
 
+Built in Milestone 3, with a few differences from the plan below: `propertyType`, `existingConditions`, `baselinedAt` and the extra **Measurement** table are left for later milestones, when something uses them. Openings also store the unit they were typed in. The household's choice of feet and inches or metric is `workspaces.measurement_system`.
+
+**Same-household links are enforced by the database.** Every table has a unique `(id, workspace_id)` pair, and links point at that pair (for example a project's `(property_id, workspace_id)`). So even if the code forgot a check, the database would refuse to put a project under another household's property, or link another household's room to a project.
+
 | Model           | Key fields                                                                                                                                                                                                    | Notes                                                                   |
 | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
 | **Property**    | id, workspaceId, name, addressLine1/2, city, region, postalCode, country, propertyType, notes                                                                                                                 |                                                                         |
@@ -119,13 +123,15 @@ Contractor payments are **Expenses linked to the contract's Commitment**, plus *
 | **FileObject** | id, workspaceId, storageKey (random), originalName, mimeType (detected from content), sizeBytes, sha256, uploadedById                                                                                                                                                                               | The file itself. The storage key is never built from user input.                                                                                                                           |
 | **Attachment** | id, workspaceId, fileId, purpose (`photo` \| `receipt` \| `quote` \| `contract` \| `manual` \| `floor_plan` \| …), caption, takenOn, phase, plus **one** nullable foreign key: propertyId / projectId / roomId / expenseId / quoteId / contractId / contractorId / taskId / materialId / warrantyId | A database check makes sure exactly one target is set. That keeps real foreign keys (so the database guarantees the record exists) without needing a separate table for every record type. |
 
+Built so far: purposes `photo`, targets property, project and room (the other targets arrive with their milestones). The bytes live in the storage folder under `<workspaceId>/<random 64-character hex>`; the database never holds file contents.
+
 Document versions (Milestone 8) will add a `Document` with a `DocumentVersion` table pointing to FileObjects.
 
 ## 6. Activity history (from Milestone 3 on)
 
-| Model             | Key fields                                                                                                                               |
-| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| **ActivityEvent** | id, workspaceId, actorUserId, action (`project.created`, `budget.transferred`, …), entityType, entityId, summary, data (JSON), createdAt |
+| Model             | Key fields                                                                                                                                              |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **ActivityEvent** | id, workspaceId, actorUserId, action (`project.created`, `budget.transferred`, …), entityType, entityId, summary, data (JSON, not built yet), createdAt |
 
 Written by the service layer whenever something important changes. It powers the activity feed and the audit history, and records are never deleted.
 

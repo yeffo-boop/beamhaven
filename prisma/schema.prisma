@@ -96,17 +96,20 @@ model Verification {
 // ---------------------------------------------------------------------------
 
 model Workspace {
-  id          String       @id
-  name        String
+  id                String       @id
+  name              String
   /// Required and unique by Better Auth; not shown or used in addresses.
-  slug        String       @unique
-  logo        String?
-  metadata    String?
+  slug              String       @unique
+  logo              String?
+  metadata          String?
   /// "household" for now. A company could be added later (ADR-017).
-  kind        String       @default("household")
-  createdAt   DateTime     @default(now()) @map("created_at")
-  memberships Membership[]
-  invitations Invitation[]
+  kind              String       @default("household")
+  /// How measurements are shown and typed by default: "imperial" or "metric".
+  measurementSystem String       @default("imperial") @map("measurement_system")
+  createdAt         DateTime     @default(now()) @map("created_at")
+  memberships       Membership[]
+  invitations       Invitation[]
+  properties        Property[]
 
   @@map("workspaces")
 }
@@ -143,4 +146,196 @@ model Invitation {
   @@index([workspaceId])
   @@index([email])
   @@map("invitations")
+}
+
+// ---------------------------------------------------------------------------
+// Properties, projects and rooms (Milestone 3). docs/DATA_MODEL.md, section 2.
+//
+// Every table has workspace_id. Child records point at their parent with
+// BOTH the parent's id and workspace_id (a composite foreign key), so the
+// database itself refuses, for example, a project in household A that
+// belongs to a property in household B.
+// ---------------------------------------------------------------------------
+
+model Property {
+  id           String       @id
+  workspaceId  String       @map("workspace_id")
+  workspace    Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  name         String
+  addressLine1 String?      @map("address_line1")
+  addressLine2 String?      @map("address_line2")
+  city         String?
+  region       String?
+  postalCode   String?      @map("postal_code")
+  country      String?
+  notes        String?
+  createdById  String?      @map("created_by_id")
+  createdAt    DateTime     @default(now()) @map("created_at")
+  updatedAt    DateTime     @updatedAt @map("updated_at")
+  projects     Project[]
+  rooms        Room[]
+  attachments  Attachment[]
+
+  @@unique([id, workspaceId])
+  @@index([workspaceId])
+  @@map("properties")
+}
+
+/// A renovation project. Status values are checked by the database.
+model Project {
+  id           String        @id
+  workspaceId  String        @map("workspace_id")
+  propertyId   String        @map("property_id")
+  property     Property      @relation(fields: [propertyId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
+  name         String
+  description  String?
+  status       String        @default("planning")
+  plannedStart DateTime?     @map("planned_start") @db.Date
+  plannedEnd   DateTime?     @map("planned_end") @db.Date
+  actualStart  DateTime?     @map("actual_start") @db.Date
+  actualEnd    DateTime?     @map("actual_end") @db.Date
+  createdById  String?       @map("created_by_id")
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+  rooms        ProjectRoom[]
+  attachments  Attachment[]
+
+  @@unique([id, workspaceId])
+  @@index([workspaceId])
+  @@index([propertyId])
+  @@map("projects")
+}
+
+/// A room or area of a property. Lengths are whole millimetres; enteredUnit
+/// remembers whether the person typed feet and inches or metric.
+model Room {
+  id              String        @id
+  workspaceId     String        @map("workspace_id")
+  propertyId      String        @map("property_id")
+  property        Property      @relation(fields: [propertyId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
+  name            String
+  type            String        @default("other")
+  floorLevel      String?       @map("floor_level")
+  lengthMm        Int?          @map("length_mm")
+  widthMm         Int?          @map("width_mm")
+  ceilingHeightMm Int?          @map("ceiling_height_mm")
+  enteredUnit     String        @default("imperial") @map("entered_unit")
+  description     String?
+  notes           String?
+  createdById     String?       @map("created_by_id")
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+  projects        ProjectRoom[]
+  openings        Opening[]
+  attachments     Attachment[]
+
+  @@unique([id, workspaceId])
+  @@index([workspaceId])
+  @@index([propertyId])
+  @@map("rooms")
+}
+
+/// Which rooms a project works on. A room can be part of many projects over time.
+model ProjectRoom {
+  workspaceId         String   @map("workspace_id")
+  projectId           String   @map("project_id")
+  project             Project  @relation(fields: [projectId, workspaceId], references: [id, workspaceId], onDelete: Cascade)
+  roomId              String   @map("room_id")
+  room                Room     @relation(fields: [roomId, workspaceId], references: [id, workspaceId], onDelete: Cascade)
+  plannedImprovements String?  @map("planned_improvements")
+  createdAt           DateTime @default(now()) @map("created_at")
+
+  @@id([projectId, roomId])
+  @@index([workspaceId])
+  @@index([roomId])
+  @@map("project_rooms")
+}
+
+/// A window, door or other opening in a room, with its size in millimetres.
+model Opening {
+  id           String   @id
+  workspaceId  String   @map("workspace_id")
+  roomId       String   @map("room_id")
+  room         Room     @relation(fields: [roomId, workspaceId], references: [id, workspaceId], onDelete: Cascade)
+  kind         String
+  label        String?
+  widthMm      Int      @map("width_mm")
+  heightMm     Int      @map("height_mm")
+  sillHeightMm Int?     @map("sill_height_mm")
+  enteredUnit  String   @default("imperial") @map("entered_unit")
+  notes        String?
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@index([workspaceId])
+  @@index([roomId])
+  @@map("openings")
+}
+
+// ---------------------------------------------------------------------------
+// Files (Milestone 3). The file itself lives in storage under storageKey
+// (random, never built from the file name). docs/DATA_MODEL.md, section 5.
+// ---------------------------------------------------------------------------
+
+model FileObject {
+  id           String       @id
+  workspaceId  String       @map("workspace_id")
+  storageKey   String       @unique @map("storage_key")
+  originalName String       @map("original_name")
+  /// Worked out from the file's contents, never from its name or the browser.
+  mimeType     String       @map("mime_type")
+  sizeBytes    Int          @map("size_bytes")
+  sha256       String
+  uploadedById String?      @map("uploaded_by_id")
+  createdAt    DateTime     @default(now()) @map("created_at")
+  attachments  Attachment[]
+
+  @@unique([id, workspaceId])
+  @@index([workspaceId])
+  @@map("files")
+}
+
+/// Links a file to exactly one record (a database check enforces "exactly one").
+model Attachment {
+  id          String     @id
+  workspaceId String     @map("workspace_id")
+  fileId      String     @map("file_id")
+  file        FileObject @relation(fields: [fileId, workspaceId], references: [id, workspaceId], onDelete: Cascade)
+  purpose     String     @default("photo")
+  caption     String?
+  propertyId  String?    @map("property_id")
+  property    Property?  @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  projectId   String?    @map("project_id")
+  project     Project?   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  roomId      String?    @map("room_id")
+  room        Room?      @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  createdById String?    @map("created_by_id")
+  createdAt   DateTime   @default(now()) @map("created_at")
+
+  @@index([workspaceId])
+  @@index([fileId])
+  @@index([propertyId])
+  @@index([projectId])
+  @@index([roomId])
+  @@map("attachments")
+}
+
+// ---------------------------------------------------------------------------
+// Activity history (from Milestone 3). Written by the services whenever
+// something important changes; never edited or deleted.
+// ---------------------------------------------------------------------------
+
+model ActivityEvent {
+  id          String   @id
+  workspaceId String   @map("workspace_id")
+  actorUserId String?  @map("actor_user_id")
+  /// For example "project.created" or "room.updated".
+  action      String
+  entityType  String   @map("entity_type")
+  entityId    String   @map("entity_id")
+  summary     String
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([workspaceId, createdAt])
+  @@index([entityType, entityId])
+  @@map("activity_events")
 }
