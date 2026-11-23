@@ -274,3 +274,20 @@ Statuses: **Proposed** (waiting for Jeff) · **Accepted** · **Superseded**
 - Quantities are whole thousandths and prices whole cents, so there are no floats anywhere. The price on a material is only what you **expect** to pay; the price actually paid is saved on the order item, so it never changes when the store's price does.
 
 **Consequences.** A material adds nothing to the budget by itself. Money arrives with orders in part 2, through the existing commitments and expenses.
+
+## ADR-029: Orders commit money per budget line, and their bill uses it up (Milestone 6, part 2)
+
+**Date:** 2026-11-23. **Status:** accepted.
+
+**Context.** One order often covers items charged to different budget lines (tile on the Flooring line, grout on Materials), plus one shipping charge and one tax amount. Until now each commitment was used up only by expenses linked to it as a whole, so one bill could only use up one commitment.
+
+**Decision.**
+
+- An order makes **one commitment per budget line** it touches (source `order`, unique per order and line). Each one is that line's items, plus the order's tax and shipping **shared out by item value** to the cent (evenly if every item is $0). The commitments are kept in step every time the order is saved.
+- The bill is **one expense** with an allocation per line and kind (item, tax, shipping). Each allocation can now point to a commitment (`expense_allocations.commitment_id`). "Invoiced" for a commitment = expenses linked to it as a whole + allocations linked to it. An allocation with no link of its own still follows its expense's link, so every earlier record means what it meant before.
+- The price paid is saved on the **order item**, so later changes to the material's expected price change nothing.
+- Once the bill is recorded, the order and its bill are **locked**: change neither until the bill is removed. The bill can't be edited, deleted or refunded from the budget pages; returns and refunds come through the order in part 3.
+- Deliveries are recorded by item and can't add up to more than was ordered. A material on an order moves from Considering or Selected to **Ordered**, and to **Delivered** once everything ordered has arrived. A status set by hand further along is left alone.
+- An order row is locked (`SELECT … FOR UPDATE`) while it, its deliveries or its bill change.
+
+**Consequences.** The formulas in `docs/BUDGET_DEFINITIONS.md` are unchanged; only "linked to a commitment" now also covers a single allocation. A material on an order, and a budget line with order items, can't be deleted.

@@ -18,8 +18,9 @@ export default async function EditExpensePage({ params }: PageProps<"/budget/exp
   const ctx = await getWorkspaceContext();
   if (!ctx || !can(ctx, "records:edit")) notFound();
   const expense = await orNotFound(getExpense(ctx, id));
-  // Refunds are recorded from the original, not edited.
-  if (expense.refundOfExpenseId) notFound();
+  // Refunds are recorded from the original, not edited; an order's bill
+  // is changed from the order.
+  if (expense.refundOfExpenseId || expense.orderId) notFound();
   const choices = await expenseFormChoices(ctx);
 
   return (

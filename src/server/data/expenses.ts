@@ -2,7 +2,7 @@ import "server-only";
 
 import { paymentState, type PaymentState } from "@/server/services/budget-math";
 
-import { type LineLabel, lineSelect, toLabel, userNames } from "./budget";
+import { invoicedByCommitment, type LineLabel, lineSelect, toLabel, userNames } from "./budget";
 import { getPrisma } from "./client";
 import type { WorkspaceContext } from "./context";
 import { newId } from "./ids";
@@ -137,21 +137,19 @@ export async function listCommitments(
       notes: true,
       vendor: { select: { name: true } },
       line: { select: lineSelect },
-      _count: { select: { expenses: true } },
+      _count: { select: { expenses: true, allocations: true } },
     },
   });
-  const invoiced = await prisma.expense.groupBy({
-    by: ["commitmentId"],
-    where: { workspaceId: ctx.workspaceId, commitmentId: { in: rows.map((r) => r.id) } },
-    _sum: { totalCents: true },
-  });
-  const invoicedBy = new Map(invoiced.map((i) => [i.commitmentId, i._sum.totalCents ?? 0n]));
+  const invoicedBy = await invoicedByCommitment(
+    ctx.workspaceId,
+    rows.map((r) => r.id),
+  );
   return rows.map(({ vendor, line, _count, ...row }) => ({
     ...row,
     line: toLabel(line),
     vendorName: vendor?.name ?? null,
     invoicedCents: invoicedBy.get(row.id) ?? 0n,
-    expenseCount: _count.expenses,
+    expenseCount: _count.expenses + _count.allocations,
   }));
 }
 
@@ -324,6 +322,8 @@ export type ExpenseDetail = ExpenseFields & {
   refundOfExpenseId: string | null;
   refundOfDescription: string | null;
   refunds: { id: string; description: string; totalCents: bigint; expenseDate: Date }[];
+  /** Set when this is an order's bill: it's then changed from the order. */
+  orderId: string | null;
   allocations: { id: string; line: LineLabel; amountCents: bigint; kind: string }[];
   payments: PaymentRecord[];
   paidCents: bigint;
@@ -352,6 +352,7 @@ export async function findExpense(
       vendor: { select: { name: true } },
       commitment: { select: { description: true } },
       refundOf: { select: { description: true } },
+      billFor: { select: { id: true } },
       refunds: {
         select: { id: true, description: true, totalCents: true, expenseDate: true },
         orderBy: { expenseDate: "asc" },
@@ -392,6 +393,7 @@ export async function findExpense(
     refundOfExpenseId: row.refundOfExpenseId,
     refundOfDescription: row.refundOf?.description ?? null,
     refunds: row.refunds,
+    orderId: row.billFor?.id ?? null,
     allocations: row.allocations.map((a) => ({
       id: a.id,
       amountCents: a.amountCents,

@@ -822,9 +822,9 @@ export async function deleteChangeOrderRow(
   });
 }
 
-export type AgreementLink = { kind: "quote" | "contract" | "change_order"; path: string };
+export type AgreementLink = { kind: "quote" | "contract" | "change_order" | "order"; path: string };
 
-/** The quote, contract or change order a commitment belongs to, if any. */
+/** The quote, contract, change order or order a commitment belongs to, if any. */
 export async function commitmentAgreement(
   ctx: WorkspaceContext,
   commitmentId: string,
@@ -833,6 +833,7 @@ export async function commitmentAgreement(
     where: { id: commitmentId, workspaceId: ctx.workspaceId },
     select: {
       contractId: true,
+      orderId: true,
       quote: { select: { id: true } },
       contractFor: { select: { id: true } },
     },
@@ -841,5 +842,6 @@ export async function commitmentAgreement(
   if (row.contractFor) return { kind: "contract", path: `/contracts/${row.contractFor.id}` };
   if (row.contractId) return { kind: "change_order", path: `/contracts/${row.contractId}` };
   if (row.quote) return { kind: "quote", path: `/quotes/${row.quote.id}` };
+  if (row.orderId) return { kind: "order", path: `/orders/${row.orderId}` };
   return null;
 }

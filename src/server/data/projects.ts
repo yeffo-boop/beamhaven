@@ -150,15 +150,21 @@ export async function deleteProjectRow(
     if (recorded > 0) return { deleted: false, hasBudget: true, fileIds: [] };
     const warrantyFiles = await unlinkProjectOrRoom(tx, ctx.workspaceId, { projectId: id });
     // The project's photos, and the documents of its open or turned-down
-    // quotes (which go with it). Contracts always hold budget money, so a
-    // project with one never gets this far.
+    // quotes and of orders with nothing in the budget (both go with it).
+    // Contracts and priced orders hold budget money, so a project with one
+    // never gets this far.
     const attachments = await tx.attachment.findMany({
       where: {
         workspaceId: ctx.workspaceId,
-        OR: [{ projectId: id }, { quote: { projectId: id } }],
+        OR: [{ projectId: id }, { quote: { projectId: id } }, { order: { projectId: id } }],
       },
       select: { fileId: true },
     });
+    // Orders go first. Their items point at the project's budget lines with
+    // NO ACTION, and when both cascade from the project in one statement,
+    // whether the lines or the items go first depends on trigger order,
+    // which differs between databases (it passed locally and failed in CI).
+    await tx.order.deleteMany({ where: { projectId: id, workspaceId: ctx.workspaceId } });
     const result = await tx.project.deleteMany({ where: { id, workspaceId: ctx.workspaceId } });
     return {
       deleted: result.count === 1,

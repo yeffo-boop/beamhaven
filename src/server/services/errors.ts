@@ -26,7 +26,7 @@ export function fieldError(field: string, message: string): ZodError {
  */
 export const RULE_MESSAGES = {
   line_in_use:
-    "This budget line has money recorded against it (or a locked-in original budget), so it stays as part of the history.",
+    "This budget line has money or order items recorded against it (or a locked-in original budget), so it stays as part of the history.",
   commitment_in_use: "Expenses are linked to this commitment. Delete or unlink them first.",
   expense_has_refunds: "This expense has refunds recorded against it. Delete those first.",
   refund_not_editable: "A refund can't be edited. Delete it and record it again.",
@@ -45,6 +45,11 @@ export const RULE_MESSAGES = {
     "Bills are linked to this contract or its change orders. Delete or unlink them first.",
   price_item_in_use:
     "Room estimates use this item. Delete them, or switch them to another item, first.",
+  order_bill: "This is an order's bill. Change it, or record a return, from the order's page.",
+  order_billed:
+    "This order's bill has been recorded, so its items and prices stay as they were paid. Remove the bill first.",
+  order_has_bill: "This order's bill has been recorded. Remove the bill first.",
+  material_on_order: "This material is on an order. Take it off the order first.",
   room_has_budget:
     "This room is used by budget lines. Remove those lines (or charge them to the whole project) first.",
 } as const;

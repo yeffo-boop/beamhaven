@@ -16,6 +16,7 @@ import { PhotoGallery } from "@/components/records/photo-gallery";
 import { ProjectRoomsForm } from "@/components/records/project-rooms-form";
 import { StatusBadge } from "@/components/records/status-badge";
 import { MaterialList } from "@/components/materials/list";
+import { OrderList } from "@/components/orders/list";
 import { Button } from "@/components/ui/button";
 import { formatDay } from "@/lib/dates";
 import { deleteProjectAction } from "@/server/actions/records";
@@ -30,6 +31,7 @@ import { getProjectContractors } from "@/server/services/contractors";
 import { getProject } from "@/server/services/projects";
 import { getRooms } from "@/server/services/rooms";
 import { getMaterials } from "@/server/services/materials";
+import { getOrders } from "@/server/services/orders";
 import { getTasks, getWarranties } from "@/server/services/tasks";
 
 export const metadata = { title: "Project" };
@@ -53,6 +55,7 @@ export default async function ProjectPage({ params, searchParams }: PageProps<"/
     quotes,
     contracts,
     materials,
+    orders,
   ] = await Promise.all([
     getPhotos(ctx, { kind: "project", id }),
     getActivity(ctx, "project", id),
@@ -65,6 +68,7 @@ export default async function ProjectPage({ params, searchParams }: PageProps<"/
     getQuotes(ctx, { projectId: id }),
     getContracts(ctx, { projectId: id }),
     getMaterials(ctx, { projectId: id }),
+    getOrders(ctx, { projectId: id }),
   ]);
   const today = new Date();
   const onProject = new Set(contractors.map((c) => c.contractorId));
@@ -277,6 +281,20 @@ export default async function ProjectPage({ params, searchParams }: PageProps<"/
         }
       >
         <MaterialList materials={materials} show="room" empty="No materials on this project yet." />
+      </Panel>
+
+      <Panel
+        title="Orders"
+        id="orders"
+        actions={
+          canEdit ? (
+            <Button asChild variant="outline" size="sm">
+              <Link href={`/projects/${id}/orders/new`}>Add an order</Link>
+            </Button>
+          ) : null
+        }
+      >
+        <OrderList orders={orders} empty="No orders on this project yet." />
       </Panel>
 
       <Panel title="Warranties" id="warranties">

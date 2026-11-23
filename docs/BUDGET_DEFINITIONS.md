@@ -96,6 +96,14 @@ The kitchen has a Labor line with an **original budget of $20,000.00**.
 - A quote's, contract's or change order's commitment is changed **only on its own page**, never in the budget, so the two always agree. Bills linked to one keep it from being deleted.
 - Each bill can say which **payment stage** it is: deposit, progress payment or final payment. The stage is a label only; it changes no totals.
 
+## Orders (Milestone 6, part 2)
+
+- An order commits money **per budget line**: one commitment for each line its items are charged to. Each = that line's items (quantity × the price paid, rounded to the cent) + its share of the order's tax and shipping. Tax and shipping are shared by item value with the largest-remainder method, so the commitments add up exactly to the order total. If every item is $0, they are shared evenly.
+- Worked example (tested in `tests/unit/order-math.test.ts`): 12 boxes of tile at $49.99 and 3 bags of grout at $18.50 on the Tile line ($655.38), a faucet at $289.00 on the Fixtures line, tax $77.91 and shipping $40.00. The Tile line gets $54.07 of the tax and $27.76 of the shipping, **$737.21**; Fixtures gets $23.84 and $12.24, **$325.08**; **$1,062.29** in all, the order total.
+- The **bill** is one expense, split per line into item, tax and shipping allocations. Each allocation is linked to its line's order commitment, so it uses that commitment up (rule 1) instead of adding to it. "Expenses linked to a commitment" means whole expenses linked to it plus allocations linked to it.
+- An order with a bill is locked: its items, prices, tax and shipping can't change until the bill is removed, so the commitment and the bill always agree.
+- Deliveries change no money. Returns and refunds (part 3) will.
+
 ## Room estimates (Milestone 5, part 3)
 
 A room estimate fills in the **estimate** of budget lines. It never sets the planned amount, and never creates a commitment or an expense, so the rules above don't change: an estimate still counts in the forecast only while the line has no commitment.

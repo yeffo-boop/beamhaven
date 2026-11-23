@@ -134,13 +134,24 @@ Optional links between these records (a warranty's project, a task's assignee) a
 
 ## 4b. Materials (Milestone 6)
 
-Built in parts. **Part 1** (materials) is in the database; orders, deliveries and returns follow.
+Built in parts. **Part 1** (materials) and **part 2** (orders, deliveries and the bill) are in the database; returns follow.
 
 | Model        | Key fields                                                                                                                                                                                                                 | Notes                                                                                                                                                                                                                                                            |
 | ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Material** | id, workspaceId, projectId, roomId, supplierId (a **Vendor**; each nullable), name, category, brand, modelNumber, sku, colorFinish, productUrl, quantityMilli, unit, unitPriceCents, status, statusChangedAt, specs, notes | `status` is `considering` \| `selected` \| `ordered` \| `delivered` \| `installed` \| `returned` \| `canceled`. The quantity is in thousandths (2.5 boxes = 2500, more than zero). The price is only the **expected** one; what was paid will live on the order. |
 
 Photos, manuals and spec sheets are attachments with `material_id` (purpose `document`: a photo or a PDF). A warranty can point to a material (`Warranty.materialId`), and a warranty on a material alone is allowed. When a project or room is deleted its materials stay and lose the link; when a material is deleted its warranties lose it (a warranty left with no link at all goes too).
+
+### Orders (Milestone 6, part 2)
+
+| Model            | Key fields                                                                                                                     | Notes                                                                                                                                          |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Order**        | id, workspaceId, projectId, supplierId (a **Vendor**), orderNumber, orderedOn, shippingCents, taxCents, notes, billId (unique) | Goes with its project. Shipping and tax are ≥ 0. `billId` is the order's one bill (an **Expense**, `RESTRICT`), set when the bill is recorded. |
+| **OrderItem**    | id, workspaceId, orderId, materialId (nullable), lineId, description, quantityMilli (> 0), unitPriceCents (≥ 0), position      | The price **paid**. The line must be on the order's project. A material on an order can't be deleted (`RESTRICT`); nor can a line with items.  |
+| **Delivery**     | id, workspaceId, orderId, deliveredOn, notes                                                                                   | One arrival. Goes with its order.                                                                                                              |
+| **DeliveryItem** | id, workspaceId, deliveryId, orderItemId, quantityMilli (> 0)                                                                  | How much of an item arrived. All deliveries of an item can't add up to more than was ordered (checked under a row lock).                       |
+
+`Commitment.orderId` links an order's commitments (one per line: unique on `(order_id, line_id)`, and a check keeps `source = 'order'` with it). `ExpenseAllocation.commitmentId` lets one allocation of a bill use up one of those commitments. Order documents (receipts, packing slips) are attachments with `order_id`.
 
 ## 5. Files and attachments (storage in Milestone 3, used everywhere)
 

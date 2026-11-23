@@ -4,7 +4,9 @@ import { notFound } from "next/navigation";
 
 import { WarrantyForm } from "@/components/contractors/forms";
 import { WarrantyList } from "@/components/contractors/lists";
+import { ProblemNotice } from "@/components/budget/problem-notice";
 import { MaterialStatusForm } from "@/components/materials/forms";
+import { OrderList } from "@/components/orders/list";
 import { describeQuantity, MaterialStatusBadge } from "@/components/materials/labels";
 import { PageHeader } from "@/components/page-header";
 import { ActivityList } from "@/components/records/activity-list";
@@ -21,21 +23,24 @@ import { getActivity } from "@/server/services/activity";
 import { getDocuments } from "@/server/services/attachments";
 import { getRecordChoices, NO_CHOICES } from "@/server/services/choices";
 import { getMaterial } from "@/server/services/materials";
+import { getOrders } from "@/server/services/orders";
 import { getWarranties } from "@/server/services/tasks";
 
 export const metadata = { title: "Material" };
 
-export default async function MaterialPage({ params }: PageProps<"/materials/[id]">) {
+export default async function MaterialPage({ params, searchParams }: PageProps<"/materials/[id]">) {
   const { id } = await params;
+  const { problem } = await searchParams;
   const ctx = await getWorkspaceContext();
   if (!ctx) notFound();
   const m = await orNotFound(getMaterial(ctx, id));
   const canEdit = can(ctx, "records:edit");
-  const [files, warranties, activity, choices] = await Promise.all([
+  const [files, warranties, activity, choices, orders] = await Promise.all([
     getDocuments(ctx, { kind: "material", id }),
     getWarranties(ctx, { materialId: id }),
     getActivity(ctx, "material", id),
     canEdit ? getRecordChoices(ctx) : Promise.resolve(NO_CHOICES),
+    getOrders(ctx, { materialId: id }),
   ]);
   const back = m.projectId
     ? { href: `/projects/${m.projectId}`, label: m.projectName }
@@ -84,6 +89,8 @@ export default async function MaterialPage({ params }: PageProps<"/materials/[id
           </span>
         </div>
       </div>
+
+      <ProblemNotice code={problem} />
 
       <Panel title="Details" id="details">
         <dl className="grid grid-cols-2 gap-4 sm:grid-cols-3">
@@ -141,6 +148,28 @@ export default async function MaterialPage({ params }: PageProps<"/materials/[id
           </div>
         ) : null}
         {canEdit ? <MaterialStatusForm id={id} status={m.status} /> : null}
+      </Panel>
+
+      <Panel
+        title="Orders"
+        id="orders"
+        actions={
+          canEdit && m.projectId ? (
+            <Button asChild variant="outline" size="sm">
+              <Link href={`/projects/${m.projectId}/orders/new?materialId=${id}`}>Order it</Link>
+            </Button>
+          ) : null
+        }
+      >
+        <OrderList
+          orders={orders}
+          showProject
+          empty={
+            m.projectId || !canEdit
+              ? "Not on an order yet."
+              : "Not on an order yet. Choose its project (Edit) to order it from there."
+          }
+        />
       </Panel>
 
       <Panel title="Photos, manuals and spec sheets" id="files">
