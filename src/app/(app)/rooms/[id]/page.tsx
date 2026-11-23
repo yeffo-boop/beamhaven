@@ -3,6 +3,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { ProblemNotice } from "@/components/budget/problem-notice";
+import { TaskForm, WarrantyForm } from "@/components/contractors/forms";
+import { TaskList, WarrantyList } from "@/components/contractors/lists";
 import { PageHeader } from "@/components/page-header";
 import { ActivityList } from "@/components/records/activity-list";
 import { ConfirmAction } from "@/components/records/confirm-action";
@@ -19,8 +21,10 @@ import { can } from "@/server/auth/permissions";
 import { getWorkspaceContext } from "@/server/auth/workspace";
 import { getActivity } from "@/server/services/activity";
 import { getPhotos } from "@/server/services/attachments";
+import { getRecordChoices, NO_CHOICES } from "@/server/services/choices";
 import { getMeasurementPreference } from "@/server/services/preferences";
 import { getRoom } from "@/server/services/rooms";
+import { getTasks, getWarranties } from "@/server/services/tasks";
 
 export const metadata = { title: "Room" };
 
@@ -31,11 +35,16 @@ export default async function RoomPage({ params, searchParams }: PageProps<"/roo
   if (!ctx) notFound();
   const room = await orNotFound(getRoom(ctx, id));
   const canEdit = can(ctx, "records:edit");
-  const [photos, activity, system] = await Promise.all([
+  const [photos, activity, system, tasks, warranties, choices] = await Promise.all([
     getPhotos(ctx, { kind: "room", id }),
     getActivity(ctx, "room", id),
     getMeasurementPreference(ctx),
+    getTasks(ctx, { roomId: id }),
+    getWarranties(ctx, { roomId: id }),
+    canEdit ? getRecordChoices(ctx) : Promise.resolve(NO_CHOICES),
   ]);
+  const today = new Date();
+  const roomProjects = room.projects.map((p) => ({ value: p.projectId, label: p.projectName }));
   const { floorMm2, wallMm2 } = estimateRoomAreas(room, room.openings);
   const length = (mm: number | null) =>
     mm ? (
@@ -184,6 +193,40 @@ export default async function RoomPage({ params, searchParams }: PageProps<"/roo
             Not part of any project yet. Link rooms from a project&rsquo;s page.
           </EmptyState>
         )}
+      </Panel>
+
+      <Panel title="Tasks" id="tasks">
+        {canEdit ? (
+          <details className="rounded-[var(--radius-control)] border border-border p-3">
+            <summary className="cursor-pointer text-sm font-medium">Add a task</summary>
+            <div className="mt-3">
+              <TaskForm
+                fixed={{ roomId: id }}
+                assignees={choices.assignees}
+                projects={roomProjects}
+                rooms={choices.rooms}
+              />
+            </div>
+          </details>
+        ) : null}
+        <TaskList tasks={tasks} canEdit={canEdit} today={today} show={["project"]} />
+      </Panel>
+
+      <Panel title="Warranties" id="warranties">
+        <WarrantyList warranties={warranties} today={today} show={["contractor", "project"]} />
+        {canEdit ? (
+          <details className="rounded-[var(--radius-control)] border border-border p-3">
+            <summary className="cursor-pointer text-sm font-medium">Add a warranty</summary>
+            <div className="mt-3">
+              <WarrantyForm
+                fixed={{ roomId: id }}
+                contractors={choices.contractors}
+                projects={roomProjects}
+                rooms={choices.rooms}
+              />
+            </div>
+          </details>
+        ) : null}
       </Panel>
 
       <Panel title="Photos" id="photos">

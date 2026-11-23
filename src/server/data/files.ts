@@ -5,7 +5,7 @@ import type { WorkspaceContext } from "./context";
 import { newId } from "./ids";
 
 export type AttachmentTarget = {
-  kind: "property" | "project" | "room" | "expense";
+  kind: "property" | "project" | "room" | "expense" | "contractor" | "warranty";
   id: string;
 };
 
@@ -19,6 +19,10 @@ function targetColumn(target: AttachmentTarget) {
       return { roomId: target.id };
     case "expense":
       return { expenseId: target.id };
+    case "contractor":
+      return { contractorId: target.id };
+    case "warranty":
+      return { warrantyId: target.id };
   }
 }
 
@@ -38,6 +42,10 @@ export async function targetExists(
       return (await prisma.room.count({ where })) === 1;
     case "expense":
       return (await prisma.expense.count({ where })) === 1;
+    case "contractor":
+      return (await prisma.contractor.count({ where })) === 1;
+    case "warranty":
+      return (await prisma.warranty.count({ where })) === 1;
   }
 }
 

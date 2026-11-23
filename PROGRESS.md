@@ -4,6 +4,35 @@ Newest entries at the top. Each entry records what was done, which files changed
 
 ---
 
+## 2026-11-23: Milestone 5, part 1 (contractor directory, log, warranties, tasks), built
+
+Jeff approved Milestone 5. It comes in two parts; part 2 (quotes, contracts, change orders and contractor payments) follows.
+
+### Done
+
+- **Database** (one migration, `20261123210000_contractors`): contractors, contractors on projects, a communication log, warranties and simple tasks, plus documents on contractors and warranties. It only adds tables and columns; no existing data changes.
+- **Contractor directory** (Contractors in the menu): contact details, trade, license and insurance with expiry dates, and a status (prospect, active, worked with before, do not use). A warning shows from 30 days before a license or insurance runs out, and once it has.
+- **Linked to the budget:** a contractor is the same record as the budget's "shop or supplier" (ADR-024), so bills already recorded under that name appear on their page under "Agreed and billed".
+- **Communication log:** calls, emails, texts, meetings and notes, optionally about a project.
+- **Warranties** on a contractor, project or room, with an expiry warning and their own documents.
+- **Simple tasks** on projects and rooms, assigned to a household member or a contractor, with a due date, priority, and Mark done.
+- **Documents** (license, insurance certificate and the like): photos or PDFs, checked by their contents.
+- **Deleting** a project, room or contractor keeps the related warranties and tasks where they still belong, and removes the ones that belonged only to it.
+
+### Tests (cloud workspace, 2026-11-23)
+
+- Lint, formatting and type check: passed.
+- Unit tests: 114 of 114 passed.
+- Integration tests: 63 of 63 passed. The 9 new ones cover the directory, the link to the budget's vendors, the log, warranties and documents, tasks and assignees, what happens on delete, household isolation (in the code and in the database), and viewers.
+- End-to-end tests: 43 passed, 12 skipped on purpose. New: adding a contractor (with a typo explained), putting them on a project, logging a call, a task marked done, a warranty with a PDF, and the insurance warning; and no sideways scrolling at laptop, iPad and phone sizes.
+- Production build with no secrets set: passed.
+
+### Next
+
+Part 2: quotes with revisions, approval into the budget, contracts, change orders and contractor payments.
+
+---
+
 ## 2026-11-23: Milestone 4 (budget), built
 
 Jeff approved Milestone 4, chose a "Lock in budget" button for fixing the original budget, and asked for the pull request to be merged once everything passes.

@@ -6,7 +6,7 @@ import { newId } from "./ids";
 
 export type ActivityInput = {
   action: string;
-  entityType: "property" | "project" | "room" | "expense";
+  entityType: "property" | "project" | "room" | "expense" | "contractor" | "warranty";
   entityId: string;
   summary: string;
 };

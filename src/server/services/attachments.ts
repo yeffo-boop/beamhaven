@@ -44,8 +44,42 @@ export async function uploadPhoto(
   target: AttachmentTarget,
   upload: Upload,
 ): Promise<{ attachmentId: string; fileId: string }> {
-  if (target.kind === "expense") throw new NotFoundError("photo target");
+  if (purposeFor(target.kind) !== "photo") throw new NotFoundError("photo target");
   return saveUpload(ctx, target, upload, "photo");
+}
+
+/** A document for a contractor or warranty (a license, certificate or contract): a photo or a PDF. */
+export async function uploadDocument(
+  ctx: WorkspaceContext,
+  target: AttachmentTarget,
+  upload: Upload,
+): Promise<{ attachmentId: string; fileId: string }> {
+  if (purposeFor(target.kind) !== "document") throw new NotFoundError("document target");
+  return saveUpload(ctx, target, upload, "document");
+}
+
+export async function getDocuments(
+  ctx: WorkspaceContext,
+  target: AttachmentTarget,
+): Promise<AttachmentSummary[]> {
+  assertCan(ctx, "records:view");
+  if (purposeFor(target.kind) !== "document") return [];
+  return listAttachments(ctx, target, "document");
+}
+
+/** Which kind of file each kind of record takes. */
+export function purposeFor(kind: AttachmentTarget["kind"]): Purpose {
+  switch (kind) {
+    case "property":
+    case "project":
+    case "room":
+      return "photo";
+    case "expense":
+      return "receipt";
+    case "contractor":
+    case "warranty":
+      return "document";
+  }
 }
 
 /** A receipt or bill for an expense: a photo of it, or a PDF. */
@@ -77,6 +111,12 @@ const PURPOSES = {
     refusal: "That isn't a file we can use for a receipt. Upload a photo or a PDF.",
     added: "Added a receipt",
     removed: "Removed a receipt",
+  },
+  document: {
+    detect: detectReceiptType,
+    refusal: "That isn't a file we can use. Upload a photo or a PDF.",
+    added: "Added a document",
+    removed: "Removed a document",
   },
 } as const;
 
@@ -132,18 +172,13 @@ async function saveUpload(
   }
 }
 
-/** Removes a photo (the attachment, the file record and the stored bytes). */
+/** Removes a photo, receipt or document (the attachment, the file record and the stored bytes). */
 export async function deletePhoto(
   ctx: WorkspaceContext,
   target: AttachmentTarget,
   attachmentId: string,
 ): Promise<void> {
-  return deleteAttachment(
-    ctx,
-    target,
-    attachmentId,
-    target.kind === "expense" ? "receipt" : "photo",
-  );
+  return deleteAttachment(ctx, target, attachmentId, purposeFor(target.kind));
 }
 
 async function deleteAttachment(

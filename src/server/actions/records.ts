@@ -222,7 +222,7 @@ export async function removeOpeningAction(formData: FormData): Promise<void> {
 
 // --- Photos ----------------------------------------------------------------
 
-const targetKind = z.enum(["property", "project", "room", "expense"]);
+const targetKind = z.enum(["property", "project", "room", "expense", "contractor", "warranty"]);
 
 export async function deletePhotoAction(formData: FormData): Promise<void> {
   const ctx = await requireWorkspace();
