@@ -20,6 +20,7 @@ Statuses: **Proposed** (waiting for Jeff) · **Accepted** · **Superseded**
 - **Status:** Accepted (2026-11-23)
 - **Decision:** PostgreSQL holds all structured data. Later it also holds background jobs (ADR-009) and full-text search indexes.
 - **Why:** it is reliable, well understood, and handles money (`numeric` and `bigint`), JSON and full-text search. Using one database means one thing to back up.
+- **Version:** PostgreSQL 18 (the `postgres:18-alpine` image) locally, in CI and in production, so all three behave the same.
 - **Alternatives:** SQLite (simpler, but weaker when several people write at once and harder to scale to multiple households); MySQL (fine, but Postgres has better tooling for what we need).
 
 ## ADR-003: Prisma as the ORM
@@ -28,6 +29,7 @@ Statuses: **Proposed** (waiting for Jeff) · **Accepted** · **Superseded**
 - **Decision:** Prisma defines the schema, generates type-safe database code, and manages migrations.
 - **Why:** the `schema.prisma` file is the easiest way to read the whole data model in one place, which matters while Jeff is learning. Its migration workflow (`prisma migrate dev` / `prisma migrate deploy`) is well documented.
 - **Alternatives:** Drizzle (lighter and closer to SQL, with excellent performance, but harder for a beginner to read); Kysely (a query builder only, with no schema management).
+- **Prisma 7 specifics:** the client is generated into `src/generated/prisma`, connects through the `@prisma/adapter-pg` driver, and the CLI reads `prisma.config.ts`, which loads `.env` the same way Next.js does.
 - **Tradeoffs:** some advanced queries (reports, full-text search) will need raw SQL through `prisma.$queryRaw`, using parameters and never string concatenation.
 
 ## ADR-004: Better Auth for authentication

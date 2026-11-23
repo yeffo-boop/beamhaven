@@ -1,0 +1,30 @@
+# Local development database. Start it with:
+#   docker compose -f docker-compose.dev.yml up -d
+# Stop it (your data is kept) with:
+#   docker compose -f docker-compose.dev.yml down
+#
+# The port is bound to 127.0.0.1 only, so other computers on your network
+# can't reach this database. Settings come from your .env file.
+name: beamhaven-dev
+
+services:
+  db:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-beamhaven}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-beamhaven}
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      # Postgres 18 images keep their data under /var/lib/postgresql.
+      - db-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  db-data:

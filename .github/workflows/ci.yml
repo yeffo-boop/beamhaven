@@ -12,8 +12,24 @@ jobs:
   check:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: beamhaven
+          POSTGRES_PASSWORD: ci-only-password
+          POSTGRES_DB: beamhaven_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U beamhaven -d beamhaven_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     env:
       APP_URL: http://localhost:3000
+      # Throwaway database that only exists for this CI run.
+      DATABASE_URL: postgresql://beamhaven:ci-only-password@localhost:5432/beamhaven_test?schema=public
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -29,5 +45,9 @@ jobs:
         run: npm run typecheck
       - name: Unit tests
         run: npm test
+      - name: Apply database migrations
+        run: npx prisma migrate deploy
+      - name: Integration tests (real PostgreSQL)
+        run: npm run test:integration
       - name: Production build
         run: npm run build
