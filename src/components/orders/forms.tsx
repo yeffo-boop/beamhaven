@@ -11,7 +11,12 @@ import { FormFooter } from "@/components/records/form-footer";
 import { Button } from "@/components/ui/button";
 import { formatMoney, parseMoney } from "@/lib/money";
 import { lineTotal, parseQuantity } from "@/lib/quantity";
-import { recordBillAction, recordDeliveryAction, saveOrderAction } from "@/server/actions/orders";
+import {
+  recordBillAction,
+  recordDeliveryAction,
+  recordReturnAction,
+  saveOrderAction,
+} from "@/server/actions/orders";
 
 export type Choice = { value: string; label: string };
 export type MaterialChoice = Choice & { unitPrice: string; quantity: string };
@@ -396,6 +401,90 @@ export function BillForm({
         />
       ) : null}
       <FormFooter pending={f.pending} state={f.state} saveLabel="Record the bill" />
+    </form>
+  );
+}
+
+/**
+ * Records items sent back and what came back for them (part 3). Boxes
+ * start empty: a return is usually only some of the order.
+ */
+export function ReturnForm({
+  orderId,
+  items,
+}: {
+  orderId: string;
+  items: { id: string; description: string; here: string }[];
+}) {
+  const f = useForm(recordReturnAction);
+  const [received, setReceived] = useState(f.typed("received") !== "");
+  return (
+    <form key={f.key} action={f.action} className="flex flex-col gap-4" noValidate>
+      <input type="hidden" name="orderId" value={orderId} />
+      <DateField
+        id="return-date"
+        name="returnedOn"
+        label="Returned on"
+        defaultToday
+        defaultValue={f.typed("returnedOn") ?? ""}
+        error={f.error("returnedOn")}
+        className="max-w-48"
+      />
+      <ul aria-label="What went back" className="grid gap-3 sm:grid-cols-2">
+        {items.map((item) => (
+          <li key={item.id}>
+            <TextField
+              id={`return-${item.id}`}
+              name={`return:${item.id}`}
+              label={`${item.description} (${item.here} here)`}
+              inputMode="decimal"
+              autoComplete="off"
+              placeholder="0"
+              defaultValue={f.typed(`return:${item.id}`) ?? ""}
+            />
+          </li>
+        ))}
+      </ul>
+      {f.error("items") ? <p className="text-sm text-destructive">{f.error("items")}</p> : null}
+      <MoneyField
+        id="return-refund"
+        name="refund"
+        label="Refund (optional)"
+        hint="Leave blank for the price you paid plus its tax. Type what the store actually gave back if it kept a fee, refunded shipping, or gave nothing (0)."
+        placeholder=""
+        defaultValue={f.typed("refund") ?? ""}
+        error={f.error("refund")}
+        className="max-w-48"
+      />
+      <label className="flex items-center gap-2 text-sm">
+        <input
+          type="checkbox"
+          name="received"
+          checked={received}
+          onChange={(event) => setReceived(event.target.checked)}
+          className="size-4"
+        />
+        The refund has already come back
+      </label>
+      {received ? (
+        <SelectField
+          id="return-method"
+          name="method"
+          label="Came back to"
+          options={methodOptions}
+          defaultValue={f.typed("method") ?? "card"}
+          className="max-w-48"
+        />
+      ) : null}
+      <TextField
+        id="return-notes"
+        name="notes"
+        label="Notes (optional)"
+        placeholder="Wrong color; 15% restocking fee"
+        defaultValue={f.typed("notes") ?? ""}
+        error={f.error("notes")}
+      />
+      <FormFooter pending={f.pending} state={f.state} saveLabel="Record return" />
     </form>
   );
 }

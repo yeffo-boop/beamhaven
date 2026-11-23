@@ -291,3 +291,18 @@ Statuses: **Proposed** (waiting for Jeff) · **Accepted** · **Superseded**
 - An order row is locked (`SELECT … FOR UPDATE`) while it, its deliveries or its bill change.
 
 **Consequences.** The formulas in `docs/BUDGET_DEFINITIONS.md` are unchanged; only "linked to a commitment" now also covers a single allocation. A material on an order, and a budget line with order items, can't be deleted.
+
+## ADR-030: Returns lower the order's commitment, and their refund uses it up (Milestone 6, part 3)
+
+**Date:** 2026-11-23. **Status:** accepted.
+
+**Decision.**
+
+- A return is recorded on the order, **after its bill**: before that, the order itself is changed to what's being kept. Only what has arrived (and not already gone back) can be returned.
+- The **usual refund** is the returned items at the price paid, plus their share of the line's tax. The amount the store actually gave back can be typed instead: less (a restocking fee), more (shipping refunded too, or a fee given back later), or 0. It can never be more than the items' lines can give back, so a line never refunds more than it cost.
+- The refund is a **negative expense against the bill** (rule 8), split per line and kind, each part linked to that line's order commitment, and the commitment goes **down** by the same part. So committed, spent and the forecast all fall by the refund, and "not yet invoiced" stays at $0. A refund received is a negative payment.
+- Because of this an order's commitment may reach **$0** (the database check now allows that for order commitments only).
+- A material moves to **Returned** once everything ordered of it has gone back; removing the return moves it back. While anything has been returned, the bill and the deliveries the items came in stay.
+- The refund's expense is changed only from the order, like the bill.
+
+**Consequences.** The formulas in `docs/BUDGET_DEFINITIONS.md` are unchanged. Cancelling items that never arrived isn't a return; change the order before the bill instead.

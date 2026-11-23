@@ -29,7 +29,7 @@ async function ensureProperty(page: Page) {
   }
 }
 
-test("order a material, take delivery in two parts, and record the bill", async ({
+test("order a material, take delivery in two parts, record the bill and a return", async ({
   page,
 }, testInfo) => {
   test.skip(testInfo.project.name !== "laptop", "One full run is enough.");
@@ -110,11 +110,22 @@ test("order a material, take delivery in two parts, and record the bill", async 
   await expect(bill.getByRole("link", { name: /Open the bill/ })).toBeVisible();
   await expect(page.getByRole("link", { name: "Edit" })).toHaveCount(0);
 
+  // Two boxes go back: $99.98 and their tax ($7.91 of the $42.50), back on the card.
+  await open(page, "Record a return");
+  const returns = page.getByRole("region", { name: "Returns" });
+  await visible(returns.getByLabel(/^Floor tile/)).fill("2");
+  await returns.getByRole("button", { name: "Record return" }).click();
+  await expect(returns).toContainText("$107.89 back, received");
+  await expect(page.getByRole("region", { name: "Summary" })).toContainText("$471.51");
+  await expect(
+    page.getByRole("region", { name: "Bill" }).getByRole("button", { name: /Remove the bill/ }),
+  ).toHaveCount(0);
+
   // The material is delivered, and the budget shows the money spent.
   await page.getByRole("link", { name: tile }).click();
   await expect(visible(page.locator("span", { hasText: /^Delivered$/ })).first()).toBeVisible();
   await page.goto(`${projectUrl}/budget`);
-  await expect(page.getByRole("table", { name: "Budget lines" })).toContainText("$579.40");
+  await expect(page.getByRole("table", { name: "Budget lines" })).toContainText("$471.51");
 });
 
 test("orders pages fit the screen", async ({ page }) => {

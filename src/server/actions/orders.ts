@@ -8,8 +8,10 @@ import {
   createOrder,
   deleteDelivery,
   deleteOrder,
+  deleteReturn,
   recordBill,
   recordDelivery,
+  recordReturn,
   removeBill,
   updateOrder,
 } from "@/server/services/orders";
@@ -17,7 +19,7 @@ import {
 import type { FormResult } from "./account";
 import { asFormResult, idFrom, problemRedirect, text } from "./helpers";
 
-/** Server Actions for orders, deliveries and their bills (Milestone 6, part 2). */
+/** Server Actions for orders, deliveries, bills and returns (Milestone 6, parts 2 and 3). */
 
 const ORDER_FIELDS = ["supplier", "orderNumber", "orderedOn", "shipping", "tax", "notes"] as const;
 
@@ -104,9 +106,11 @@ export async function recordDeliveryAction(
 
 export async function deleteDeliveryAction(formData: FormData): Promise<void> {
   const ctx = await requireWorkspace();
+  const orderId = idFrom(formData, "orderId");
   try {
-    await deleteDelivery(ctx, idFrom(formData, "orderId"), idFrom(formData));
+    await deleteDelivery(ctx, orderId, idFrom(formData));
   } catch (error) {
+    problemRedirect(`/orders/${orderId}`, error);
     asFormResult(error);
     return;
   }
@@ -137,6 +141,50 @@ export async function removeBillAction(formData: FormData): Promise<void> {
   const orderId = idFrom(formData, "orderId");
   try {
     await removeBill(ctx, orderId);
+  } catch (error) {
+    problemRedirect(`/orders/${orderId}`, error);
+    asFormResult(error);
+    return;
+  }
+  refresh();
+}
+
+export async function recordReturnAction(
+  _previous: FormResult,
+  formData: FormData,
+): Promise<FormResult> {
+  const ctx = await requireWorkspace();
+  const quantities: Record<string, string> = {};
+  for (const [name, value] of formData) {
+    if (name.startsWith("return:") && typeof value === "string") {
+      quantities[name.slice("return:".length)] = value;
+    }
+  }
+  try {
+    await recordReturn(
+      ctx,
+      idFrom(formData, "orderId"),
+      {
+        returnedOn: text(formData, "returnedOn"),
+        refund: text(formData, "refund"),
+        received: text(formData, "received"),
+        method: text(formData, "method"),
+        notes: text(formData, "notes"),
+      },
+      quantities,
+    );
+  } catch (error) {
+    return asFormResult(error, formData);
+  }
+  refresh();
+  return { status: "saved" };
+}
+
+export async function deleteReturnAction(formData: FormData): Promise<void> {
+  const ctx = await requireWorkspace();
+  const orderId = idFrom(formData, "orderId");
+  try {
+    await deleteReturn(ctx, orderId, idFrom(formData));
   } catch (error) {
     problemRedirect(`/orders/${orderId}`, error);
     asFormResult(error);

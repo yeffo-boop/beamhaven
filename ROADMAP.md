@@ -139,7 +139,7 @@ The MVP is not "finished" until **Milestone 10** puts it in production with auto
 
 **Acceptance:** the full flow works, from quote to approval to payments, and the budget totals stay correct. Room estimates match a hand calculation in tests.
 
-## Milestone 6: Materials and Orders 🟡
+## Milestone 6: Materials and Orders ✅
 
 **Depends on:** Milestone 4.
 
@@ -148,7 +148,7 @@ The MVP is not "finished" until **Milestone 10** puts it in production with auto
 - The purchase price saved at the time of purchase, so it stays correct if the store's price changes.
 - Product links, photos, specifications and manuals.
 
-Built in three parts: **part 1** materials (built), **part 2** orders with several items, the price paid, deliveries and the bill (built), **part 3** returns and refunds.
+Built in three parts: **part 1** materials, **part 2** orders with several items, the price paid, deliveries and the bill, **part 3** returns and refunds. All built.
 
 ## Milestone 7: Tasks and Scheduling ⬜
 

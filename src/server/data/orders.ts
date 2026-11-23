@@ -1,7 +1,18 @@
 import "server-only";
 
 import type { Prisma } from "@/generated/prisma/client";
-import { itemTotal, orderTotal, shareByLine } from "@/lib/order-math";
+import {
+  itemTotal,
+  largestRefund,
+  orderTotal,
+  type RefundKind,
+  refundableParts,
+  type ReturnLine,
+  shareByLine,
+  splitRefund,
+  usualRefund,
+} from "@/lib/order-math";
+import { lineTotal } from "@/lib/quantity";
 import { paymentState, type PaymentState } from "@/server/services/budget-math";
 
 import { type LineLabel, lineSelect, toLabel } from "./budget";
@@ -200,7 +211,18 @@ export type OrderItemRecord = {
   unitPriceCents: bigint;
   totalCents: bigint;
   deliveredMilli: number;
+  returnedMilli: number;
   line: LineLabel;
+};
+
+export type ReturnRecord = {
+  id: string;
+  returnedOn: Date;
+  refundCents: bigint;
+  refundId: string | null;
+  refundReceived: boolean;
+  notes: string | null;
+  items: { orderItemId: string; description: string; quantityMilli: number }[];
 };
 
 export type DeliveryRecord = {
@@ -228,6 +250,9 @@ export type OrderDetail = OrderFields & {
   itemsCents: bigint;
   totalCents: bigint;
   deliveries: DeliveryRecord[];
+  returns: ReturnRecord[];
+  /** Everything given back for returns (positive). */
+  refundedCents: bigint;
   bill: OrderBill | null;
   /** "none", "partly" or "all" of what was ordered has arrived. */
   delivered: DeliveryState;
@@ -267,6 +292,25 @@ export async function findOrder(ctx: WorkspaceContext, id: string): Promise<Orde
           material: { select: { name: true } },
           line: { select: lineSelect },
           deliveryItems: { select: { quantityMilli: true } },
+          returnItems: { select: { quantityMilli: true } },
+        },
+      },
+      returns: {
+        orderBy: [{ returnedOn: "asc" }, { createdAt: "asc" }],
+        select: {
+          id: true,
+          returnedOn: true,
+          refundCents: true,
+          refundId: true,
+          notes: true,
+          refund: { select: { totalCents: true, payments: { select: { amountCents: true } } } },
+          items: {
+            select: {
+              orderItemId: true,
+              quantityMilli: true,
+              orderItem: { select: { description: true, position: true } },
+            },
+          },
         },
       },
       deliveries: {
@@ -305,6 +349,7 @@ export async function findOrder(ctx: WorkspaceContext, id: string): Promise<Orde
     unitPriceCents: i.unitPriceCents,
     totalCents: itemTotal(i),
     deliveredMilli: i.deliveryItems.reduce((sum, d) => sum + d.quantityMilli, 0),
+    returnedMilli: i.returnItems.reduce((sum, r) => sum + r.quantityMilli, 0),
     line: toLabel(i.line),
   }));
   const bill = row.bill
@@ -347,6 +392,24 @@ export async function findOrder(ctx: WorkspaceContext, id: string): Promise<Orde
           quantityMilli: di.quantityMilli,
         })),
     })),
+    returns: row.returns.map((r) => ({
+      id: r.id,
+      returnedOn: r.returnedOn,
+      refundCents: r.refundCents,
+      refundId: r.refundId,
+      refundReceived:
+        r.refund !== null &&
+        r.refund.payments.reduce((sum, p) => sum + p.amountCents, 0n) === r.refund.totalCents,
+      notes: r.notes,
+      items: r.items
+        .toSorted((a, b) => a.orderItem.position - b.orderItem.position)
+        .map((ri) => ({
+          orderItemId: ri.orderItemId,
+          description: ri.orderItem.description,
+          quantityMilli: ri.quantityMilli,
+        })),
+    })),
+    refundedCents: row.returns.reduce((sum, r) => sum + r.refundCents, 0n),
     bill,
     delivered: deliveryState(items),
   };
@@ -420,7 +483,12 @@ export async function listOrders(
 export async function materialProgress(
   ctx: WorkspaceContext,
   materialIds: string[],
-): Promise<Map<string, { orderedMilli: number; deliveredMilli: number; status: string }>> {
+): Promise<
+  Map<
+    string,
+    { orderedMilli: number; deliveredMilli: number; returnedMilli: number; status: string }
+  >
+> {
   if (materialIds.length === 0) return new Map();
   const rows = await getPrisma().material.findMany({
     where: { id: { in: materialIds }, workspaceId: ctx.workspaceId },
@@ -428,7 +496,11 @@ export async function materialProgress(
       id: true,
       status: true,
       orderItems: {
-        select: { quantityMilli: true, deliveryItems: { select: { quantityMilli: true } } },
+        select: {
+          quantityMilli: true,
+          deliveryItems: { select: { quantityMilli: true } },
+          returnItems: { select: { quantityMilli: true } },
+        },
       },
     },
   });
@@ -440,6 +512,10 @@ export async function materialProgress(
         orderedMilli: m.orderItems.reduce((sum, i) => sum + i.quantityMilli, 0),
         deliveredMilli: m.orderItems.reduce(
           (sum, i) => sum + i.deliveryItems.reduce((s, d) => s + d.quantityMilli, 0),
+          0,
+        ),
+        returnedMilli: m.orderItems.reduce(
+          (sum, i) => sum + i.returnItems.reduce((s, r) => s + r.quantityMilli, 0),
           0,
         ),
       },
@@ -536,15 +612,55 @@ export async function insertDelivery(
   });
 }
 
+export type DeleteDeliveryResult =
+  | { status: "deleted"; materialIds: string[] }
+  | { status: "not_found" }
+  | { status: "returned"; description: string };
+
+/** Removes a delivery, unless some of what it brought has been sent back. */
 export async function deleteDeliveryRow(
   ctx: WorkspaceContext,
   orderId: string,
   deliveryId: string,
-): Promise<boolean> {
-  const result = await getPrisma().delivery.deleteMany({
-    where: { id: deliveryId, orderId, workspaceId: ctx.workspaceId },
+): Promise<DeleteDeliveryResult> {
+  const ws = ctx.workspaceId;
+  return getPrisma().$transaction(async (tx) => {
+    const locked = await tx.$queryRaw<{ id: string }[]>`
+      SELECT "id" FROM "orders" WHERE "id" = ${orderId} AND "workspace_id" = ${ws} FOR UPDATE`;
+    if (locked.length === 0) return { status: "not_found" };
+    const delivery = await tx.delivery.findFirst({
+      where: { id: deliveryId, orderId, workspaceId: ws },
+      select: {
+        items: {
+          select: {
+            quantityMilli: true,
+            orderItem: {
+              select: {
+                description: true,
+                materialId: true,
+                deliveryItems: { select: { quantityMilli: true } },
+                returnItems: { select: { quantityMilli: true } },
+              },
+            },
+          },
+        },
+      },
+    });
+    if (!delivery) return { status: "not_found" };
+    for (const di of delivery.items) {
+      const item = di.orderItem;
+      const arrived = item.deliveryItems.reduce((sum, d) => sum + d.quantityMilli, 0);
+      const returned = item.returnItems.reduce((sum, r) => sum + r.quantityMilli, 0);
+      if (arrived - di.quantityMilli < returned) {
+        return { status: "returned", description: item.description };
+      }
+    }
+    await tx.delivery.delete({ where: { id: deliveryId } });
+    const materialIds = delivery.items.flatMap((di) =>
+      di.orderItem.materialId ? [di.orderItem.materialId] : [],
+    );
+    return { status: "deleted", materialIds: [...new Set(materialIds)] };
   });
-  return result.count === 1;
 }
 
 // --- The bill --------------------------------------------------------------
@@ -650,7 +766,7 @@ export async function insertBill(
 
 /**
  * Takes the bill off again (its payments and receipts go with it), so the
- * order can be changed. Refused once a refund points at the bill.
+ * order can be changed. Refused once anything has been returned.
  */
 export async function deleteBillRow(
   ctx: WorkspaceContext,
@@ -662,10 +778,17 @@ export async function deleteBillRow(
   return getPrisma().$transaction(async (tx) => {
     const order = await tx.order.findFirst({
       where: { id: orderId, workspaceId: ws },
-      select: { billId: true, bill: { select: { _count: { select: { refunds: true } } } } },
+      select: {
+        billId: true,
+        _count: { select: { returns: true } },
+        bill: { select: { _count: { select: { refunds: true } } } },
+      },
     });
     if (!order?.billId) return { status: "not_found" };
-    if ((order.bill?._count.refunds ?? 0) > 0) return { status: "has_refunds" };
+    // Returns (even ones that got nothing back) need the bill they came from.
+    if ((order.bill?._count.refunds ?? 0) > 0 || order._count.returns > 0) {
+      return { status: "has_refunds" };
+    }
     const attachments = await tx.attachment.findMany({
       where: { expenseId: order.billId, workspaceId: ws },
       select: { fileId: true },
@@ -673,5 +796,254 @@ export async function deleteBillRow(
     await tx.order.update({ where: { id: orderId }, data: { billId: null } });
     await tx.expense.delete({ where: { id: order.billId } });
     return { status: "deleted", fileIds: attachments.map((a) => a.fileId) };
+  });
+}
+
+// --- Returns (Milestone 6, part 3, ADR-030) --------------------------------
+
+export type ReturnResult =
+  | { status: "saved"; id: string; refundCents: bigint; materialIds: string[]; title: string }
+  | { status: "not_found" }
+  | { status: "not_billed" }
+  | { status: "nothing" }
+  | { status: "too_much"; description: string }
+  | { status: "refund_too_big"; largestCents: bigint };
+
+/**
+ * Records items sent back, and what the store gave back for them. Only
+ * what has arrived can go back. The refund is a negative expense against
+ * the bill, shared over the lines the items were charged to, and each
+ * line's order commitment is lowered by its part, so the budget counts the
+ * items as never bought (ADR-030). `refundCents` null means the usual
+ * refund: the items at the price paid, and their tax.
+ */
+export async function insertReturn(
+  ctx: WorkspaceContext,
+  orderId: string,
+  entry: {
+    returnedOn: Date;
+    notes: string | null;
+    refundCents: bigint | null;
+    received: { method: string } | null;
+  },
+  quantities: Map<string, number>,
+): Promise<ReturnResult> {
+  const ws = ctx.workspaceId;
+  return getPrisma().$transaction(async (tx) => {
+    const locked = await tx.$queryRaw<{ bill_id: string | null }[]>`
+      SELECT "bill_id" FROM "orders" WHERE "id" = ${orderId} AND "workspace_id" = ${ws} FOR UPDATE`;
+    const row = locked[0];
+    if (!row) return { status: "not_found" };
+    if (!row.bill_id) return { status: "not_billed" };
+    const billId = row.bill_id;
+    const order = await tx.order.findUniqueOrThrow({
+      where: { id: orderId },
+      select: {
+        supplierId: true,
+        orderNumber: true,
+        taxCents: true,
+        shippingCents: true,
+        supplier: { select: { name: true } },
+        commitments: { select: { id: true, lineId: true } },
+        items: {
+          select: {
+            id: true,
+            lineId: true,
+            description: true,
+            materialId: true,
+            quantityMilli: true,
+            unitPriceCents: true,
+            deliveryItems: { select: { quantityMilli: true } },
+            returnItems: { select: { quantityMilli: true } },
+          },
+        },
+      },
+    });
+    const rows: { orderItemId: string; quantityMilli: number }[] = [];
+    const before = new Map<string, bigint>();
+    const now = new Map<string, bigint>();
+    for (const item of order.items) {
+      const arrived = item.deliveryItems.reduce((sum, d) => sum + d.quantityMilli, 0);
+      const returned = item.returnItems.reduce((sum, r) => sum + r.quantityMilli, 0);
+      const back = quantities.get(item.id) ?? 0;
+      if (back > 0 && returned + back > arrived) {
+        return { status: "too_much", description: item.description };
+      }
+      if (back > 0) rows.push({ orderItemId: item.id, quantityMilli: back });
+      // Value at the price paid, from the running total, so the rounding of
+      // several returns adds up to the item's total exactly.
+      const was = lineTotal(item.unitPriceCents, returned);
+      const isNow = lineTotal(item.unitPriceCents, returned + back);
+      before.set(item.lineId, (before.get(item.lineId) ?? 0n) + was);
+      now.set(item.lineId, (now.get(item.lineId) ?? 0n) + (isNow - was));
+    }
+    if ([...quantities.keys()].some((id) => !order.items.some((i) => i.id === id))) {
+      return { status: "not_found" };
+    }
+    if (rows.length === 0) return { status: "nothing" };
+
+    const refundedSoFar = await tx.expenseAllocation.groupBy({
+      by: ["lineId", "kind"],
+      where: { workspaceId: ws, expense: { refundOfExpenseId: billId } },
+      _sum: { amountCents: true },
+    });
+    const refunded = (lineId: string): Record<RefundKind, bigint> => {
+      const get = (kind: RefundKind) =>
+        -(
+          refundedSoFar.find((r) => r.lineId === lineId && r.kind === kind)?._sum.amountCents ?? 0n
+        );
+      return { item: get("item"), tax: get("tax"), shipping: get("shipping") };
+    };
+    const lines: ReturnLine[] = shareByLine(order.items, order.taxCents, order.shippingCents).map(
+      (share) => ({
+        share,
+        returnedBeforeCents: before.get(share.lineId) ?? 0n,
+        returnedNowCents: now.get(share.lineId) ?? 0n,
+        refunded: refunded(share.lineId),
+      }),
+    );
+    const available = refundableParts(lines);
+    const refundCents = entry.refundCents ?? usualRefund(available);
+    const largest = largestRefund(available);
+    if (refundCents > largest) return { status: "refund_too_big", largestCents: largest };
+
+    const title = orderTitle(order.supplier.name, order.orderNumber);
+    let refundId: string | null = null;
+    if (refundCents > 0n) {
+      refundId = newId();
+      const parts = splitRefund(refundCents, available);
+      const commitmentOn = new Map(order.commitments.map((c) => [c.lineId, c.id]));
+      await tx.expense.create({
+        data: {
+          id: refundId,
+          workspaceId: ws,
+          vendorId: order.supplierId,
+          refundOfExpenseId: billId,
+          description: `Return: ${title}`,
+          expenseDate: entry.returnedOn,
+          totalCents: -refundCents,
+          createdById: ctx.userId,
+        },
+      });
+      await tx.expenseAllocation.createMany({
+        data: parts.map((p, position) => ({
+          id: newId(),
+          workspaceId: ws,
+          expenseId: refundId as string,
+          lineId: p.lineId,
+          kind: p.kind,
+          amountCents: -p.cents,
+          commitmentId: commitmentOn.get(p.lineId) ?? null,
+          position,
+        })),
+      });
+      await adjustCommitments(tx, ws, orderId, parts, -1n);
+      if (entry.received) {
+        await tx.payment.create({
+          data: {
+            id: newId(),
+            workspaceId: ws,
+            expenseId: refundId,
+            amountCents: -refundCents,
+            paidOn: entry.returnedOn,
+            method: entry.received.method,
+            createdById: ctx.userId,
+          },
+        });
+      }
+    }
+    const id = newId();
+    await tx.orderReturn.create({
+      data: {
+        id,
+        workspaceId: ws,
+        orderId,
+        returnedOn: entry.returnedOn,
+        refundCents,
+        refundId,
+        notes: entry.notes,
+        createdById: ctx.userId,
+      },
+    });
+    await tx.returnItem.createMany({
+      data: rows.map((r) => ({ id: newId(), workspaceId: ws, returnId: id, ...r })),
+    });
+    const materialIds = order.items.flatMap((i) =>
+      i.materialId && rows.some((r) => r.orderItemId === i.id) ? [i.materialId] : [],
+    );
+    return { status: "saved", id, refundCents, materialIds: [...new Set(materialIds)], title };
+  });
+}
+
+/**
+ * Moves each line's order commitment by its part of a refund: down when
+ * the refund is recorded (`sign` -1), back up when it's removed (+1).
+ */
+async function adjustCommitments(
+  tx: Tx,
+  ws: string,
+  orderId: string,
+  parts: readonly { lineId: string; cents: bigint }[],
+  sign: 1n | -1n,
+): Promise<void> {
+  const byLine = new Map<string, bigint>();
+  for (const p of parts) byLine.set(p.lineId, (byLine.get(p.lineId) ?? 0n) + p.cents);
+  for (const [lineId, cents] of byLine) {
+    await tx.commitment.updateMany({
+      where: { orderId, lineId, workspaceId: ws },
+      data: { amountCents: { increment: sign * cents } },
+    });
+  }
+}
+
+/**
+ * Takes a return back off: its refund (with any payment and receipts)
+ * goes, and the order's commitments go back up.
+ */
+export async function deleteReturnRow(
+  ctx: WorkspaceContext,
+  orderId: string,
+  returnId: string,
+): Promise<
+  { status: "deleted"; fileIds: string[]; materialIds: string[] } | { status: "not_found" }
+> {
+  const ws = ctx.workspaceId;
+  return getPrisma().$transaction(async (tx) => {
+    const locked = await tx.$queryRaw<{ id: string }[]>`
+      SELECT "id" FROM "orders" WHERE "id" = ${orderId} AND "workspace_id" = ${ws} FOR UPDATE`;
+    if (locked.length === 0) return { status: "not_found" };
+    const found = await tx.orderReturn.findFirst({
+      where: { id: returnId, orderId, workspaceId: ws },
+      select: {
+        refundId: true,
+        items: { select: { orderItem: { select: { materialId: true } } } },
+      },
+    });
+    if (!found) return { status: "not_found" };
+    let fileIds: string[] = [];
+    if (found.refundId) {
+      const allocations = await tx.expenseAllocation.findMany({
+        where: { expenseId: found.refundId, workspaceId: ws },
+        select: { lineId: true, amountCents: true },
+      });
+      await adjustCommitments(
+        tx,
+        ws,
+        orderId,
+        allocations.map((a) => ({ lineId: a.lineId, cents: -a.amountCents })),
+        1n,
+      );
+      const attachments = await tx.attachment.findMany({
+        where: { expenseId: found.refundId, workspaceId: ws },
+        select: { fileId: true },
+      });
+      fileIds = attachments.map((a) => a.fileId);
+    }
+    await tx.orderReturn.delete({ where: { id: returnId } });
+    if (found.refundId) await tx.expense.delete({ where: { id: found.refundId } });
+    const materialIds = found.items.flatMap((i) =>
+      i.orderItem.materialId ? [i.orderItem.materialId] : [],
+    );
+    return { status: "deleted", fileIds, materialIds: [...new Set(materialIds)] };
   });
 }
