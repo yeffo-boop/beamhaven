@@ -78,7 +78,9 @@ jobs:
       - name: Health check
         run: curl --fail --silent http://127.0.0.1:3000/api/health
       - name: The database port is not published
-        run: test -z "$(docker compose port db 5432 2>/dev/null)"
+        # "docker compose port" prints ":0" for an unpublished port, so check the
+        # container's actual port bindings instead: none means not reachable.
+        run: test "$(docker inspect --format '{{json .HostConfig.PortBindings}}' "$(docker compose ps -q db)")" = "{}"
       - name: Logs (if something failed)
         if: failure()
         run: docker compose logs --tail 100
