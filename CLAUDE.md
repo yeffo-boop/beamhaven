@@ -107,7 +107,8 @@ docs/               DATA_MODEL.md, BUDGET_DEFINITIONS.md, UI_DIRECTION.md
 - Pages in `src/app/(app)/` are signed-in only: the layout wraps them in `<SignedIn>`. Server Actions and route handlers must still call `requireUser()` themselves.
 - Anything that reads the session (`getCurrentUser()`) must sit inside `<Suspense>`, and must read `headers()` before touching settings, so `next build` doesn't need secrets.
 - Integration and e2e tests use the `<name>_test` database; never point a test that deletes rows at any other database.
-- The theme boot script in `src/app/layout.tsx` is inline. The Content-Security-Policy added in Milestone 2 must allow it (hash or nonce).
+- The theme boot script in `src/app/layout.tsx` is inline. The Content-Security-Policy in `next.config.ts` allows inline scripts for it and for Next.js (ADR-020). Never add an external script or style without updating the CSP.
+- Pages used before signing in (`/sign-in`, `/invite/…`, `/reset-password`) live in `src/app/(auth)/` and are excluded in `src/proxy.ts`.
 
 ## Adding dependencies
 

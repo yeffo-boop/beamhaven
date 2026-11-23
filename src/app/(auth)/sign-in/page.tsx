@@ -18,8 +18,12 @@ export default function SignInPage({ searchParams }: PageProps<"/sign-in">) {
       </div>
       <Suspense fallback={<div className="h-[212px]" aria-hidden="true" />}>
         <AlreadySignedIn searchParams={searchParams} />
+        <PasswordWasReset searchParams={searchParams} />
         <SignInForm />
       </Suspense>
+      <p className="text-sm text-muted-foreground">
+        Forgot your password? Ask a household owner to make you a reset link in Settings.
+      </p>
     </div>
   );
 }
@@ -32,4 +36,14 @@ async function AlreadySignedIn({ searchParams }: Pick<PageProps<"/sign-in">, "se
     redirect(safeNextPath(typeof next === "string" ? next : null));
   }
   return null;
+}
+
+async function PasswordWasReset({ searchParams }: Pick<PageProps<"/sign-in">, "searchParams">) {
+  const { reset } = await searchParams;
+  if (reset !== "1") return null;
+  return (
+    <p role="status" className="rounded-[var(--radius-control)] bg-primary/10 p-3 text-sm">
+      Your password was changed. Sign in with the new one.
+    </p>
+  );
 }

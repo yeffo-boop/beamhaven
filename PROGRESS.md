@@ -4,7 +4,37 @@ Newest entries at the top. Each entry records what was done, which files changed
 
 ---
 
-## 2026-11-23: Milestone 2, step 2 (households, roles and isolation tests), in review
+## 2026-11-23: Milestone 2, steps 3 and 4 (invitations, resets, account settings, security), in review
+
+Jeff asked to batch the remaining steps and test once at the end of the milestone.
+
+### Done
+
+- **Invitations** (ADR-020): owners create a link in Settings → Household, choosing Owner, Member or Viewer, and copy it to send. The `/invite/…` page lets a new person pick a name and password and join; someone with an account signs in and joins. Links work once, last 7 days, and can be cancelled. Used, cancelled, expired and made-up links all show the same "doesn't work" page.
+- **Managing people** (owners): change someone's role, remove them (with a confirm step), and make a **password-reset link** for them. Owners can't change or remove themselves, so a household always keeps an owner.
+- **Password resets:** `/reset-password` page; resetting signs that person out everywhere. Admin command: `npm run password-reset-link -- <email>`. The sign-in page now explains how to get a reset link.
+- **Account settings:** change your name, change your password (signs out other devices), **sign out of every device**, and (owners) rename the household.
+- **Rate limits:** sign-in, reset and password change are 5 a minute per visitor; accepting invitations 10 per 15 minutes; making links 30 an hour per owner.
+- **Content-Security-Policy** header on every page (ADR-020).
+
+### Tests (cloud workspace, 2026-11-23)
+
+- Lint, formatting and type check: passed.
+- Unit tests: 29 of 29 passed.
+- Integration tests: 27 of 27 passed. New ones cover:
+  - invitations: the link is built from APP_URL; a link works only once; cancelled, expired and made-up links are refused; only owners can invite or cancel, and only in their own household; an existing account joins only as the invited email;
+  - reset links: they work once and sign the person out; members can't make them; owners can't make them for outsiders or for someone who also belongs to another household.
+- End-to-end tests: 31 passed, 6 skipped on purpose. They include one full run of: invite → join → used link refused → reset link → new password → change password → sign out everywhere → remove; plus a check that the CSP header is sent.
+- Production build with no secrets set: passed.
+- Screenshots of Settings checked at laptop and phone sizes.
+
+### Next step
+
+Jeff tries Milestone 2 on his Mac (invite his partner, or a test email). Then Milestone 2.5: a staging copy on the Proxmox VM.
+
+---
+
+## 2026-11-23: Milestone 2, step 2 (households, roles and isolation tests), done (merged in PR #6; Jeff checked Settings)
 
 ### Done
 

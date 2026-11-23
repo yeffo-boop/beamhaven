@@ -160,3 +160,14 @@ Statuses: **Proposed** (waiting for Jeff) · **Accepted** · **Superseded**
   - Which household someone is working in comes from their session's active household if they still belong to it, otherwise their oldest one. `resolveWorkspaceContext()` is the only code that builds a `WorkspaceContext`, after checking membership.
   - Better Auth's own permission list only covers its endpoints (inviting and managing people: owners only). Rules for BeamHaven's records live in `can()`.
 - **Why:** it reuses Better Auth's tested membership and invitation code, while keeping every rule we write in one place and every query scoped by `workspaceId`.
+
+## ADR-020: Invitations, reset links, rate limits and the Content-Security-Policy
+
+- **Status:** Accepted (2026-11-23)
+- **Decision:**
+  - **Invitations:** an owner creates an invitation in Settings and copies its link (`APP_URL/invite/<id>`) to send by hand. The id is long and random, works once, and expires after 7 days. Inviting the same email again cancels the older link. Accepting creates the account and the membership; someone who already has an account signs in first and then joins.
+  - **Password resets without email:** an owner can make a one-time reset link (24 hours) for someone whose only household is theirs. The server admin can make one for anyone with `npm run password-reset-link -- <email>`, for when the only owner is locked out. The token is stored the way Better Auth's own "forgot password" stores it, so Better Auth checks it, uses it up, and signs the person out everywhere.
+  - **Rate limits:** Better Auth limits sign-in, password reset and password change to 5 attempts a minute per visitor. Our own actions have a small in-memory limiter: accepting invitations allows 10 per 15 minutes per visitor, and creating links allows 30 an hour per owner. Counts live in memory, which suits a single server and resets on restart.
+  - **Content-Security-Policy:** scripts, styles, images, fonts and connections come only from this site, nothing may frame the app, and forms only submit to this site. Inline scripts are allowed (`'unsafe-inline'`).
+- **Why `'unsafe-inline'`:** Next.js and our theme script use inline scripts. The strict alternative, a nonce per request, makes every page fully dynamic and loses the instant-loading shell. React escapes everything it displays and we never insert user content as raw HTML, which is the main defence against injected scripts. Revisit if the app ever shows untrusted HTML.
+- **Later, with email (an open question):** send invitation and reset links by email, and add a self-service "forgot password" page.

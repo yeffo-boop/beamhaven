@@ -60,7 +60,9 @@ npm run create-first-account
 npm run dev
 ```
 
-There is no sign-up page. After the first account, people join by invitation (coming later in Milestone 2).
+There is no sign-up page. After the first account, people join by invitation: an owner creates a link in **Settings → Household** and sends it to them.
+
+Forgot a password? An owner can make a reset link in **Settings → Household**. If you are the only owner and you're locked out, run `npm run password-reset-link -- you@example.com` in Terminal and open the link it prints.
 
 Press `Ctrl+C` in Terminal to stop the app. The database keeps running in the background; stop it with `npm run db:down` (your data is kept).
 

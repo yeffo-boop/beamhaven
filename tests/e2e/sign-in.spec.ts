@@ -27,12 +27,12 @@ test("a wrong password shows a message and doesn't sign in", async ({ page }) =>
 });
 
 test("repeated attempts are slowed down", async ({ page }) => {
-  // Better Auth allows 3 sign-in attempts per 10 seconds from one address.
+  // Sign-in allows 5 attempts per minute from one address (auth.ts).
   await page.goto("/sign-in");
   await page.getByLabel("Email").fill(testAccount.email);
   await page.getByLabel("Password").fill("not-the-right-password");
   const alert = page.getByRole("main").getByRole("alert");
-  for (let attempt = 1; attempt <= 3; attempt++) {
+  for (let attempt = 1; attempt <= 5; attempt++) {
     await page.getByRole("button", { name: "Sign in" }).click();
     await expect(alert).toHaveText(/don't match/);
   }
@@ -61,7 +61,7 @@ test("signing out from Settings ends the session", async ({ page }) => {
     page.getByRole("region", { name: "Account" }).getByText(testAccount.email),
   ).toBeVisible();
 
-  await page.getByRole("main").getByRole("button", { name: "Sign out" }).click();
+  await page.getByRole("main").getByRole("button", { name: "Sign out", exact: true }).click();
   await expect(page).toHaveURL(/\/sign-in/);
   await page.goto("/settings");
   await expect(page).toHaveURL(/\/sign-in/);

@@ -35,16 +35,23 @@ export async function getWorkspace(ctx: WorkspaceContext): Promise<WorkspaceSumm
   });
 }
 
-export type MemberSummary = { userId: string; name: string; email: string; role: string };
+export type MemberSummary = {
+  membershipId: string;
+  userId: string;
+  name: string;
+  email: string;
+  role: string;
+};
 
 /** Everyone in the current household. */
 export async function listMembers(ctx: WorkspaceContext): Promise<MemberSummary[]> {
   const rows = await getPrisma().membership.findMany({
     where: { workspaceId: ctx.workspaceId },
     orderBy: { createdAt: "asc" },
-    select: { role: true, user: { select: { id: true, name: true, email: true } } },
+    select: { id: true, role: true, user: { select: { id: true, name: true, email: true } } },
   });
-  return rows.map(({ role, user }) => ({
+  return rows.map(({ id, role, user }) => ({
+    membershipId: id,
     userId: user.id,
     name: user.name,
     email: user.email,
@@ -77,4 +84,24 @@ export async function createWorkspaceWithOwner(input: {
 
 function randomId(): string {
   return randomUUID().replaceAll("-", "");
+}
+
+/** Whether someone belongs to the current household, and how many households they're in. */
+export async function getMemberStanding(
+  ctx: WorkspaceContext,
+  userId: string,
+): Promise<{ isMember: boolean; householdCount: number }> {
+  const memberships = await getPrisma().membership.findMany({
+    where: { userId },
+    select: { workspaceId: true },
+  });
+  return {
+    isMember: memberships.some((m) => m.workspaceId === ctx.workspaceId),
+    householdCount: memberships.length,
+  };
+}
+
+/** Renames the current household. Callers check the role first (workspace:manage). */
+export async function renameWorkspace(ctx: WorkspaceContext, name: string): Promise<void> {
+  await getPrisma().workspace.update({ where: { id: ctx.workspaceId }, data: { name } });
 }
