@@ -4,7 +4,7 @@ Newest entries at the top. Each entry records what was done, which files changed
 
 ---
 
-## 2026-11-23: Milestone 2, steps 3 and 4 (invitations, resets, account settings, security), in review
+## 2026-11-23: Milestone 2, steps 3 and 4 (invitations, resets, account settings, security), done (merged in PR #7; Jeff checked on his Mac)
 
 Jeff asked to batch the remaining steps and test once at the end of the milestone.
 
@@ -30,7 +30,7 @@ Jeff asked to batch the remaining steps and test once at the end of the mileston
 
 ### Next step
 
-Jeff tries Milestone 2 on his Mac (invite his partner, or a test email). Then Milestone 2.5: a staging copy on the Proxmox VM.
+Milestone 2 is complete. Next is Milestone 2.5 (a staging copy on the Proxmox VM behind Nginx Proxy Manager), which needs Jeff's go-ahead.
 
 ---
 
