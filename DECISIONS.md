@@ -321,3 +321,17 @@ Statuses: **Proposed** (waiting for Jeff) · **Accepted** · **Superseded**
 - Deleting a milestone keeps its tasks on the project. Deleting a project takes its milestones; tasks that stay (because they're also in a room) leave their milestone. Deleting a task removes its waits.
 
 **Consequences.** No dates are moved automatically when something is late; that's for the calendar (part 2) to show.
+
+## ADR-032: The calendar reads each record's own date; appointment times are wall-clock (Milestone 7, part 2)
+
+**Date:** 2026-11-23. **Status:** accepted.
+
+**Decision.**
+
+- **Appointments** (an appointment, inspection, delivery window or anything else) are their own records: a calendar day plus an optional start and end time stored as `"HH:MM"` text. That's the time on the clock where the house is, so there's nothing to convert and daylight saving can't move it. A check makes sure an end has a start and comes after it. Only an inspection can be marked passed or failed (a database check, and the form drops the result for anything else).
+- An appointment can point at a project, a room and a contractor of the same household. Deleting any of those keeps the appointment and clears the link.
+- The **calendar is not a table**. It's put together when the page loads from each record's own date: appointments, tasks by due date, milestone target dates, deliveries that arrived, orders' expected dates (until everything has arrived), and unpaid bills by due date. Nothing is copied, so nothing can get out of step.
+- Each household has a **time zone** (`workspaces.time_zone`, starting as `UTC`), set by an owner in Settings. Settings offers the device's own zone while it's still `UTC`. It's used for "today" now, and for reminder times in part 3.
+- Views: month (a grid on tablets and laptops, a list of busy days on phones), week, a 30-day agenda, and the tasks and milestones list from part 1. Each project shows its next four weeks.
+
+**Consequences.** Appointments don't repeat; that can come later if it's missed. If the household moves time zones, appointment times stay as typed, which is what people expect of a paper calendar.

@@ -197,6 +197,11 @@ export async function deleteContractorRow(
       where: { workspaceId: ws, assigneeContractorId: id },
       data: { assigneeContractorId: null },
     });
+    // Appointments with them stay on the calendar.
+    await tx.appointment.updateMany({
+      where: { workspaceId: ws, contractorId: id },
+      data: { contractorId: null },
+    });
     const attachments = await tx.attachment.findMany({
       where: { workspaceId: ws, contractorId: id },
       select: { fileId: true },
@@ -246,6 +251,11 @@ export async function unlinkProjectOrRoom(
   link: { projectId: string } | { roomId: string },
 ): Promise<string[]> {
   const fileIds = await unlinkWarranties(tx, workspaceId, link);
+  // Appointments stay on the calendar, without the link.
+  await tx.appointment.updateMany({
+    where: { workspaceId, ...link },
+    data: "projectId" in link ? { projectId: null } : { roomId: null },
+  });
   await tx.material.updateMany({
     where: { workspaceId, ...link },
     data: "projectId" in link ? { projectId: null } : { roomId: null },

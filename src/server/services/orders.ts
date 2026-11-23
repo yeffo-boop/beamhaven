@@ -96,6 +96,7 @@ async function saveOrder(
       supplierId,
       orderNumber: parsed.orderNumber,
       orderedOn: parsed.orderedOn,
+      expectedOn: parsed.expectedOn,
       shippingCents: parsed.shipping,
       taxCents: parsed.tax,
       notes: parsed.notes,

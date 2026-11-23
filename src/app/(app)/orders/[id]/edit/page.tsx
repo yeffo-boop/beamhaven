@@ -38,6 +38,7 @@ export default async function EditOrderPage({ params }: PageProps<"/orders/[id]/
           supplier: order.supplierName,
           orderNumber: order.orderNumber ?? "",
           orderedOn: dayInputValue(order.orderedOn),
+          expectedOn: dayInputValue(order.expectedOn),
           shipping: order.shippingCents === 0n ? "" : moneyInputValue(order.shippingCents),
           tax: order.taxCents === 0n ? "" : moneyInputValue(order.taxCents),
           notes: order.notes ?? "",

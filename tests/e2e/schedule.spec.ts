@@ -82,13 +82,18 @@ test("plan a project in milestones, and see a task blocked until the one before 
   await expect(milestones).toContainText("Done");
 
   // The schedule shows it across projects.
-  await page.goto("/schedule");
+  await page.goto("/schedule?view=tasks");
   await expect(page.getByRole("region", { name: "Milestones" })).toContainText(projectName);
   await expect(page.getByRole("region", { name: "Still to do" })).toContainText("Hang cabinets");
 });
 
 test("schedule pages fit the screen", async ({ page }) => {
-  for (const path of ["/schedule"]) {
+  for (const path of [
+    "/schedule",
+    "/schedule?view=week",
+    "/schedule?view=agenda",
+    "/schedule?view=tasks",
+  ]) {
     await page.goto(path);
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
     const overflow = await page.evaluate(

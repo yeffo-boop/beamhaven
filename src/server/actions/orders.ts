@@ -21,7 +21,15 @@ import { asFormResult, idFrom, problemRedirect, text } from "./helpers";
 
 /** Server Actions for orders, deliveries, bills and returns (Milestone 6, parts 2 and 3). */
 
-const ORDER_FIELDS = ["supplier", "orderNumber", "orderedOn", "shipping", "tax", "notes"] as const;
+const ORDER_FIELDS = [
+  "supplier",
+  "orderNumber",
+  "orderedOn",
+  "expectedOn",
+  "shipping",
+  "tax",
+  "notes",
+] as const;
 
 /** The item rows arrive as parallel lists, one entry per row. */
 function orderInput(formData: FormData) {

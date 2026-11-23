@@ -37,6 +37,7 @@ export type OrderFields = {
   supplierId: string;
   orderNumber: string | null;
   orderedOn: Date;
+  expectedOn: Date | null;
   shippingCents: bigint;
   taxCents: bigint;
   notes: string | null;
@@ -59,7 +60,7 @@ export type SaveOrderResult =
   | { status: "below_delivered"; description: string };
 
 /** "Order from Tile Shop (#A123)", the commitment's and bill's description. */
-function orderTitle(supplier: string, orderNumber: string | null): string {
+export function orderTitle(supplier: string, orderNumber: string | null): string {
   return `Order from ${supplier}${orderNumber ? ` (#${orderNumber})` : ""}`;
 }
 
@@ -260,7 +261,9 @@ export type OrderDetail = OrderFields & {
 
 export type DeliveryState = "none" | "partly" | "all";
 
-function deliveryState(items: { quantityMilli: number; deliveredMilli: number }[]): DeliveryState {
+export function deliveryState(
+  items: { quantityMilli: number; deliveredMilli: number }[],
+): DeliveryState {
   const ordered = items.reduce((sum, i) => sum + i.quantityMilli, 0);
   const arrived = items.reduce((sum, i) => sum + Math.min(i.deliveredMilli, i.quantityMilli), 0);
   if (arrived === 0) return "none";
@@ -276,6 +279,7 @@ export async function findOrder(ctx: WorkspaceContext, id: string): Promise<Orde
       supplierId: true,
       orderNumber: true,
       orderedOn: true,
+      expectedOn: true,
       shippingCents: true,
       taxCents: true,
       notes: true,
@@ -371,6 +375,7 @@ export async function findOrder(ctx: WorkspaceContext, id: string): Promise<Orde
     supplierId: row.supplierId,
     orderNumber: row.orderNumber,
     orderedOn: row.orderedOn,
+    expectedOn: row.expectedOn,
     shippingCents: row.shippingCents,
     taxCents: row.taxCents,
     notes: row.notes,

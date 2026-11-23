@@ -62,7 +62,11 @@ export default async function OrderPage({ params, searchParams }: PageProps<"/or
         </Link>
         <PageHeader
           title={order.title}
-          description={`Ordered ${formatDay(order.orderedOn)}`}
+          description={
+            order.expectedOn && order.delivered !== "all"
+              ? `Ordered ${formatDay(order.orderedOn)}, expected ${formatDay(order.expectedOn)}`
+              : `Ordered ${formatDay(order.orderedOn)}`
+          }
           actions={
             canEdit && !order.bill ? (
               <div className="flex flex-wrap gap-2">

@@ -5,6 +5,9 @@ import { notFound } from "next/navigation";
 import { ContractList, QuoteList } from "@/components/agreements/lists";
 import { Available, Money } from "@/components/budget/money";
 import { ProblemNotice } from "@/components/budget/problem-notice";
+import { AppointmentForm } from "@/components/schedule/appointment-form";
+import { AgendaList } from "@/components/schedule/calendar";
+import { addDays } from "@/lib/calendar";
 import { AddContractorToProjectForm, TaskForm, WarrantyForm } from "@/components/contractors/forms";
 import { ProjectContractorList, TaskList, WarrantyList } from "@/components/contractors/lists";
 import { PageHeader } from "@/components/page-header";
@@ -28,7 +31,9 @@ import { getActivity } from "@/server/services/activity";
 import { getContracts, getQuotes } from "@/server/services/agreements";
 import { getPhotos } from "@/server/services/attachments";
 import { getProjectBudget } from "@/server/services/budget";
+import { getCalendar } from "@/server/services/appointments";
 import { getRecordChoices, NO_CHOICES } from "@/server/services/choices";
+import { getHouseholdToday } from "@/server/services/preferences";
 import { getProjectContractors } from "@/server/services/contractors";
 import { getProject } from "@/server/services/projects";
 import { getRooms } from "@/server/services/rooms";
@@ -38,6 +43,8 @@ import { getMilestones } from "@/server/services/milestones";
 import { getTasks, getWarranties } from "@/server/services/tasks";
 
 export const metadata = { title: "Project" };
+
+const COMING_UP_DAYS = 28;
 
 export default async function ProjectPage({ params, searchParams }: PageProps<"/projects/[id]">) {
   const { id } = await params;
@@ -60,6 +67,7 @@ export default async function ProjectPage({ params, searchParams }: PageProps<"/
     materials,
     orders,
     milestones,
+    householdToday,
   ] = await Promise.all([
     getPhotos(ctx, { kind: "project", id }),
     getActivity(ctx, "project", id),
@@ -74,7 +82,13 @@ export default async function ProjectPage({ params, searchParams }: PageProps<"/
     getMaterials(ctx, { projectId: id }),
     getOrders(ctx, { projectId: id }),
     getMilestones(ctx, { projectId: id }),
+    getHouseholdToday(ctx),
   ]);
+  const comingUp = await getCalendar(ctx, {
+    from: householdToday,
+    to: addDays(householdToday, COMING_UP_DAYS - 1),
+    projectId: id,
+  });
   const today = new Date();
   const onProject = new Set(contractors.map((c) => c.contractorId));
   const projectRoomChoices = project.rooms.map((r) => ({ value: r.roomId, label: r.roomName }));
@@ -268,6 +282,41 @@ export default async function ProjectPage({ params, searchParams }: PageProps<"/
             <summary className="cursor-pointer text-sm font-medium">Add a milestone</summary>
             <div className="mt-3">
               <MilestoneForm key={milestones.length} projectId={id} />
+            </div>
+          </details>
+        ) : null}
+      </Panel>
+
+      <Panel
+        title="Coming up"
+        id="calendar"
+        actions={
+          <Button asChild variant="outline" size="sm">
+            <Link href={`/schedule?project=${id}&view=agenda`}>Calendar</Link>
+          </Button>
+        }
+      >
+        <p className="text-sm text-muted-foreground">
+          The next {COMING_UP_DAYS / 7} weeks: appointments, inspections, deliveries, tasks due and
+          bills to pay.
+        </p>
+        <AgendaList
+          entries={comingUp}
+          today={householdToday}
+          empty="Nothing on the calendar for the next few weeks."
+        />
+        {canEdit ? (
+          <details className="rounded-[var(--radius-control)] border border-border p-3">
+            <summary className="cursor-pointer text-sm font-medium">
+              Add an appointment or inspection
+            </summary>
+            <div className="mt-3">
+              <AppointmentForm
+                fixed={{ projectId: id }}
+                projects={choices.projects}
+                rooms={projectRoomChoices}
+                contractors={choices.contractors}
+              />
             </div>
           </details>
         ) : null}
