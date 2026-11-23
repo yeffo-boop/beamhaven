@@ -26,14 +26,14 @@ Example: moving from `beamhaven.thehoschak.com` to `app.newname.com`.
 
 ## What happens to…
 
-| Thing | Effect |
-|---|---|
-| **Existing logins (sessions)** | Login cookies belong to a single domain, so **everyone has to sign in once** on the new domain. No accounts or data are lost. |
-| **Bookmarks** | They keep working **if** you set up the redirect in step 8. Otherwise they break. |
-| **Invitation and password-reset links already sent** | They contain the old domain. They work while the redirect is in place. To be safe, re-send any invitations that are still pending. |
-| **Emails already sent** | Same as above: they rely on the redirect. |
-| **Uploaded files** | No change; file links are relative and checked for permission on every request. |
-| **Installed "Add to Home Screen" shortcuts** (if we add that) | They need re-adding on the new domain. |
+| Thing                                                         | Effect                                                                                                                             |
+| ------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| **Existing logins (sessions)**                                | Login cookies belong to a single domain, so **everyone has to sign in once** on the new domain. No accounts or data are lost.      |
+| **Bookmarks**                                                 | They keep working **if** you set up the redirect in step 8. Otherwise they break.                                                  |
+| **Invitation and password-reset links already sent**          | They contain the old domain. They work while the redirect is in place. To be safe, re-send any invitations that are still pending. |
+| **Emails already sent**                                       | Same as above: they rely on the redirect.                                                                                          |
+| **Uploaded files**                                            | No change; file links are relative and checked for permission on every request.                                                    |
+| **Installed "Add to Home Screen" shortcuts** (if we add that) | They need re-adding on the new domain.                                                                                             |
 
 ## Rolling back
 

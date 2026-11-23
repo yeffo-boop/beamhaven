@@ -1,0 +1,84 @@
+@import "tailwindcss";
+
+/*
+ * BeamHaven design tokens (docs/UI_DIRECTION.md).
+ * Light mode is the default. Dark mode follows the system setting, and can be
+ * forced with data-theme="light" or data-theme="dark" on <html> (a manual
+ * switch is added with the app shell).
+ */
+:root {
+  --background: #f7f5f1; /* plaster */
+  --surface: #ffffff;
+  --border: #e4e0d8;
+  --text: #1f1e1c; /* ink */
+  --text-muted: #6b665e;
+  --accent: #2f5d50; /* spruce */
+  --accent-foreground: #ffffff;
+  --positive: #557a2e; /* moss */
+  --warning: #a8741a; /* ochre */
+  --danger: #a63a32; /* brick */
+  --info: #3c5e7a; /* slate */
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --background: #141311;
+    --surface: #1c1b18;
+    --border: #2e2c28;
+    --text: #edeae4;
+    --text-muted: #a39d93;
+    --accent: #6fa593;
+    --accent-foreground: #141311;
+    --positive: #9bc06a;
+    --warning: #e0ae55;
+    --danger: #e57b72;
+    --info: #8db0cf;
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme="dark"] {
+  --background: #141311;
+  --surface: #1c1b18;
+  --border: #2e2c28;
+  --text: #edeae4;
+  --text-muted: #a39d93;
+  --accent: #6fa593;
+  --accent-foreground: #141311;
+  --positive: #9bc06a;
+  --warning: #e0ae55;
+  --danger: #e57b72;
+  --info: #8db0cf;
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-border: var(--border);
+  --color-text: var(--text);
+  --color-text-muted: var(--text-muted);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-positive: var(--positive);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --color-info: var(--info);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --radius-card: 10px;
+  --radius-control: 8px;
+}
+
+body {
+  background: var(--background);
+  color: var(--text);
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+}
+
+/* Money and measurements line up in columns. */
+.tabular {
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+}

@@ -25,28 +25,28 @@ Every total in BeamHaven, whether for a room, a category, a project or the whole
 
 ## The terms
 
-| Term | Plain-English meaning | How it is calculated |
-|---|---|---|
-| **Original budget** | What we planned to spend when the project budget was first approved. It never changes afterward. | The sum of the line allocations at the moment the project budget is **baselined** (a one-time "lock in" action). |
-| **Budget adjustment** | A deliberate decision to raise or lower the total budget. | Entered with a date and a reason. |
-| **Budget transfer** | Moving allocated money from one line to another. The total does not change. | `amount` out of the source line, the same `amount` into the destination line. |
-| **Current budget** | What we are allowed to spend now. | `original + adjustments + transfers in − transfers out` |
-| **Estimate** | Our best guess of what a line will cost, before anything is agreed. Owes nobody anything. | Entered by hand, or taken from a quote that isn't approved yet. |
-| **Commitment** | Money we have **agreed** to spend: an approved quote, a signed contract, a change order, or a placed order. | The sum of the commitment amounts on the line. |
-| **Expense (actual cost)** | A cost that has actually happened: an invoice or bill received, or a purchase made. | The sum of the expense allocations on the line. |
-| **Payment** | Money that has actually left our account. | The sum of the payments. |
+| Term                      | Plain-English meaning                                                                                       | How it is calculated                                                                                             |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| **Original budget**       | What we planned to spend when the project budget was first approved. It never changes afterward.            | The sum of the line allocations at the moment the project budget is **baselined** (a one-time "lock in" action). |
+| **Budget adjustment**     | A deliberate decision to raise or lower the total budget.                                                   | Entered with a date and a reason.                                                                                |
+| **Budget transfer**       | Moving allocated money from one line to another. The total does not change.                                 | `amount` out of the source line, the same `amount` into the destination line.                                    |
+| **Current budget**        | What we are allowed to spend now.                                                                           | `original + adjustments + transfers in − transfers out`                                                          |
+| **Estimate**              | Our best guess of what a line will cost, before anything is agreed. Owes nobody anything.                   | Entered by hand, or taken from a quote that isn't approved yet.                                                  |
+| **Commitment**            | Money we have **agreed** to spend: an approved quote, a signed contract, a change order, or a placed order. | The sum of the commitment amounts on the line.                                                                   |
+| **Expense (actual cost)** | A cost that has actually happened: an invoice or bill received, or a purchase made.                         | The sum of the expense allocations on the line.                                                                  |
+| **Payment**               | Money that has actually left our account.                                                                   | The sum of the payments.                                                                                         |
 
 ### Derived numbers (calculated, never typed in)
 
-| Number | Meaning | Formula (per line, then summed) |
-|---|---|---|
-| **Committed total** | Everything we're on the hook for. | `commitments + expenses not linked to a commitment` |
-| **Not yet invoiced** | Agreed, but no bill yet. | `max(commitment − expenses linked to it, 0)`, per commitment |
-| **Unpaid** | Bills we owe right now. | `expenses − payments` |
-| **Forecast** (expected final cost) | Where this line will probably end up. | If the line has commitments: `max(committed total, expenses)`. Otherwise: `max(estimate, expenses)`. |
-| **Available** | What's left to plan with. | `current budget − forecast` |
-| **Variance** | How far we've drifted from the original plan. | `forecast − original budget` (positive = **over** plan) |
-| **Contingency remaining** | The safety buffer that's left. | `available` on the Contingency lines |
+| Number                             | Meaning                                       | Formula (per line, then summed)                                                                      |
+| ---------------------------------- | --------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| **Committed total**                | Everything we're on the hook for.             | `commitments + expenses not linked to a commitment`                                                  |
+| **Not yet invoiced**               | Agreed, but no bill yet.                      | `max(commitment − expenses linked to it, 0)`, per commitment                                         |
+| **Unpaid**                         | Bills we owe right now.                       | `expenses − payments`                                                                                |
+| **Forecast** (expected final cost) | Where this line will probably end up.         | If the line has commitments: `max(committed total, expenses)`. Otherwise: `max(estimate, expenses)`. |
+| **Available**                      | What's left to plan with.                     | `current budget − forecast`                                                                          |
+| **Variance**                       | How far we've drifted from the original plan. | `forecast − original budget` (positive = **over** plan)                                              |
+| **Contingency remaining**          | The safety buffer that's left.                | `available` on the Contingency lines                                                                 |
 
 ---
 

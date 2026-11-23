@@ -6,12 +6,12 @@
 
 ## What must be backed up
 
-| What | Why | How |
-|---|---|---|
-| **PostgreSQL database** | All your records | `pg_dump` in custom format (`-Fc`), run inside the `db` container. This is a consistent snapshot, even while the app is running. |
-| **Uploaded files** | Receipts, photos, contracts | Copy the `uploads` volume (incremental, with `restic`) |
-| **`.env`** | Secrets and settings needed to run the app again | Stored **encrypted** in the backup, and also in your password manager |
-| **`docker-compose.yml` and the deployed version tag** | How to rebuild the app | In Git, plus a copy in each backup |
+| What                                                  | Why                                              | How                                                                                                                              |
+| ----------------------------------------------------- | ------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------- |
+| **PostgreSQL database**                               | All your records                                 | `pg_dump` in custom format (`-Fc`), run inside the `db` container. This is a consistent snapshot, even while the app is running. |
+| **Uploaded files**                                    | Receipts, photos, contracts                      | Copy the `uploads` volume (incremental, with `restic`)                                                                           |
+| **`.env`**                                            | Secrets and settings needed to run the app again | Stored **encrypted** in the backup, and also in your password manager                                                            |
+| **`docker-compose.yml` and the deployed version tag** | How to rebuild the app                           | In Git, plus a copy in each backup                                                                                               |
 
 **Why not just use Proxmox snapshots?** A snapshot taken while Postgres is writing can capture a half-written database. Snapshots also usually live on the same disk as the VM. They're a useful extra, for example right before an upgrade, but they're **not** our database backup.
 
@@ -22,7 +22,7 @@
   1. **Proxmox Backup Server or a NAS** on your network (free, and fast to restore from).
   2. **Cloud storage** such as Backblaze B2 (a few dollars a month at most, and it survives a house fire or theft). Encrypted before upload.
   3. A **USB drive** attached to the Proxmox host (better than nothing).
-  Doing both 1 (or 3) and 2 gives the classic **3-2-1** setup: 3 copies, on 2 kinds of storage, with 1 off-site.
+     Doing both 1 (or 3) and 2 gives the classic **3-2-1** setup: 3 copies, on 2 kinds of storage, with 1 off-site.
 - **How long we keep backups:** 7 daily, 4 weekly, 12 monthly.
 - **Monitoring:** the backup script reports success or failure to the app's health page, and BeamHaven shows a warning banner to Owners if the last good backup is more than 48 hours old.
 - **A monthly restore test:** restore the latest backup into a throwaway container and check the record counts. Once a year, we do a full rebuild on a fresh VM.

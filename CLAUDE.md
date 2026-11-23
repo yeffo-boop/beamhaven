@@ -3,8 +3,9 @@
 ## Read this first, every session
 
 1. Read `PROGRESS.md` (where we are), then `ROADMAP.md` (the current milestone), then the relevant `DECISIONS.md` entries.
-2. For data work, read `docs/DATA_MODEL.md`. For anything to do with money, read `docs/BUDGET_DEFINITIONS.md`.
-3. Don't start a new milestone, or a large step within one, without Jeff's approval.
+2. **Read `AGENTS.md` too.** This project uses Next.js 16, which changed a lot (Cache Components, `connection()`, `proxy.ts`). Its up-to-date docs ship with the package in `node_modules/next/dist/docs/`, so check them before writing Next.js code rather than relying on memory.
+3. For data work, read `docs/DATA_MODEL.md`. For anything to do with money, read `docs/BUDGET_DEFINITIONS.md`.
+4. Don't start a new milestone, or a large step within one, without Jeff's approval.
 
 ## Who you're working with
 
@@ -42,6 +43,7 @@ docs/               DATA_MODEL.md, BUDGET_DEFINITIONS.md, UI_DIRECTION.md
 ## Rules you must not break
 
 ### Security
+
 - **Every protected operation checks authorization on the server.** Hiding a button is not security.
 - **Every household-owned query is scoped by `householdId`**, through `src/server/data/`. Never import Prisma anywhere else.
 - When a record belongs to another household, respond with **404**, not 403.
@@ -53,34 +55,51 @@ docs/               DATA_MODEL.md, BUDGET_DEFINITIONS.md, UI_DIRECTION.md
 - Login, password reset and invitation endpoints are rate-limited. Public sign-up stays **off**.
 
 ### Domain and branding
+
 - **Never hardcode the domain.** Use `absoluteUrl()`, which reads the server-only `APP_URL`.
 - **Never use `NEXT_PUBLIC_` for the URL**, or for anything that has to change without a rebuild.
 - Product name and logo come from `src/config/brand.ts`. No branding in database values.
 
 ### Money and measurements
+
 - Money is always whole cents (`bigint` / `BigInt`). No floats. Use the helpers in `lib/money`.
 - Follow `docs/BUDGET_DEFINITIONS.md` exactly. Every change to budget calculations needs tests.
 - Measurements are stored as integer millimetres, along with the unit the user typed. Calculated values are labeled as estimates.
 
 ### Quality
+
 - TypeScript strict mode, with no `any` unless a comment explains why.
-- Small modules. Comments explain the *why* of anything non-obvious.
+- Small modules. Comments explain the _why_ of anything non-obvious.
 - No placeholder logic presented as finished.
 - **Never say something is tested unless the tests actually ran.** Report the real command and its output.
 
-## Commands (filled in during Milestone 1)
+## Commands
 
-| Task | Command |
-|---|---|
-| Install dependencies | `npm install` |
-| Start the local database | `docker compose -f docker-compose.dev.yml up -d` |
-| Run the dev server | `npm run dev` |
-| Lint and format check | `npm run lint` / `npm run format:check` |
-| Type check | `npm run typecheck` |
-| Unit and integration tests | `npm test` |
-| End-to-end tests | `npm run test:e2e` |
-| Production build | `npm run build` |
-| New migration | `npx prisma migrate dev --name <what_changed>` |
+| Task                                 | Command                                            |
+| ------------------------------------ | -------------------------------------------------- |
+| Install dependencies                 | `npm install`                                      |
+| Run the dev server                   | `npm run dev` (then open http://localhost:3000)    |
+| Lint                                 | `npm run lint`                                     |
+| Check / fix formatting               | `npm run format:check` / `npm run format`          |
+| Type check                           | `npm run typecheck`                                |
+| Unit tests                           | `npm test` (or `npm run test:watch` while working) |
+| All fast checks at once              | `npm run check`                                    |
+| Production build                     | `npm run build`                                    |
+| Start the local database (next step) | `docker compose -f docker-compose.dev.yml up -d`   |
+| New migration (next step)            | `npx prisma migrate dev --name <what_changed>`     |
+| End-to-end tests (later)             | `npm run test:e2e`                                 |
+
+## Next.js 16 rules for this project
+
+- `cacheComponents` is on: data is **dynamic by default**, and we opt in to caching with `"use cache"`.
+- Code that reads environment variables or the database while rendering must run at request time. Call `await connection()` (from `next/server`) first, as `src/app/api/health/route.ts` does.
+- Read settings only through `getEnv()` in `src/config/env.ts`, never `process.env` directly.
+
+## Adding dependencies
+
+- Keep dependencies few. Explain new ones in the pull request.
+- Install with a cut-off date about two weeks back, for example `npm install <pkg> --before=2026-11-09`. Brand-new releases are the most common way malicious packages spread, and they are sometimes broken.
+- Run `npm audit` and mention anything it reports.
 
 ## Workflow
 
