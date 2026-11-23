@@ -4,11 +4,14 @@ import { assertCan } from "@/server/auth/permissions";
 import { recordActivity } from "@/server/data/activity";
 import type { WorkspaceContext } from "@/server/data/context";
 import {
+  deleteDependencyRow,
   deleteTaskRow,
   deleteWarrantyRow,
   findTask,
+  insertDependency,
   insertTask,
   insertWarranty,
+  listTaskChoices,
   listTasks,
   listWarranties,
   setTaskStatus,
@@ -21,7 +24,7 @@ import {
 
 import { removeFiles } from "./attachments";
 import { taskInput, taskStatusInput, warrantyInput } from "./contractor-inputs";
-import { NotFoundError } from "./errors";
+import { fieldError, NotFoundError, RuleError } from "./errors";
 import type { FormInput } from "./inputs";
 
 // --- Tasks -----------------------------------------------------------------
@@ -30,7 +33,12 @@ export type TaskInput = FormInput<typeof taskInput>;
 
 export async function getTasks(
   ctx: WorkspaceContext,
-  where: { projectId?: string; roomId?: string; assigneeContractorId?: string },
+  where: {
+    projectId?: string;
+    roomId?: string;
+    assigneeContractorId?: string;
+    milestoneId?: string;
+  } = {},
 ): Promise<TaskRecord[]> {
   assertCan(ctx, "records:view");
   return listTasks(ctx, where);
@@ -52,11 +60,27 @@ function taskFields(input: TaskInput): TaskFields {
   };
 }
 
+function taskProblem(result: { status: string; waitingOn?: string }, what: string): never {
+  if (result.status === "wrong_milestone") {
+    throw fieldError(
+      "milestoneId",
+      "That milestone is on another project. Pick one of this task's project, or none.",
+    );
+  }
+  if (result.status === "blocked") {
+    throw fieldError(
+      "status",
+      `This task waits on “${result.waitingOn ?? ""}”, which isn't done yet.`,
+    );
+  }
+  throw new NotFoundError(what);
+}
+
 export async function createTask(ctx: WorkspaceContext, input: TaskInput): Promise<{ id: string }> {
   assertCan(ctx, "records:edit");
   const fields = taskFields(input);
   const created = await insertTask(ctx, fields);
-  if (!created) throw new NotFoundError("project, room or assignee");
+  if (created.status !== "saved") taskProblem(created, "project, room, milestone or assignee");
   if (fields.projectId) {
     await recordActivity(ctx, {
       action: "project.task_added",
@@ -65,7 +89,7 @@ export async function createTask(ctx: WorkspaceContext, input: TaskInput): Promi
       summary: `Added the task “${fields.title}”`,
     });
   }
-  return created;
+  return { id: created.id };
 }
 
 export async function updateTask(
@@ -74,7 +98,8 @@ export async function updateTask(
   input: TaskInput,
 ): Promise<void> {
   assertCan(ctx, "records:edit");
-  if (!(await updateTaskRow(ctx, id, taskFields(input)))) throw new NotFoundError("task");
+  const result = await updateTaskRow(ctx, id, taskFields(input));
+  if (result.status !== "saved") taskProblem(result, "task");
 }
 
 export async function changeTaskStatus(
@@ -84,12 +109,49 @@ export async function changeTaskStatus(
 ): Promise<void> {
   assertCan(ctx, "records:edit");
   const parsed = taskStatusInput.parse(status);
-  if (!(await setTaskStatus(ctx, id, parsed))) throw new NotFoundError("task");
+  const result = await setTaskStatus(ctx, id, parsed);
+  if (result.status === "blocked") throw new RuleError("task_blocked");
+  if (result.status !== "saved") throw new NotFoundError("task");
 }
 
 export async function deleteTask(ctx: WorkspaceContext, id: string): Promise<void> {
   assertCan(ctx, "records:edit");
   if (!(await deleteTaskRow(ctx, id))) throw new NotFoundError("task");
+}
+
+// --- Dependencies (ADR-031) ------------------------------------------------
+
+export async function addDependency(
+  ctx: WorkspaceContext,
+  taskId: string,
+  dependsOnId: string,
+): Promise<void> {
+  assertCan(ctx, "records:edit");
+  if (!dependsOnId) throw fieldError("dependsOnId", "Choose the task it waits on");
+  const result = await insertDependency(ctx, taskId, dependsOnId);
+  if (result.status === "not_found") throw new NotFoundError("task");
+  if (result.status === "self") throw fieldError("dependsOnId", "A task can't wait on itself");
+  if (result.status === "exists") throw fieldError("dependsOnId", "It already waits on that task");
+  if (result.status === "circular") {
+    throw fieldError(
+      "dependsOnId",
+      "That task already waits on this one (maybe through others), so this would make a loop",
+    );
+  }
+}
+
+export async function removeDependency(
+  ctx: WorkspaceContext,
+  taskId: string,
+  dependsOnId: string,
+): Promise<void> {
+  assertCan(ctx, "records:edit");
+  if (!(await deleteDependencyRow(ctx, taskId, dependsOnId))) throw new NotFoundError("dependency");
+}
+
+export async function getTaskChoices(ctx: WorkspaceContext) {
+  assertCan(ctx, "records:view");
+  return listTaskChoices(ctx);
 }
 
 // --- Warranties ------------------------------------------------------------

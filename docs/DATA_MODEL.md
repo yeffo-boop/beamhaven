@@ -155,6 +155,14 @@ Photos, manuals and spec sheets are attachments with `material_id` (purpose `doc
 
 `Commitment.orderId` links an order's commitments (one per line: unique on `(order_id, line_id)`, and a check keeps `source = 'order'` with it). Returns lower them, so an order's commitment may be $0; any other commitment can't be. `ExpenseAllocation.commitmentId` lets one allocation of a bill use up one of those commitments. Order documents (receipts, packing slips) are attachments with `order_id`.
 
+## 4c. Milestones and task dependencies (Milestone 7)
+
+| Model              | Key fields                                                                         | Notes                                                                                                                                                               |
+| ------------------ | ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Milestone**      | id, workspaceId, projectId, name (unique per project), targetDate, notes, position | A stage of a project. Goes with its project. Progress is worked out from its tasks.                                                                                 |
+| **Task** (added)   | milestoneId                                                                        | Its foreign key is `(milestone_id, project_id, workspace_id)`, so the milestone is always on the task's own project; a check refuses a milestone without a project. |
+| **TaskDependency** | workspaceId, taskId, dependsOnId (key: both)                                       | `taskId` waits on `dependsOnId`. Both go with either task. A check refuses a task waiting on itself; the service refuses loops (ADR-031).                           |
+
 ## 5. Files and attachments (storage in Milestone 3, used everywhere)
 
 | Model          | Key fields                                                                                                                                                                                                                                                                                                                      | Notes                                                                                                                                                                                      |

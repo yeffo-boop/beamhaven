@@ -1,4 +1,4 @@
-import { AlertTriangle, CalendarClock } from "lucide-react";
+import { AlertTriangle, CalendarClock, Lock } from "lucide-react";
 import Link from "next/link";
 
 import { ConfirmAction } from "@/components/records/confirm-action";
@@ -237,13 +237,14 @@ export function TaskList({
   tasks: TaskRecord[];
   canEdit: boolean;
   today: Date;
-  show?: ("project" | "room")[];
+  show?: ("project" | "room" | "milestone")[];
 }) {
   if (tasks.length === 0) return <EmptyState>No tasks yet.</EmptyState>;
   return (
     <ul aria-label="Tasks" className="divide-y divide-border">
       {tasks.map((t) => {
         const done = t.status === "done";
+        const blocked = !done && t.blockedBy.length > 0;
         const overdue = !done && t.dueDate !== null && daysUntil(t.dueDate, today) < 0;
         return (
           <li
@@ -266,6 +267,7 @@ export function TaskList({
                   t.assigneeName,
                   show.includes("project") ? t.projectName : null,
                   show.includes("room") ? t.roomName : null,
+                  show.includes("milestone") ? t.milestoneName : null,
                 ]
                   .filter(Boolean)
                   .join(" · ")}
@@ -276,6 +278,12 @@ export function TaskList({
                   </span>
                 ) : null}
               </span>
+              {blocked ? (
+                <span className="flex items-center gap-1 text-xs text-warning">
+                  <Lock aria-hidden="true" className="size-3" />
+                  Blocked: waits on {t.blockedBy.map((b) => `“${b.title}”`).join(", ")}
+                </span>
+              ) : null}
               {t.dueDate && !done ? (
                 <span
                   className={cn("text-xs", overdue ? "text-destructive" : "text-muted-foreground")}
@@ -285,7 +293,7 @@ export function TaskList({
                 </span>
               ) : null}
             </div>
-            {canEdit ? (
+            {canEdit && !blocked ? (
               <form action={setTaskStatusAction}>
                 <input type="hidden" name="id" value={t.id} />
                 <input type="hidden" name="status" value={done ? "todo" : "done"} />

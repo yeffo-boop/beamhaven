@@ -51,6 +51,7 @@ export const RULE_MESSAGES = {
   order_has_bill: "This order's bill has been recorded. Remove the bill first.",
   order_has_returns:
     "Something from this order has been returned. Remove the returns first, then the bill.",
+  task_blocked: "This task waits on another that isn't done yet. Finish that one first.",
   delivery_returned:
     "Some of what this delivery brought has been returned. Remove that return first.",
   return_needs_bill:

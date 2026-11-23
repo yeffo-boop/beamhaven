@@ -366,6 +366,7 @@ export type TaskValues = {
   priority: string;
   assignee: string;
   dueDate: string;
+  milestoneId: string;
 };
 
 /** Adds or edits a task on a project or room. */
@@ -375,6 +376,7 @@ export function TaskForm({
   assignees,
   projects,
   rooms,
+  milestones = [],
   cancelHref,
 }: {
   task?: TaskValues;
@@ -382,6 +384,8 @@ export function TaskForm({
   assignees: Choice[];
   projects: Choice[];
   rooms: Choice[];
+  /** Milestones it can go in ("Project: name"); checked against its project when saved. */
+  milestones?: Choice[];
   cancelHref?: string;
 }) {
   const f = useForm(saveTaskAction);
@@ -438,6 +442,16 @@ export function TaskForm({
           defaultValue={value("dueDate")}
           error={f.error("dueDate")}
         />
+        {milestones.length > 0 ? (
+          <SelectField
+            id="task-milestone"
+            name="milestoneId"
+            label="Milestone (optional)"
+            options={[{ value: "", label: "No milestone" }, ...milestones]}
+            defaultValue={value("milestoneId")}
+            error={f.error("milestoneId")}
+          />
+        ) : null}
         {task ? (
           <SelectField
             id="task-status"

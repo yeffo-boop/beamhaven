@@ -222,6 +222,7 @@ const TASK_FIELDS = [
   "priority",
   "assignee",
   "dueDate",
+  "milestoneId",
 ] as const;
 
 export async function saveTaskAction(
@@ -245,6 +246,8 @@ export async function setTaskStatusAction(formData: FormData): Promise<void> {
   try {
     await changeTaskStatus(ctx, idFrom(formData), text(formData, "status"));
   } catch (error) {
+    // A blocked task: its own page says what it waits on.
+    problemRedirect(`/tasks/${idFrom(formData)}`, error);
     asFormResult(error);
     return;
   }
