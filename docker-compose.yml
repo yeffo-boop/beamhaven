@@ -1,0 +1,79 @@
+# BeamHaven on the server (staging now, production later). See DEPLOYMENT.md.
+#
+# Lives in /opt/beamhaven on the VM, next to its .env file (copied from
+# .env.server.example). Everyday commands, run from /opt/beamhaven:
+#   docker compose up -d --build     build and start (or update) everything
+#   docker compose ps                see what's running and whether it's healthy
+#   docker compose logs -f app       watch the website's log (Ctrl+C to stop)
+#   docker compose run --rm ops npm run create-first-account
+#
+# Before the website starts, the "migrate" step brings the database tables
+# up to date and then exits.
+name: beamhaven
+
+x-database-url: &database-url
+  # Built from the POSTGRES_ settings so the password is only written once.
+  # The host is "db", the database's name inside Docker's private network.
+  DATABASE_URL: postgresql://${POSTGRES_USER:-beamhaven}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@db:5432/${POSTGRES_DB:-beamhaven}?schema=public
+
+services:
+  db:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-beamhaven}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-beamhaven}
+    # No "ports:" on purpose. The database is reachable only by the other
+    # containers here, never from your network or the internet.
+    volumes:
+      - db-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    security_opt: [no-new-privileges:true]
+
+  migrate:
+    build: { context: ., target: ops }
+    image: beamhaven-ops:local
+    env_file: .env
+    environment: *database-url
+    command: ["npx", "prisma", "migrate", "deploy"]
+    depends_on:
+      db: { condition: service_healthy }
+    restart: "no"
+    security_opt: [no-new-privileges:true]
+
+  app:
+    build: { context: ., target: app }
+    image: beamhaven-app:local
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      <<: *database-url
+      NODE_ENV: production
+    ports:
+      # Published only on the VM's own network address (never 0.0.0.0).
+      # The firewall then lets only Nginx Proxy Manager reach it.
+      - "${APP_BIND_IP:?Set APP_BIND_IP in .env}:${APP_PORT:-3000}:3000"
+    volumes:
+      - uploads:/data/uploads
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+    security_opt: [no-new-privileges:true]
+
+  # Admin commands. Not started by "up"; used with "docker compose run --rm ops ...".
+  ops:
+    image: beamhaven-ops:local
+    profiles: [tools]
+    env_file: .env
+    environment: *database-url
+    depends_on:
+      db: { condition: service_healthy }
+    security_opt: [no-new-privileges:true]
+
+volumes:
+  db-data:
+  uploads:

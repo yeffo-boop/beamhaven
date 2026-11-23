@@ -55,3 +55,32 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: End-to-end tests (laptop, iPad and phone sizes)
         run: npm run test:e2e
+
+  docker:
+    # Builds both production images, starts the server stack and checks the
+    # website answers, so a broken Dockerfile or Compose file fails here
+    # rather than on the VM.
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Settings for a throwaway stack
+        run: |
+          cat > .env <<ENV
+          APP_URL=http://localhost:3000
+          APP_BIND_IP=127.0.0.1
+          POSTGRES_PASSWORD=$(openssl rand -hex 24)
+          BETTER_AUTH_SECRET=$(openssl rand -base64 32)
+          TRUST_PROXY=true
+          ENV
+      - name: Build and start
+        run: docker compose up -d --build --wait
+      - name: Health check
+        run: curl --fail --silent http://127.0.0.1:3000/api/health
+      - name: The database port is not published
+        # "docker compose port" prints ":0" for an unpublished port, so check the
+        # container's actual port bindings instead: none means not reachable.
+        run: test "$(docker inspect --format '{{json .HostConfig.PortBindings}}' "$(docker compose ps -q db)")" = "{}"
+      - name: Logs (if something failed)
+        if: failure()
+        run: docker compose logs --tail 100

@@ -66,7 +66,7 @@ The MVP is not "finished" until **Milestone 10** puts it in production with auto
 
 **Acceptance:** `npm run dev` shows the shell on the Mac, every check passes in CI, and Jeff can follow the README to start the app himself.
 
-## Milestone 2: Authentication and Households ✅ (pending Jeff's check)
+## Milestone 2: Authentication and Households ✅
 
 **Depends on:** Milestone 1.
 
@@ -82,7 +82,7 @@ The MVP is not "finished" until **Milestone 10** puts it in production with auto
 
 **Acceptance:** both of us can log in; an invitation works from end to end; the isolation tests pass.
 
-## Milestone 2.5: Staging Deployment ⬜
+## Milestone 2.5: Staging Deployment 🟡 (files ready; setting up the VM with Jeff)
 
 **Depends on:** Milestone 2.
 
