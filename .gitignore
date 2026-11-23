@@ -23,3 +23,9 @@ test-results/
 .vscode/*
 !.vscode/extensions.json
 *.log
+
+# Next.js / TypeScript generated
+next-env.d.ts
+*.tsbuildinfo
+.vercel
+*.pem

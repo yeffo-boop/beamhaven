@@ -13,18 +13,18 @@
 
 ## Design tokens (first draft)
 
-| Token | Light | Dark | Use |
-|---|---|---|---|
-| `background` | `#F7F5F1` plaster | `#141311` | Page background |
-| `surface` | `#FFFFFF` | `#1C1B18` | Cards, panels |
-| `border` | `#E4E0D8` | `#2E2C28` | Hairlines |
-| `text` | `#1F1E1C` ink | `#EDEAE4` | Body text |
-| `text-muted` | `#6B665E` | `#A39D93` | Labels, secondary text |
-| `accent` | `#2F5D50` spruce | `#6FA593` | Main buttons, active nav, focus rings |
-| `positive` | `#557A2E` moss | `#9BC06A` | Under budget, done. This is a yellower green than spruce, so "good" never looks like the accent, and it always comes with a check icon or a text label. |
-| `warning` | `#A8741A` ochre | `#E0AE55` | Due soon, close to the limit |
-| `danger` | `#A63A32` brick | `#E57B72` | Over budget, overdue |
-| `info` | `#3C5E7A` slate | `#8DB0CF` | Scheduled, informational |
+| Token        | Light             | Dark      | Use                                                                                                                                                     |
+| ------------ | ----------------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `background` | `#F7F5F1` plaster | `#141311` | Page background                                                                                                                                         |
+| `surface`    | `#FFFFFF`         | `#1C1B18` | Cards, panels                                                                                                                                           |
+| `border`     | `#E4E0D8`         | `#2E2C28` | Hairlines                                                                                                                                               |
+| `text`       | `#1F1E1C` ink     | `#EDEAE4` | Body text                                                                                                                                               |
+| `text-muted` | `#6B665E`         | `#A39D93` | Labels, secondary text                                                                                                                                  |
+| `accent`     | `#2F5D50` spruce  | `#6FA593` | Main buttons, active nav, focus rings                                                                                                                   |
+| `positive`   | `#557A2E` moss    | `#9BC06A` | Under budget, done. This is a yellower green than spruce, so "good" never looks like the accent, and it always comes with a check icon or a text label. |
+| `warning`    | `#A8741A` ochre   | `#E0AE55` | Due soon, close to the limit                                                                                                                            |
+| `danger`     | `#A63A32` brick   | `#E57B72` | Over budget, overdue                                                                                                                                    |
+| `info`       | `#3C5E7A` slate   | `#8DB0CF` | Scheduled, informational                                                                                                                                |
 
 - All text and background pairs must meet **WCAG AA** contrast (we check this in Milestone 1).
 - **Corner radius:** 10px on cards, 8px on inputs and buttons. **Spacing:** a 4px base grid.

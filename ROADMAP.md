@@ -36,7 +36,7 @@ The MVP is not "finished" until **Milestone 10** puts it in production with auto
 
 ---
 
-## Milestone 0: Discovery and Architecture 🟨
+## Milestone 0: Discovery and Architecture ✅
 
 **Goal:** agree on what we are building and how, before writing any code.
 
@@ -51,7 +51,7 @@ The MVP is not "finished" until **Milestone 10** puts it in production with auto
 
 **Acceptance:** Jeff approves the documents in the Milestone 0 pull request. No application code is written in this milestone.
 
-## Milestone 1: Local Development Foundation ⬜
+## Milestone 1: Local Development Foundation 🟨
 
 **Depends on:** Milestone 0.
 
