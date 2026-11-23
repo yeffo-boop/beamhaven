@@ -14,7 +14,7 @@ Jeff asked for flooring estimates (a price per sq ft, pick the rooms), then pain
 - **Price list** (Budget → Price list): items priced per sq ft, m², linear foot or metre, or per gallon or litre with coverage and coats, an optional install price, a waste allowance and whether tax applies. Presets for flooring, tile, wall paint (per gallon or per sq ft), ceiling paint and baseboard.
 - **Sales tax** on materials, set once for the household.
 - **Room estimates** (on a project's budget page): pick an item and tick the rooms. Each room's floor, wall or ceiling area, or the length around it, is worked out from its size (walls leave out windows and doors, trim leaves out doorways), with waste, tax and install. Paint is bought in whole gallons for all the rooms together. Rooms that aren't rectangles, and spaces like shower walls, can have a size typed in.
-- **Into the budget:** the result fills in the estimate on its own budget lines (one per room, or one for the project), material and install on their own categories. It updates by itself when a price, a room's size, the tax rate or the estimate changes (ADR-026).
+- **Into the budget:** the result fills in the estimate on its own budget lines (one per room, or one for the project), material and install on their own categories. It updates by itself when a price, a room's size, the tax rate or the estimate changes (ADR-027).
 - **Quote comparison:** a quote can be compared with one of its project's estimates: the difference, and both as a price per sq ft.
 
 ### Tests (cloud workspace, 2026-11-23)

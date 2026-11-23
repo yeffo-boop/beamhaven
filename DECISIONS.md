@@ -247,7 +247,7 @@ Statuses: **Proposed** (waiting for Jeff) · **Accepted** · **Superseded**
 
 **Consequences.** The budget formulas in `docs/BUDGET_DEFINITIONS.md` didn't change. A quote can't be repriced once decided; reopen it (or take the approval back) first.
 
-## ADR-026: Room estimates fill in budget estimates, from a reusable price list (Milestone 5, part 3)
+## ADR-027: Room estimates fill in budget estimates, from a reusable price list (Milestone 5, part 3)
 
 **Date:** 2026-11-23. **Status:** accepted. Jeff asked for flooring (price per sq ft, pick the rooms) and paint estimates, and chose to add them, with a price list, sales tax and quote comparison, to Milestone 5.
 
