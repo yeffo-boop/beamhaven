@@ -108,6 +108,9 @@ model Workspace {
   measurementSystem String           @default("imperial") @map("measurement_system")
   /// Sales tax added to material estimates, in hundredths of a percent (925 = 9.25%).
   materialsTaxBp    Int              @default(0) @map("materials_tax_bp")
+  /// The household\'s IANA time zone ("America/Chicago"): what "today" means
+  /// on the calendar, and when reminders go out (Milestone 7).
+  timeZone          String           @default("UTC") @map("time_zone")
   createdAt         DateTime         @default(now()) @map("created_at")
   memberships       Membership[]
   invitations       Invitation[]
@@ -220,6 +223,7 @@ model Project {
   materials        Material[]
   orders           Order[]
   milestones       Milestone[]
+  appointments     Appointment[]
 
   @@unique([id, workspaceId])
   @@index([workspaceId])
@@ -254,6 +258,7 @@ model Room {
   tasks           Task[]
   estimateAreas   RoomEstimateArea[]
   materials       Material[]
+  appointments    Appointment[]
 
   @@unique([id, workspaceId])
   @@index([workspaceId])
@@ -678,6 +683,7 @@ model Contractor {
   attachments        Attachment[]
   quotes             Quote[]
   contracts          Contract[]
+  appointments       Appointment[]
 
   @@unique([id, workspaceId])
   @@unique([vendorId, workspaceId])
@@ -1077,6 +1083,8 @@ model Order {
   supplier      Vendor        @relation(fields: [supplierId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
   orderNumber   String?       @map("order_number")
   orderedOn     DateTime      @map("ordered_on") @db.Date
+  /// When the store says it should arrive (for the calendar).
+  expectedOn    DateTime?     @map("expected_on") @db.Date
   shippingCents BigInt        @default(0) @map("shipping_cents")
   taxCents      BigInt        @default(0) @map("tax_cents")
   notes         String?
@@ -1197,4 +1205,38 @@ model ReturnItem {
   @@index([returnId])
   @@index([orderItemId])
   @@map("return_items")
+}
+
+/// Something on the calendar at a time: a site visit, an inspection, a
+/// delivery window (Milestone 7, part 2, ADR-032). The day is a calendar day
+/// and the times are wall-clock "HH:MM" in the household's time zone.
+model Appointment {
+  id           String      @id
+  workspaceId  String      @map("workspace_id")
+  title        String
+  /// "appointment", "inspection", "delivery" or "other".
+  kind         String      @default("appointment")
+  day          DateTime    @db.Date
+  startTime    String?     @map("start_time")
+  endTime      String?     @map("end_time")
+  location     String?
+  projectId    String?     @map("project_id")
+  project      Project?    @relation(fields: [projectId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
+  roomId       String?     @map("room_id")
+  room         Room?       @relation(fields: [roomId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
+  contractorId String?     @map("contractor_id")
+  contractor   Contractor? @relation(fields: [contractorId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
+  /// An inspection's result: "passed", "failed" or null (not yet).
+  outcome      String?
+  notes        String?
+  createdById  String?     @map("created_by_id")
+  createdAt    DateTime    @default(now()) @map("created_at")
+  updatedAt    DateTime    @updatedAt @map("updated_at")
+
+  @@unique([id, workspaceId])
+  @@index([workspaceId, day])
+  @@index([projectId])
+  @@index([roomId])
+  @@index([contractorId])
+  @@map("appointments")
 }

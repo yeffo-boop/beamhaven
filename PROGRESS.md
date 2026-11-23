@@ -4,6 +4,32 @@ Newest entries at the top. Each entry records what was done, which files changed
 
 ---
 
+## 2026-11-23: Milestone 7, part 2 (the calendar), built
+
+### Done
+
+- **Database** (one migration, `20261124040000_calendar`): an appointments table, an expected date on orders, and a time zone on the household (starting as UTC). It only adds a table and columns; no existing data changes.
+- **Appointments and inspections**: what, kind, day, optional start and end times, where, and optional project, room and contractor. Inspections can be marked passed or failed. Each has its own page to edit or delete it.
+- **Schedule** now opens on a **month** calendar, with **week**, **agenda** (30 days) and the part 1 **tasks** view. Earlier / Today / Later buttons, and a project filter. On phones the month and week show as a list of busy days.
+- The calendar shows appointments, tasks due, milestone targets, deliveries, orders expected (until everything arrives) and unpaid bills by due date (ADR-032).
+- Each **project** has a "Coming up" panel with its next four weeks, and a form to add an appointment.
+- **Orders** take an optional expected date (not before the order date).
+- **Settings** has the household's time zone (owners only), offering the device's zone while it's still UTC.
+
+### Tests (cloud workspace, 2026-11-23)
+
+- Lint, formatting and type check: passed. Production build: passed.
+- Unit tests: 143 of 143 passed, including 4 new ones for the calendar math.
+- Integration tests: 111 of 111 passed.
+- Integration tests: 8 new ones in `tests/integration/calendar.test.ts` pass: saving an inspection and its result, time rules, links cleared when a contractor or project is deleted, household isolation, viewers, everything the calendar brings together (and the project filter), the expected date rule, and "today" in the household's time zone.
+- End-to-end: new `calendar.spec.ts` (add an inspection on a project, see it coming up, in the week and agenda views, mark it passed, delete it; the month view and Settings fit the screen) passed. Full end-to-end run: 67 passed, 24 skipped on purpose (one full run is enough for the longer flows), 0 failed.
+
+### Next
+
+Part 3: in-app reminders with a pg-boss background worker. That adds a container to the VM, so Jeff will test it there.
+
+---
+
 ## 2026-11-23: Milestone 7, part 1 (milestones and tasks that wait on others), built
 
 Jeff gave the go-ahead for Milestone 7 while Milestone 6's last PR was in CI.

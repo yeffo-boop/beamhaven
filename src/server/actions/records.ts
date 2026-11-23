@@ -5,7 +5,8 @@ import { notFound, redirect } from "next/navigation";
 import { z } from "zod";
 
 import { assertCan, requireWorkspace } from "@/server/auth/workspace";
-import { setMeasurementSystem } from "@/server/data/workspaces";
+import { isTimeZone } from "@/lib/calendar";
+import { setMeasurementSystem, setTimeZone } from "@/server/data/workspaces";
 import { deletePhoto } from "@/server/services/attachments";
 import {
   createProject,
@@ -267,6 +268,23 @@ export async function setMeasurementSystemAction(
     return asFormResult(error, formData);
   }
   await setMeasurementSystem(ctx, parsed.data);
+  refresh();
+  return { status: "saved" };
+}
+
+export async function setTimeZoneAction(
+  _previous: FormResult,
+  formData: FormData,
+): Promise<FormResult> {
+  const ctx = await requireWorkspace();
+  const zone = text(formData, "timeZone").trim();
+  if (!isTimeZone(zone)) return { status: "error", message: "Choose a time zone from the list." };
+  try {
+    assertCan(ctx, "workspace:manage");
+  } catch (error) {
+    return asFormResult(error, formData);
+  }
+  await setTimeZone(ctx, zone);
   refresh();
   return { status: "saved" };
 }

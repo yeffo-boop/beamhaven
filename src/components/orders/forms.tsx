@@ -35,6 +35,7 @@ export type OrderValues = {
   supplier: string;
   orderNumber: string;
   orderedOn: string;
+  expectedOn: string;
   shipping: string;
   tax: string;
   notes: string;
@@ -147,6 +148,14 @@ export function OrderForm({
           defaultToday
           defaultValue={value("orderedOn")}
           error={f.error("orderedOn")}
+        />
+        <DateField
+          id="order-expected"
+          name="expectedOn"
+          label="Expected (optional)"
+          hint="When the store says it should arrive. It goes on the calendar."
+          defaultValue={value("expectedOn")}
+          error={f.error("expectedOn")}
         />
       </div>
 

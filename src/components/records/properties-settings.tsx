@@ -3,19 +3,25 @@ import Link from "next/link";
 
 import { can } from "@/server/auth/permissions";
 import { getWorkspaceContext } from "@/server/auth/workspace";
-import { getMeasurementPreference } from "@/server/services/preferences";
+import {
+  getMeasurementPreference,
+  getTimeZonePreference,
+  timeZoneChoices,
+} from "@/server/services/preferences";
 import { getProperties } from "@/server/services/properties";
 
 import { MeasurementForm } from "./measurement-form";
 import { PropertyForm } from "./property-form";
+import { TimeZoneForm } from "./time-zone-form";
 
 /** Settings → Properties and measurements. Must sit inside <Suspense>. */
 export async function PropertiesSettings() {
   const ctx = await getWorkspaceContext();
   if (!ctx) return null;
-  const [properties, system] = await Promise.all([
+  const [properties, system, zone] = await Promise.all([
     getProperties(ctx),
     getMeasurementPreference(ctx),
+    getTimeZonePreference(ctx),
   ]);
   const canEdit = can(ctx, "records:edit");
   return (
@@ -58,6 +64,16 @@ export async function PropertiesSettings() {
         ) : (
           <p className="text-sm text-muted-foreground">
             Shown in {system === "metric" ? "metric" : "feet and inches"}. Owners can change this.
+          </p>
+        )}
+      </div>
+      <div className="flex flex-col gap-2 border-t border-border pt-4">
+        <h3 className="text-sm font-semibold">Time zone</h3>
+        {can(ctx, "workspace:manage") ? (
+          <TimeZoneForm zone={zone} zones={timeZoneChoices()} />
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            {zone.replaceAll("_", " ")}, for “today” on the calendar. Owners can change this.
           </p>
         )}
       </div>

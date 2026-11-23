@@ -163,6 +163,16 @@ Photos, manuals and spec sheets are attachments with `material_id` (purpose `doc
 | **Task** (added)   | milestoneId                                                                        | Its foreign key is `(milestone_id, project_id, workspace_id)`, so the milestone is always on the task's own project; a check refuses a milestone without a project. |
 | **TaskDependency** | workspaceId, taskId, dependsOnId (key: both)                                       | `taskId` waits on `dependsOnId`. Both go with either task. A check refuses a task waiting on itself; the service refuses loops (ADR-031).                           |
 
+### Calendar (Milestone 7, part 2)
+
+| Model                 | Key fields                                                                                                       | Notes                                                                                                                                                                     |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Appointment**       | id, workspaceId, title, kind, day, startTime, endTime, location, projectId, roomId, contractorId, outcome, notes | kind: appointment, inspection, delivery or other. Times are `"HH:MM"` on the household's clock. outcome (passed or failed) only for an inspection. Links clear on delete. |
+| **Order** (added)     | expectedOn                                                                                                       | When the store says it should arrive. Shown on the calendar until everything has arrived.                                                                                 |
+| **Workspace** (added) | timeZone                                                                                                         | IANA name, `UTC` until an owner sets it. Used for "today" and (part 3) reminders.                                                                                         |
+
+The calendar itself isn't stored: it's read from appointments, tasks' due dates, milestones' target dates, deliveries, orders' expected dates and unpaid bills' due dates (ADR-032).
+
 ## 5. Files and attachments (storage in Milestone 3, used everywhere)
 
 | Model          | Key fields                                                                                                                                                                                                                                                                                                                      | Notes                                                                                                                                                                                      |

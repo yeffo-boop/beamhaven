@@ -125,3 +125,17 @@ export async function setMeasurementSystem(
     data: { measurementSystem: system },
   });
 }
+
+/** The household's time zone, for "today" on the calendar ("UTC" until an owner sets it). */
+export async function getTimeZone(ctx: WorkspaceContext): Promise<string> {
+  const row = await getPrisma().workspace.findUniqueOrThrow({
+    where: { id: ctx.workspaceId },
+    select: { timeZone: true },
+  });
+  return row.timeZone;
+}
+
+/** Callers check the role and the zone first (workspace:manage, isTimeZone). */
+export async function setTimeZone(ctx: WorkspaceContext, timeZone: string): Promise<void> {
+  await getPrisma().workspace.update({ where: { id: ctx.workspaceId }, data: { timeZone } });
+}

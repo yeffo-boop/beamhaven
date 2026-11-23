@@ -74,15 +74,21 @@ const itemsInput = z
     return result;
   });
 
-export const orderInput = z.object({
-  supplier: requiredText(150, "Say where it was ordered from", "The supplier"),
-  orderNumber: optionalText(100, "The order number"),
-  orderedOn: requiredDate,
-  shipping: optionalMoney.transform((v) => v ?? 0n),
-  tax: optionalMoney.transform((v) => v ?? 0n),
-  notes: optionalText(5000, "The notes"),
-  items: itemsInput,
-});
+export const orderInput = z
+  .object({
+    supplier: requiredText(150, "Say where it was ordered from", "The supplier"),
+    orderNumber: optionalText(100, "The order number"),
+    orderedOn: requiredDate,
+    expectedOn: optionalDate,
+    shipping: optionalMoney.transform((v) => v ?? 0n),
+    tax: optionalMoney.transform((v) => v ?? 0n),
+    notes: optionalText(5000, "The notes"),
+    items: itemsInput,
+  })
+  .refine((o) => !o.expectedOn || !o.orderedOn || o.expectedOn >= o.orderedOn, {
+    message: "That's before it was ordered",
+    path: ["expectedOn"],
+  });
 
 export type OrderInput = Omit<
   { [K in keyof z.input<typeof orderInput>]?: string | null },
