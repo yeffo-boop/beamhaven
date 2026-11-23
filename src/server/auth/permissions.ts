@@ -23,3 +23,14 @@ const allowed: Record<Action, readonly Role[]> = {
 export function can(context: { role: Role }, action: Action): boolean {
   return allowed[action].includes(context.role);
 }
+
+export class PermissionError extends Error {
+  constructor(action: Action) {
+    super(`Not allowed: ${action}`);
+  }
+}
+
+/** Throws unless the person's role allows the action. */
+export function assertCan(context: { role: Role }, action: Action): void {
+  if (!can(context, action)) throw new PermissionError(action);
+}

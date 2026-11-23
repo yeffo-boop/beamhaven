@@ -10,8 +10,7 @@ import { getAuthDatabase } from "@/server/data/auth-database";
 
 import { accessControl, authRoles } from "./roles";
 
-export const PASSWORD_MIN_LENGTH = 12;
-export const PASSWORD_MAX_LENGTH = 128;
+import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH } from "./password-rules";
 
 const DAY_IN_SECONDS = 60 * 60 * 24;
 
@@ -36,6 +35,7 @@ function createAuth() {
       disableSignUp: true,
       minPasswordLength: PASSWORD_MIN_LENGTH,
       maxPasswordLength: PASSWORD_MAX_LENGTH,
+      // Resetting a password signs that person out everywhere.
       revokeSessionsOnPasswordReset: true,
     },
     session: {
@@ -43,6 +43,16 @@ function createAuth() {
       // out again, so you're only asked to sign in after a month away.
       expiresIn: env.SESSION_MAX_AGE_DAYS * DAY_IN_SECONDS,
       updateAge: DAY_IN_SECONDS,
+    },
+    rateLimit: {
+      // On in production (Better Auth's default). Counts live in memory,
+      // which suits our single server (ADR-020).
+      customRules: {
+        // About one attempt every 12 seconds per visitor, on average.
+        "/sign-in/email": { window: 60, max: 5 },
+        "/reset-password": { window: 60, max: 5 },
+        "/change-password": { window: 60, max: 5 },
+      },
     },
     advanced: {
       ipAddress: {
@@ -66,6 +76,10 @@ function createAuth() {
         // command (and later, an owner action) creates them on the server.
         allowUserToCreateOrganization: false,
         disableOrganizationDeletion: true,
+        // Invitation links last a week. Inviting the same email again
+        // cancels the older link.
+        invitationExpiresIn: 7 * DAY_IN_SECONDS,
+        cancelPendingInvitationsOnReInvite: true,
         schema: {
           session: { fields: { activeOrganizationId: "activeWorkspaceId" } },
           organization: {

@@ -1,9 +1,12 @@
 import { Suspense } from "react";
 
+import { ChangePasswordForm } from "@/components/account/change-password-form";
+import { InlineNameForm } from "@/components/forms/inline-name-form";
 import { HouseholdMembers } from "@/components/household/household-members";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
+import { signOutEverywhereAction, updateNameAction } from "@/server/actions/account";
 import { signOutAction } from "@/server/auth/actions";
 import { getCurrentUser } from "@/server/auth/session";
 
@@ -55,9 +58,14 @@ export default function SettingsPage() {
         </Suspense>
       </section>
 
-      <section className="rounded-[var(--radius-card)] border border-dashed border-border bg-surface p-5 text-sm text-muted-foreground md:p-6">
-        Inviting people, changing roles, editing your profile and password, and signing out of every
-        device arrive later in Milestone 2.
+      <section
+        aria-labelledby="password-heading"
+        className="flex flex-col gap-3 rounded-[var(--radius-card)] border border-border bg-surface p-5 md:p-6"
+      >
+        <h2 id="password-heading" className="font-semibold">
+          Password
+        </h2>
+        <ChangePasswordForm />
       </section>
     </div>
   );
@@ -67,16 +75,34 @@ async function AccountDetails() {
   const user = await getCurrentUser();
   if (!user) return null;
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3">
-      <div className="min-w-0">
-        <div className="font-medium">{user.name}</div>
-        <div className="text-sm text-muted-foreground">{user.email}</div>
+    <div className="flex flex-col gap-5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="min-w-0">
+          <div className="font-medium">{user.name}</div>
+          <div className="text-sm text-muted-foreground">{user.email}</div>
+        </div>
+        <form action={signOutAction}>
+          <Button type="submit" variant="outline">
+            Sign out
+          </Button>
+        </form>
       </div>
-      <form action={signOutAction}>
-        <Button type="submit" variant="outline">
-          Sign out
-        </Button>
-      </form>
+      <InlineNameForm
+        id="profile-name"
+        label="Your name"
+        defaultValue={user.name}
+        action={updateNameAction}
+      />
+      <div className="flex flex-col gap-2 border-t border-border pt-4">
+        <p className="text-sm text-muted-foreground">
+          Lost a phone or used a shared computer? This signs you out everywhere, including here.
+        </p>
+        <form action={signOutEverywhereAction}>
+          <Button type="submit" variant="destructive">
+            Sign out of every device
+          </Button>
+        </form>
+      </div>
     </div>
   );
 }

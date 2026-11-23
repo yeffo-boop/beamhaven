@@ -5,24 +5,18 @@ import { z } from "zod";
 import { countUsers } from "@/server/data/users";
 import { createWorkspaceWithOwner } from "@/server/data/workspaces";
 
-import { getAuth, PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH } from "./auth";
+import { getAuth } from "./auth";
+import { emailSchema, passwordSchema, personNameSchema } from "./validation";
 
 export const firstAccountSchema = z.object({
-  name: z.string().trim().min(1, "Enter your name").max(100, "That name is too long"),
-  email: z
-    .string()
-    .trim()
-    .toLowerCase()
-    .pipe(z.email({ message: "Enter a valid email address" })),
+  name: personNameSchema,
   householdName: z
     .string()
     .trim()
     .min(1, "Enter a household name")
     .max(100, "That household name is too long"),
-  password: z
-    .string()
-    .min(PASSWORD_MIN_LENGTH, `Use at least ${PASSWORD_MIN_LENGTH} characters`)
-    .max(PASSWORD_MAX_LENGTH, `Use at most ${PASSWORD_MAX_LENGTH} characters`),
+  email: emailSchema,
+  password: passwordSchema,
 });
 
 export type FirstAccountInput = z.input<typeof firstAccountSchema>;

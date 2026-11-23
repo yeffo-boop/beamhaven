@@ -18,7 +18,8 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  // Everything except the sign-in page, API routes (they check for
-  // themselves), Next.js internals and files such as the favicon.
-  matcher: ["/((?!sign-in|api/|_next/|favicon\\.ico|.*\\.[a-z0-9]+$).*)"],
+  // Everything except the pages used before signing in (sign-in,
+  // invitations, password resets), API routes (they check for themselves),
+  // Next.js internals and files such as the favicon.
+  matcher: ["/((?!sign-in|invite/|reset-password|api/|_next/|favicon\\.ico|.*\\.[a-z0-9]+$).*)"],
 };

@@ -6,7 +6,7 @@ import { cache } from "react";
 import type { WorkspaceContext } from "@/server/data/context";
 import { listMembershipsForUser } from "@/server/data/workspaces";
 
-import { can, type Action } from "./permissions";
+export { assertCan, PermissionError } from "./permissions";
 import { getSessionData } from "./session";
 
 /**
@@ -49,15 +49,4 @@ export async function requireWorkspace(): Promise<WorkspaceContext> {
   const ctx = await getWorkspaceContext();
   if (!ctx) redirect("/");
   return ctx;
-}
-
-export class PermissionError extends Error {
-  constructor(action: Action) {
-    super(`Not allowed: ${action}`);
-  }
-}
-
-/** Throws unless the person's role allows the action (see permissions.ts). */
-export function assertCan(ctx: WorkspaceContext, action: Action): void {
-  if (!can(ctx, action)) throw new PermissionError(action);
 }
