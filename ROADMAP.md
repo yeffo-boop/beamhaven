@@ -82,7 +82,7 @@ The MVP is not "finished" until **Milestone 10** puts it in production with auto
 
 **Acceptance:** both of us can log in; an invitation works from end to end; the isolation tests pass.
 
-## Milestone 2.5: Staging Deployment 🟡 (files ready; setting up the VM with Jeff)
+## Milestone 2.5: Staging Deployment 🟡 (live; backup test and SSH keys left)
 
 **Depends on:** Milestone 2.
 

@@ -4,7 +4,15 @@ Newest entries at the top. Each entry records what was done, which files changed
 
 ---
 
-## 2026-11-23: Milestone 2.5 (staging on Proxmox), files ready, VM setup next
+## 2026-11-23: Milestone 2.5 (staging on Proxmox), live on the VM
+
+Jeff reported on 2026-11-23 that the VM is running and the DEPLOYMENT.md step 8 checks all passed. These include HTTPS, sign-in, the secure cookie, the app port open only to Nginx Proxy Manager, and the database port closed. The setup script ran with `--skip-ssh`, because Jeff wasn't home to set up a key.
+
+Still to do: confirm step 9 (a backup, a test restore and the nightly cron job), and set up the SSH key, then re-run setup without `--skip-ssh`.
+
+---
+
+## 2026-11-23: Milestone 2.5 (staging on Proxmox), files ready
 
 ### Done
 
