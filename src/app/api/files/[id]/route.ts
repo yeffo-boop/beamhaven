@@ -16,11 +16,14 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   if (!ctx) return notFound();
   try {
     const { file, bytes } = await readFileForDownload(ctx, id);
+    // Photos are shown in the page. Anything else (PDF receipts) is only
+    // ever downloaded, so it never opens inside BeamHaven's own address.
+    const disposition = file.mimeType.startsWith("image/") ? "inline" : "attachment";
     return new Response(Buffer.from(bytes), {
       headers: {
         "Content-Type": file.mimeType,
         "Content-Length": String(bytes.length),
-        "Content-Disposition": `inline; filename*=UTF-8''${encodeURIComponent(file.originalName)}`,
+        "Content-Disposition": `${disposition}; filename*=UTF-8''${encodeURIComponent(file.originalName)}`,
         // Only this person's browser may keep a copy, never a shared cache.
         "Cache-Control": "private, max-age=3600",
         "X-Content-Type-Options": "nosniff",

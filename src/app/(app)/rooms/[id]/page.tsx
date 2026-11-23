@@ -2,6 +2,7 @@ import { Pencil } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { ProblemNotice } from "@/components/budget/problem-notice";
 import { PageHeader } from "@/components/page-header";
 import { ActivityList } from "@/components/records/activity-list";
 import { ConfirmAction } from "@/components/records/confirm-action";
@@ -23,8 +24,9 @@ import { getRoom } from "@/server/services/rooms";
 
 export const metadata = { title: "Room" };
 
-export default async function RoomPage({ params }: PageProps<"/rooms/[id]">) {
+export default async function RoomPage({ params, searchParams }: PageProps<"/rooms/[id]">) {
   const { id } = await params;
+  const { problem } = await searchParams;
   const ctx = await getWorkspaceContext();
   if (!ctx) notFound();
   const room = await orNotFound(getRoom(ctx, id));
@@ -76,6 +78,8 @@ export default async function RoomPage({ params }: PageProps<"/rooms/[id]">) {
           }
         />
       </div>
+
+      <ProblemNotice code={problem} />
 
       <Panel title="Size" id="size">
         <dl className="grid grid-cols-2 gap-4 sm:grid-cols-3">

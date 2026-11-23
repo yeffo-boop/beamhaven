@@ -4,6 +4,38 @@ Newest entries at the top. Each entry records what was done, which files changed
 
 ---
 
+## 2026-11-23: Milestone 4 (budget), built
+
+Jeff approved Milestone 4, chose a "Lock in budget" button for fixing the original budget, and asked for the pull request to be merged once everything passes.
+
+### Done
+
+- **Database** (one migration, `20261123200113_budget`): budget categories, budget lines, adjustments, transfers, shops and suppliers, commitments (quotes, contracts, change orders), expenses split across lines, payments and refunds, plus receipts on expenses. It only adds tables and columns; no existing data changes. The database itself refuses an expense whose split doesn't add up, a change to transfer or adjustment history, and links between households.
+- **Money** is stored as whole cents everywhere and typed the way people write it (`$18,500`, `(250.00)`).
+- **Budget math** follows `docs/BUDGET_DEFINITIONS.md` exactly: original, current, estimate, committed, not yet billed, spent, paid, unpaid, forecast, available and variance. `docs/budget-worked-example.csv` works the example by hand, and a test checks the app gets the same numbers.
+- **Lock in:** while a project is planning, planned amounts can change. Once someone with approval rights locks it in, the original budget is fixed and changes go through adjustments or transfers, each with a reason. Projects marked In progress show a reminder to lock in.
+- **Pages:** the household Budget page (every project, recent expenses, categories), each project's budget (by line, category and room, with history), each line (commitments, expenses, transfers), and expenses (split across lines, tax and shipping, payments, refunds and returns, receipts as photos or PDFs).
+- **Safety:** a project or room with money recorded against it can't be deleted; the page explains why. Viewers can see the budget but not change it.
+
+### Tests (cloud workspace, 2026-11-23)
+
+- Lint, formatting and type check: passed.
+- Unit tests: 114 of 114 passed (new: 29 for money, 18 for budget math).
+- Integration tests: 54 of 54 passed. The 16 new ones cover the worked example and spreadsheet check, lock-in, adjustment and transfer rules, refusing to overdraw without "Allow going over", reversing a transfer, the database refusing unbalanced splits and history changes, refunds, receipts, household isolation (household A can't see or touch household B's budget, by code or by database), and viewers.
+- End-to-end tests: 37 passed, 10 skipped on purpose, and 2 failed: the navigation test still expected the "Coming in Milestone 4" placeholder on Budget. I changed it to check the Schedule placeholder instead and re-ran just that test at laptop and iPad sizes: passed. New: one full run of plan → lock in → contract → deposit → payment → receipt → change order → transfer → household totals, and no sideways scrolling on the Budget page.
+- Production build with no secrets set: passed.
+- `npm audit`: 10 known issues (7 moderate, 3 high) in development tools, the same as before. No dependencies were added or changed.
+
+### What Jeff should check
+
+On the VM: `git pull`, then `./scripts/server/update.sh` (it takes a backup first). Then open a project, Open budget, add a couple of lines, lock it in, and record an expense with a receipt.
+
+### Next
+
+Milestone 5 (contractors and quotes), with Jeff's go-ahead.
+
+---
+
 ## 2026-11-23: Milestone 3 (properties, projects, rooms and photos), built, waiting for Jeff to check
 
 Jeff approved Milestone 3 and confirmed step 9 of DEPLOYMENT.md (backup and restore test) is done, so Milestone 2.5 is complete apart from the SSH key (reminder set for 2026-11-24).

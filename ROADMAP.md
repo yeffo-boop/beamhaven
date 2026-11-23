@@ -96,7 +96,7 @@ The MVP is not "finished" until **Milestone 10** puts it in production with auto
 
 **Acceptance:** we can log in over the public HTTPS URL, and the database port cannot be reached from outside the VM.
 
-## Milestone 3: Properties, Projects, Rooms and File Storage 🟡 (built; waiting for Jeff to check)
+## Milestone 3: Properties, Projects, Rooms and File Storage ✅ (merged; check on the VM after updating)
 
 **Depends on:** Milestone 2 (2.5 recommended).
 
@@ -110,7 +110,7 @@ The MVP is not "finished" until **Milestone 10** puts it in production with auto
 
 **Acceptance:** a property with projects and rooms can be created and edited; photos upload and are only visible to members of the household; the tests pass.
 
-## Milestone 4: Budget Management ⬜
+## Milestone 4: Budget Management 🟡 (built; check on the VM after updating)
 
 **Depends on:** Milestone 3.
 

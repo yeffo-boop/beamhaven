@@ -195,3 +195,16 @@ Statuses: **Proposed** (waiting for Jeff) · **Accepted** · **Superseded**
   - **Downloads** go through `GET /api/files/<id>`, which answers 404 unless the file belongs to the viewer's household, and sends `nosniff`, a locked-down Content-Security-Policy and a private cache header.
   - Deleting a project or room deletes its photos' records and bytes. The activity history (`activity_events`) is written by the services and never deleted.
 - **Why:** the database refusal is a second lock behind the code. Text input for lengths matches how people read a tape measure. Checking file contents, not names, is what stops a disguised script from being served back to a browser. An S3-compatible provider can be added later behind the same interface.
+
+## ADR-023: How the budget is built (Milestone 4)
+
+- **Status:** Accepted (2026-11-23)
+- **Decision:**
+  - **One source of truth for the math:** `src/server/services/budget-math.ts` holds every formula from `docs/BUDGET_DEFINITIONS.md` as plain functions with no database, each tested, including the worked example step by step. The data layer only gathers the facts per line; totals for a room, category, project or household are always sums of lines.
+  - **The database guards the money rules too:** a deferred trigger refuses an expense whose allocations don't add up to its total; triggers refuse changing or deleting transfers and adjustments; CHECK constraints keep amounts' signs right; composite foreign keys keep everything inside one household.
+  - **Transfers lock the source line** (`SELECT … FOR UPDATE`) while checking what's available, so two transfers at once can't both overdraw it. Payments lock the expense the same way.
+  - **Splitting money** uses the largest-remainder method (`splitByWeights` in `src/lib/money.ts`), so a split is always exact to the cent. Rows left blank on an expense share the rest evenly.
+  - **Locking in** is a button (Jeff's choice), not automatic.
+  - **Receipts** reuse the Milestone 3 storage. PDFs are accepted for receipts only (detected by their first bytes) and are always sent as downloads.
+  - Paid status is calculated from payments rather than stored, so it can never disagree with them.
+- **Why:** money mistakes are the costliest kind, so each rule is enforced twice (code and database), and the math is kept in one small, heavily tested file.

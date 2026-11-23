@@ -20,7 +20,7 @@ import {
 import { getMeasurementSystem } from "@/server/data/workspaces";
 
 import { removeFiles } from "./attachments";
-import { NotFoundError } from "./errors";
+import { NotFoundError, RuleError } from "./errors";
 import { type FormInput, openingInput, roomInput } from "./inputs";
 
 export type RoomInput = FormInput<ReturnType<typeof roomInput>>;
@@ -93,7 +93,8 @@ export async function updateRoom(
 
 export async function deleteRoom(ctx: WorkspaceContext, id: string): Promise<void> {
   assertCan(ctx, "records:edit");
-  const { deleted, fileIds } = await deleteRoomRow(ctx, id);
+  const { deleted, hasBudget, fileIds } = await deleteRoomRow(ctx, id);
+  if (hasBudget) throw new RuleError("room_has_budget");
   if (!deleted) throw new NotFoundError("room");
   await removeFiles(ctx, fileIds);
 }

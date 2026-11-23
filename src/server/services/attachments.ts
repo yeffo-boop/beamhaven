@@ -16,7 +16,7 @@ import {
   listAttachments,
   type StoredFile,
 } from "@/server/data/files";
-import { detectImageType } from "@/server/storage/detect";
+import { detectImageType, detectReceiptType } from "@/server/storage/detect";
 import { getStorage, newStorageKey } from "@/server/storage/storage";
 
 import { NotFoundError } from "./errors";
@@ -44,6 +44,50 @@ export async function uploadPhoto(
   target: AttachmentTarget,
   upload: Upload,
 ): Promise<{ attachmentId: string; fileId: string }> {
+  if (target.kind === "expense") throw new NotFoundError("photo target");
+  return saveUpload(ctx, target, upload, "photo");
+}
+
+/** A receipt or bill for an expense: a photo of it, or a PDF. */
+export async function uploadReceipt(
+  ctx: WorkspaceContext,
+  expenseId: string,
+  upload: Upload,
+): Promise<{ attachmentId: string; fileId: string }> {
+  return saveUpload(ctx, { kind: "expense", id: expenseId }, upload, "receipt");
+}
+
+export async function getReceipts(
+  ctx: WorkspaceContext,
+  expenseId: string,
+): Promise<AttachmentSummary[]> {
+  assertCan(ctx, "records:view");
+  return listAttachments(ctx, { kind: "expense", id: expenseId }, "receipt");
+}
+
+const PURPOSES = {
+  photo: {
+    detect: detectImageType,
+    refusal: "That isn't a photo we can use. Upload a JPEG, PNG, WebP or HEIC file.",
+    added: "Added a photo",
+    removed: "Removed a photo",
+  },
+  receipt: {
+    detect: detectReceiptType,
+    refusal: "That isn't a file we can use for a receipt. Upload a photo or a PDF.",
+    added: "Added a receipt",
+    removed: "Removed a receipt",
+  },
+} as const;
+
+export type Purpose = keyof typeof PURPOSES;
+
+async function saveUpload(
+  ctx: WorkspaceContext,
+  target: AttachmentTarget,
+  upload: Upload,
+  purpose: Purpose,
+): Promise<{ attachmentId: string; fileId: string }> {
   assertCan(ctx, "records:edit");
   const { bytes } = upload;
   const maxBytes = getEnv().UPLOAD_MAX_MB * 1024 * 1024;
@@ -51,10 +95,9 @@ export async function uploadPhoto(
   if (bytes.length > maxBytes) {
     throw new UploadError(`That file is too large. The limit is ${getEnv().UPLOAD_MAX_MB} MB.`);
   }
-  const mimeType = detectImageType(bytes);
-  if (!mimeType) {
-    throw new UploadError("That isn't a photo we can use. Upload a JPEG, PNG, WebP or HEIC file.");
-  }
+  const rules = PURPOSES[purpose];
+  const mimeType = rules.detect(bytes);
+  if (!mimeType) throw new UploadError(rules.refusal);
 
   const storageKey = newStorageKey(ctx.workspaceId);
   const storage = getStorage();
@@ -66,20 +109,20 @@ export async function uploadPhoto(
       target,
       {
         storageKey,
-        originalName: cleanFileName(upload.name),
+        originalName: cleanFileName(upload.name, purpose),
         mimeType,
         sizeBytes: bytes.length,
         sha256: createHash("sha256").update(bytes).digest("hex"),
       },
-      "photo",
+      purpose,
       caption,
     );
     if (!created) throw new NotFoundError(target.kind);
     await recordActivity(ctx, {
-      action: `${target.kind}.photo_added`,
+      action: `${target.kind}.${purpose}_added`,
       entityType: target.kind,
       entityId: target.id,
-      summary: "Added a photo",
+      summary: rules.added,
     });
     return created;
   } catch (error) {
@@ -95,17 +138,31 @@ export async function deletePhoto(
   target: AttachmentTarget,
   attachmentId: string,
 ): Promise<void> {
+  return deleteAttachment(
+    ctx,
+    target,
+    attachmentId,
+    target.kind === "expense" ? "receipt" : "photo",
+  );
+}
+
+async function deleteAttachment(
+  ctx: WorkspaceContext,
+  target: AttachmentTarget,
+  attachmentId: string,
+  purpose: Purpose,
+): Promise<void> {
   assertCan(ctx, "records:edit");
-  const photos = await listAttachments(ctx, target, "photo");
+  const photos = await listAttachments(ctx, target, purpose);
   const photo = photos.find((p) => p.id === attachmentId);
   const fileId = photo ? await findAttachmentFileId(ctx, attachmentId) : null;
   if (!fileId) throw new NotFoundError("photo");
   await removeFiles(ctx, [fileId]);
   await recordActivity(ctx, {
-    action: `${target.kind}.photo_removed`,
+    action: `${target.kind}.${purpose}_removed`,
     entityType: target.kind,
     entityId: target.id,
-    summary: "Removed a photo",
+    summary: PURPOSES[purpose].removed,
   });
 }
 
@@ -128,8 +185,8 @@ export async function readFileForDownload(
 }
 
 /** Keeps the name for display only: no folders, no control characters, not too long. */
-function cleanFileName(name: string): string {
+function cleanFileName(name: string, purpose: Purpose): string {
   const base = name.split(/[\\/]/).pop() ?? "";
   const cleaned = base.replace(/[\u0000-\u001f\u007f]/g, "").trim();
-  return cleaned.slice(0, 200) || "photo";
+  return cleaned.slice(0, 200) || purpose;
 }

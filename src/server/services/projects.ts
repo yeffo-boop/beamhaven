@@ -18,7 +18,7 @@ import {
 import { findProperty } from "@/server/data/properties";
 
 import { removeFiles } from "./attachments";
-import { NotFoundError } from "./errors";
+import { NotFoundError, RuleError } from "./errors";
 import {
   type FormInput,
   projectInput,
@@ -84,7 +84,8 @@ export async function updateProject(
 
 export async function deleteProject(ctx: WorkspaceContext, id: string): Promise<void> {
   assertCan(ctx, "records:edit");
-  const { deleted, fileIds } = await deleteProjectRow(ctx, id);
+  const { deleted, hasBudget, fileIds } = await deleteProjectRow(ctx, id);
+  if (hasBudget) throw new RuleError("project_has_budget");
   if (!deleted) throw new NotFoundError("project");
   await removeFiles(ctx, fileIds);
 }

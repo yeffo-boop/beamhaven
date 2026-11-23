@@ -13,10 +13,14 @@ import { Button } from "@/components/ui/button";
 export function PhotoUploader({
   targetKind,
   targetId,
+  receipts = false,
 }: {
-  targetKind: "property" | "project" | "room";
+  targetKind: "property" | "project" | "room" | "expense";
   targetId: string;
+  /** Receipts also accept PDFs. */
+  receipts?: boolean;
 }) {
+  const noun = receipts ? "receipt" : "photo";
   const router = useRouter();
   const inputId = useId();
   const input = useRef<HTMLInputElement>(null);
@@ -28,7 +32,7 @@ export function PhotoUploader({
     if (!files || files.length === 0) return;
     setStatus({
       busy: true,
-      message: `Uploading ${files.length === 1 ? "photo" : `${files.length} photos`}…`,
+      message: `Uploading ${files.length === 1 ? noun : `${files.length} ${noun}s`}…`,
     });
     const form = new FormData();
     form.set("targetKind", targetKind);
@@ -59,7 +63,7 @@ export function PhotoUploader({
         ref={input}
         id={inputId}
         type="file"
-        accept="image/jpeg,image/png,image/webp,image/heic,image/heif,image/avif"
+        accept={`image/jpeg,image/png,image/webp,image/heic,image/heif,image/avif${receipts ? ",application/pdf" : ""}`}
         multiple
         className="sr-only"
         onChange={(event) => void upload(event.target.files)}
@@ -71,7 +75,7 @@ export function PhotoUploader({
           className={status.busy ? "pointer-events-none opacity-50" : "cursor-pointer"}
         >
           <ImagePlus aria-hidden="true" />
-          Add photos
+          {receipts ? "Add receipt" : "Add photos"}
         </label>
       </Button>
       <p

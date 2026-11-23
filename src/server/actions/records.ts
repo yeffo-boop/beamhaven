@@ -2,13 +2,11 @@
 
 import { refresh } from "next/cache";
 import { notFound, redirect } from "next/navigation";
-import { z, ZodError } from "zod";
+import { z } from "zod";
 
-import { fieldErrors } from "@/server/auth/validation";
-import { assertCan, PermissionError, requireWorkspace } from "@/server/auth/workspace";
+import { assertCan, requireWorkspace } from "@/server/auth/workspace";
 import { setMeasurementSystem } from "@/server/data/workspaces";
 import { deletePhoto } from "@/server/services/attachments";
-import { NotFoundError } from "@/server/services/errors";
 import {
   createProject,
   deleteProject,
@@ -25,51 +23,13 @@ import {
 } from "@/server/services/rooms";
 
 import type { FormResult } from "./account";
+import { asFormResult, idFrom, problemRedirect, text } from "./helpers";
 
 /**
  * Server Actions for properties, projects and rooms. They stay thin: read
  * the form, call the service (which checks permissions and validates), and
  * turn known errors into messages next to the fields.
  */
-
-function text(formData: FormData, name: string): string {
-  const value = formData.get(name);
-  return typeof value === "string" ? value : "";
-}
-
-/** The text fields of a submitted form (not files or Next.js's own fields). */
-function typedValues(formData: FormData): Record<string, string> {
-  const values: Record<string, string> = {};
-  for (const [name, value] of formData) {
-    if (typeof value === "string" && !name.startsWith("$")) values[name] = value;
-  }
-  return values;
-}
-
-function asFormResult(error: unknown, formData?: FormData): FormResult {
-  if (error instanceof ZodError) {
-    return {
-      status: "error",
-      message: "Please fix the highlighted fields.",
-      fields: fieldErrors(error),
-      ...(formData ? { values: typedValues(formData), attempt: Date.now() } : {}),
-    };
-  }
-  if (error instanceof PermissionError) {
-    return { status: "error", message: "Your role in this household can't make changes." };
-  }
-  // Another household's record, or one that was just deleted: a plain 404.
-  if (error instanceof NotFoundError) notFound();
-  throw error;
-}
-
-const idSchema = z.string().trim().min(1).max(64);
-
-function idFrom(formData: FormData, name = "id"): string {
-  const parsed = idSchema.safeParse(formData.get(name));
-  if (!parsed.success) notFound();
-  return parsed.data;
-}
 
 // --- Properties ------------------------------------------------------------
 
@@ -149,9 +109,11 @@ export async function saveProjectAction(
 
 export async function deleteProjectAction(formData: FormData): Promise<void> {
   const ctx = await requireWorkspace();
+  const id = idFrom(formData);
   try {
-    await deleteProject(ctx, idFrom(formData));
+    await deleteProject(ctx, id);
   } catch (error) {
+    problemRedirect(`/projects/${id}`, error);
     asFormResult(error);
     return;
   }
@@ -215,9 +177,11 @@ export async function saveRoomAction(
 
 export async function deleteRoomAction(formData: FormData): Promise<void> {
   const ctx = await requireWorkspace();
+  const id = idFrom(formData);
   try {
-    await deleteRoom(ctx, idFrom(formData));
+    await deleteRoom(ctx, id);
   } catch (error) {
+    problemRedirect(`/rooms/${id}`, error);
     asFormResult(error);
     return;
   }
@@ -258,7 +222,7 @@ export async function removeOpeningAction(formData: FormData): Promise<void> {
 
 // --- Photos ----------------------------------------------------------------
 
-const targetKind = z.enum(["property", "project", "room"]);
+const targetKind = z.enum(["property", "project", "room", "expense"]);
 
 export async function deletePhotoAction(formData: FormData): Promise<void> {
   const ctx = await requireWorkspace();

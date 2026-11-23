@@ -4,7 +4,7 @@ import { z } from "zod";
 import { getEnv } from "@/config/env";
 import { PermissionError } from "@/server/auth/permissions";
 import { getWorkspaceContext } from "@/server/auth/workspace";
-import { UploadError, uploadPhoto } from "@/server/services/attachments";
+import { UploadError, uploadPhoto, uploadReceipt } from "@/server/services/attachments";
 import { NotFoundError } from "@/server/services/errors";
 import { createRateLimiter } from "@/server/security/rate-limit";
 
@@ -12,14 +12,15 @@ import { createRateLimiter } from "@/server/security/rate-limit";
 const uploadLimiter = createRateLimiter({ max: 300, windowMs: 60 * 60 * 1000 });
 
 const targetSchema = z.object({
-  targetKind: z.enum(["property", "project", "room"]),
+  targetKind: z.enum(["property", "project", "room", "expense"]),
   targetId: z.string().min(1).max(64),
   caption: z.string().max(300).optional(),
 });
 
 /**
- * Uploads photos to a property, project or room: POST multipart/form-data
- * with targetKind, targetId and one or more "file" fields.
+ * Uploads photos to a property, project or room, or receipts (photos or
+ * PDFs) to an expense: POST multipart/form-data with targetKind, targetId
+ * and one or more "file" fields.
  *
  * Server Actions check the request's origin for us; this route does it
  * itself, so another website can't make your browser upload here.
@@ -59,7 +60,7 @@ export async function POST(request: Request) {
   });
   const files = form.getAll("file").filter((value): value is File => value instanceof File);
   if (!parsed.success || files.length === 0 || files.length > 10) {
-    return json({ error: "Choose between 1 and 10 photos to upload." }, 400);
+    return json({ error: "Choose between 1 and 10 files to upload." }, 400);
   }
 
   const target = { kind: parsed.data.targetKind, id: parsed.data.targetId };
@@ -67,17 +68,17 @@ export async function POST(request: Request) {
   try {
     for (const file of files) {
       const bytes = new Uint8Array(await file.arrayBuffer());
-      const { attachmentId } = await uploadPhoto(ctx, target, {
-        name: file.name,
-        bytes,
-        caption: parsed.data.caption ?? null,
-      });
+      const upload = { name: file.name, bytes, caption: parsed.data.caption ?? null };
+      const { attachmentId } =
+        target.kind === "expense"
+          ? await uploadReceipt(ctx, target.id, upload)
+          : await uploadPhoto(ctx, target, upload);
       uploaded.push(attachmentId);
     }
   } catch (error) {
     if (error instanceof UploadError) return json({ error: error.message, uploaded }, 400);
     if (error instanceof PermissionError) {
-      return json({ error: "Viewers can't add photos.", uploaded }, 403);
+      return json({ error: "Viewers can't add files.", uploaded }, 403);
     }
     if (error instanceof NotFoundError) return json({ error: "Not found" }, 404);
     throw error;

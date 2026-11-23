@@ -14,6 +14,7 @@ export function ConfirmAction({
   confirmLabel,
   children,
   size = "sm",
+  tone = "danger",
 }: {
   action: (formData: FormData) => Promise<void>;
   label: string;
@@ -23,6 +24,8 @@ export function ConfirmAction({
   /** Hidden inputs that say what to act on. */
   children: ReactNode;
   size?: "sm" | "xs";
+  /** "danger" for deleting; "primary" for a serious but ordinary step (locking in). */
+  tone?: "danger" | "primary";
 }) {
   return (
     <details className="group relative">
@@ -30,7 +33,9 @@ export function ConfirmAction({
         className={
           size === "xs"
             ? "cursor-pointer list-none text-xs text-destructive underline-offset-2 hover:underline"
-            : "flex h-9 cursor-pointer list-none items-center rounded-[var(--radius-control)] px-3 text-sm font-medium text-destructive hover:bg-destructive/10"
+            : tone === "primary"
+              ? "flex h-9 cursor-pointer list-none items-center rounded-[var(--radius-control)] bg-primary px-3 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+              : "flex h-9 cursor-pointer list-none items-center rounded-[var(--radius-control)] px-3 text-sm font-medium text-destructive hover:bg-destructive/10"
         }
       >
         {label}
@@ -42,7 +47,7 @@ export function ConfirmAction({
       >
         {children}
         <p className="mb-2 text-sm">{question}</p>
-        <Button type="submit" variant="destructive" size="sm">
+        <Button type="submit" variant={tone === "primary" ? "default" : "destructive"} size="sm">
           {confirmLabel}
         </Button>
       </form>
