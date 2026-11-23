@@ -96,7 +96,11 @@ export async function deleteCommitment(
   assertCan(ctx, "records:edit");
   const [commitment] = await listCommitments(ctx, { id });
   const agreement = await commitmentAgreement(ctx, id);
-  if (agreement?.kind === "quote" || agreement?.kind === "contract") {
+  if (
+    agreement?.kind === "quote" ||
+    agreement?.kind === "contract" ||
+    agreement?.kind === "order"
+  ) {
     throw new RuleError("agreement_commitment");
   }
   const result = await deleteCommitmentRow(ctx, id);
@@ -240,6 +244,7 @@ export async function updateExpense(
   assertCan(ctx, "records:edit");
   const existing = await findExpense(ctx, id);
   if (!existing) throw new NotFoundError("expense");
+  if (existing.orderId) throw new RuleError("order_bill");
   if (existing.refundOfExpenseId) {
     throw new RuleError("refund_not_editable");
   }
@@ -260,6 +265,7 @@ export async function deleteExpense(ctx: WorkspaceContext, id: string): Promise<
   assertCan(ctx, "records:edit");
   const existing = await findExpense(ctx, id);
   if (!existing) throw new NotFoundError("expense");
+  if (existing.orderId) throw new RuleError("order_bill");
   // `existing` still says which projects it touched, for the activity log.
   const result = await deleteExpenseRow(ctx, id);
   if (result.status === "not_found") throw new NotFoundError("expense");
@@ -288,6 +294,7 @@ export async function refundExpense(
   const { amount, description, expenseDate } = refundInput.parse(input);
   const original = await findExpense(ctx, expenseId);
   if (!original) throw new NotFoundError("expense");
+  if (original.orderId) throw new RuleError("order_bill");
   if (original.refundOfExpenseId) {
     throw new RuleError("already_refund");
   }

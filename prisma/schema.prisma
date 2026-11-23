@@ -218,6 +218,7 @@ model Project {
   contracts        Contract[]
   roomEstimates    RoomEstimate[]
   materials        Material[]
+  orders           Order[]
 
   @@unique([id, workspaceId])
   @@index([workspaceId])
@@ -344,6 +345,8 @@ model Attachment {
   warranty     Warranty?   @relation(fields: [warrantyId, workspaceId], references: [id, workspaceId], onDelete: Cascade)
   materialId   String?     @map("material_id")
   material     Material?   @relation(fields: [materialId, workspaceId], references: [id, workspaceId], onDelete: Cascade)
+  orderId      String?     @map("order_id")
+  order        Order?      @relation(fields: [orderId, workspaceId], references: [id, workspaceId], onDelete: Cascade)
   createdById  String?     @map("created_by_id")
   createdAt    DateTime    @default(now()) @map("created_at")
 
@@ -358,6 +361,7 @@ model Attachment {
   @@index([quoteId])
   @@index([contractId])
   @@index([materialId])
+  @@index([orderId])
   @@map("attachments")
 }
 
@@ -434,6 +438,7 @@ model BudgetLine {
   commitments      Commitment[]
   quotes           Quote[]
   allocations      ExpenseAllocation[]
+  orderItems       OrderItem[]
 
   @@unique([id, workspaceId])
   @@unique([projectId, categoryId, roomId, name], map: "budget_lines_unique_bucket")
@@ -503,6 +508,7 @@ model Vendor {
   expenses    Expense[]
   contractor  Contractor?
   materials   Material[]
+  orders      Order[]
 
   @@unique([id, workspaceId])
   @@unique([workspaceId, name])
@@ -512,29 +518,34 @@ model Vendor {
 /// Money we've agreed to spend: an approved quote, a contract, a change
 /// order or a placed order.
 model Commitment {
-  id          String     @id
-  workspaceId String     @map("workspace_id")
-  lineId      String     @map("line_id")
-  line        BudgetLine @relation(fields: [lineId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
-  vendorId    String?    @map("vendor_id")
-  vendor      Vendor?    @relation(fields: [vendorId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
+  id          String              @id
+  workspaceId String              @map("workspace_id")
+  lineId      String              @map("line_id")
+  line        BudgetLine          @relation(fields: [lineId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
+  vendorId    String?             @map("vendor_id")
+  vendor      Vendor?             @relation(fields: [vendorId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
   /// "quote", "contract", "change_order", "order" or "manual".
-  source      String     @default("manual")
+  source      String              @default("manual")
   description String
-  amountCents BigInt     @map("amount_cents")
-  committedOn DateTime   @map("committed_on") @db.Date
+  amountCents BigInt              @map("amount_cents")
+  committedOn DateTime            @map("committed_on") @db.Date
   notes       String?
   /// Set on a change order: the contract it changes.
-  contractId  String?    @map("contract_id")
-  contract    Contract?  @relation("ChangeOrders", fields: [contractId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
-  createdById String?    @map("created_by_id")
-  createdAt   DateTime   @default(now()) @map("created_at")
-  updatedAt   DateTime   @updatedAt @map("updated_at")
+  contractId  String?             @map("contract_id")
+  contract    Contract?           @relation("ChangeOrders", fields: [contractId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
+  /// Set on an order's commitment: one per budget line the order is charged to.
+  orderId     String?             @map("order_id")
+  order       Order?              @relation(fields: [orderId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
+  createdById String?             @map("created_by_id")
+  createdAt   DateTime            @default(now()) @map("created_at")
+  updatedAt   DateTime            @updatedAt @map("updated_at")
   expenses    Expense[]
   quote       Quote?
-  contractFor Contract?  @relation("ContractCommitment")
+  contractFor Contract?           @relation("ContractCommitment")
+  allocations ExpenseAllocation[]
 
   @@unique([id, workspaceId])
+  @@unique([orderId, lineId])
   @@index([workspaceId])
   @@index([lineId])
   @@index([contractId])
@@ -567,6 +578,8 @@ model Expense {
   allocations       ExpenseAllocation[]
   payments          Payment[]
   attachments       Attachment[]
+  /// Set when this expense is an order's bill.
+  billFor           Order?              @relation("OrderBill")
 
   @@unique([id, workspaceId])
   @@index([workspaceId, expenseDate])
@@ -577,22 +590,27 @@ model Expense {
 /// Which budget line(s) an expense is charged to. They must add up to the
 /// expense total, to the cent (checked by the service and by the database).
 model ExpenseAllocation {
-  id          String     @id
-  workspaceId String     @map("workspace_id")
-  expenseId   String     @map("expense_id")
-  expense     Expense    @relation(fields: [expenseId, workspaceId], references: [id, workspaceId], onDelete: Cascade)
-  lineId      String     @map("line_id")
-  line        BudgetLine @relation(fields: [lineId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
-  amountCents BigInt     @map("amount_cents")
+  id           String      @id
+  workspaceId  String      @map("workspace_id")
+  expenseId    String      @map("expense_id")
+  expense      Expense     @relation(fields: [expenseId, workspaceId], references: [id, workspaceId], onDelete: Cascade)
+  lineId       String      @map("line_id")
+  line         BudgetLine  @relation(fields: [lineId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
+  amountCents  BigInt      @map("amount_cents")
   /// "item", "tax" or "shipping".
-  kind        String     @default("item")
+  kind         String      @default("item")
   /// The row's place on the expense, so splits always show in the order typed.
-  position    Int        @default(0)
-  createdAt   DateTime   @default(now()) @map("created_at")
+  position     Int         @default(0)
+  /// On an order's bill, each part uses up the order's commitment on its
+  /// own line. Other expenses link a commitment on the expense instead.
+  commitmentId String?     @map("commitment_id")
+  commitment   Commitment? @relation(fields: [commitmentId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
+  createdAt    DateTime    @default(now()) @map("created_at")
 
   @@index([workspaceId])
   @@index([expenseId])
   @@index([lineId])
+  @@index([commitmentId])
   @@map("expense_allocations")
 }
 
@@ -986,6 +1004,7 @@ model Material {
   updatedAt       DateTime     @updatedAt @map("updated_at")
   attachments     Attachment[]
   warranties      Warranty[]
+  orderItems      OrderItem[]
 
   @@unique([id, workspaceId])
   @@index([workspaceId])
@@ -993,4 +1012,97 @@ model Material {
   @@index([roomId])
   @@index([supplierId])
   @@map("materials")
+}
+
+/// An order from a store or supplier, for one project. Its items say what
+/// was bought at what price (kept as it was paid) and which budget line
+/// pays for it. The order is a commitment on each of those lines until its
+/// bill is recorded (ADR-029).
+model Order {
+  id            String       @id
+  workspaceId   String       @map("workspace_id")
+  projectId     String       @map("project_id")
+  project       Project      @relation(fields: [projectId, workspaceId], references: [id, workspaceId], onDelete: Cascade)
+  supplierId    String       @map("supplier_id")
+  supplier      Vendor       @relation(fields: [supplierId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
+  orderNumber   String?      @map("order_number")
+  orderedOn     DateTime     @map("ordered_on") @db.Date
+  shippingCents BigInt       @default(0) @map("shipping_cents")
+  taxCents      BigInt       @default(0) @map("tax_cents")
+  notes         String?
+  /// The bill or receipt, once recorded. It's an ordinary expense.
+  billId        String?      @unique @map("bill_id")
+  bill          Expense?     @relation("OrderBill", fields: [billId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
+  createdById   String?      @map("created_by_id")
+  createdAt     DateTime     @default(now()) @map("created_at")
+  updatedAt     DateTime     @updatedAt @map("updated_at")
+  items         OrderItem[]
+  deliveries    Delivery[]
+  commitments   Commitment[]
+  attachments   Attachment[]
+
+  @@unique([id, workspaceId])
+  @@unique([billId, workspaceId])
+  @@index([workspaceId])
+  @@index([projectId])
+  @@index([supplierId])
+  @@map("orders")
+}
+
+/// One thing on an order. The price is what was paid, saved with the order.
+model OrderItem {
+  id             String         @id
+  workspaceId    String         @map("workspace_id")
+  orderId        String         @map("order_id")
+  order          Order          @relation(fields: [orderId, workspaceId], references: [id, workspaceId], onDelete: Cascade)
+  materialId     String?        @map("material_id")
+  material       Material?      @relation(fields: [materialId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
+  /// NO ACTION, so a project's delete can remove its lines and orders together.
+  lineId         String         @map("line_id")
+  line           BudgetLine     @relation(fields: [lineId, workspaceId], references: [id, workspaceId], onDelete: NoAction)
+  description    String
+  quantityMilli  Int            @map("quantity_milli")
+  unitPriceCents BigInt         @map("unit_price_cents")
+  position       Int            @default(0)
+  deliveryItems  DeliveryItem[]
+
+  @@unique([id, workspaceId])
+  @@index([workspaceId])
+  @@index([orderId])
+  @@index([materialId])
+  @@index([lineId])
+  @@map("order_items")
+}
+
+/// Some or all of an order arriving on one day.
+model Delivery {
+  id          String         @id
+  workspaceId String         @map("workspace_id")
+  orderId     String         @map("order_id")
+  order       Order          @relation(fields: [orderId, workspaceId], references: [id, workspaceId], onDelete: Cascade)
+  deliveredOn DateTime       @map("delivered_on") @db.Date
+  notes       String?
+  createdById String?        @map("created_by_id")
+  createdAt   DateTime       @default(now()) @map("created_at")
+  items       DeliveryItem[]
+
+  @@unique([id, workspaceId])
+  @@index([workspaceId])
+  @@index([orderId])
+  @@map("deliveries")
+}
+
+model DeliveryItem {
+  id            String    @id
+  workspaceId   String    @map("workspace_id")
+  deliveryId    String    @map("delivery_id")
+  delivery      Delivery  @relation(fields: [deliveryId, workspaceId], references: [id, workspaceId], onDelete: Cascade)
+  orderItemId   String    @map("order_item_id")
+  orderItem     OrderItem @relation(fields: [orderItemId, workspaceId], references: [id, workspaceId], onDelete: Cascade)
+  quantityMilli Int       @map("quantity_milli")
+
+  @@unique([deliveryId, orderItemId])
+  @@index([workspaceId])
+  @@index([orderItemId])
+  @@map("delivery_items")
 }

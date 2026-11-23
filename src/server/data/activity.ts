@@ -15,7 +15,8 @@ export type ActivityInput = {
     | "warranty"
     | "quote"
     | "contract"
-    | "material";
+    | "material"
+    | "order";
   entityId: string;
   summary: string;
 };

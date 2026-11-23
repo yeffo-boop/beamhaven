@@ -4,6 +4,30 @@ Newest entries at the top. Each entry records what was done, which files changed
 
 ---
 
+## 2026-11-23: Milestone 6, part 2 (orders, deliveries and the bill), built
+
+### Done
+
+- **Database** (one migration, `20261124010000_orders`): orders, order items, deliveries and delivery items, plus an order link on commitments and attachments and a commitment link on expense allocations. It only adds tables and columns; no existing data changes.
+- **Orders** (on each project and material page, and a list under Materials): the supplier, order number and date, several items (each from the materials list or typed in, with its quantity, the price paid and its budget line), shipping and tax.
+- **Budget**: each order commits money on every line it's charged to, with tax and shipping shared by value (ADR-029, `docs/BUDGET_DEFINITIONS.md`).
+- **Deliveries**: record what arrived, item by item, over as many deliveries as it takes. Materials move to Ordered, then to Delivered once everything has arrived.
+- **The bill**: one click records it as an expense split across the order's lines (optionally paid in full). The order is then locked until the bill is removed.
+- Receipts and packing slips can be attached to an order.
+
+### Tests (cloud workspace, 2026-11-23)
+
+- Lint, formatting and type check: passed.
+- Unit tests: 131 of 131 passed. The 4 new ones check order math (the worked example in the budget definitions).
+- Integration tests: 95 of 95 passed. The 6 new ones cover saving orders and their commitments, deliveries and material statuses, the bill and the budget totals, the locks, deleting, household isolation and viewers.
+- End-to-end tests (full run, with a production build and no secrets set): 59 passed, 20 skipped on purpose. New: placing an order from a material, recording two deliveries and the bill.
+
+### Next
+
+Part 3: returns and refunds. On the VM, `update.sh` will apply the two Milestone 6 migrations (both only add tables and columns).
+
+---
+
 ## 2026-11-23: Milestone 6, part 1 (materials), built
 
 Jeff gave the go-ahead for Milestone 6 once Milestone 5 was merged (PR #14), and asked for each part to be merged as it's done.

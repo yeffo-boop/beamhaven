@@ -194,16 +194,15 @@ export async function listLinesWithFacts(
     }),
     db.expenseAllocation.findMany({
       where: { workspaceId: ws, lineId: { in: ids } },
-      select: { id: true, lineId: true, expenseId: true },
+      select: { id: true, lineId: true, expenseId: true, commitmentId: true },
     }),
   ]);
 
-  // What's been invoiced against each commitment: every linked expense.
-  const invoiced = await db.expense.groupBy({
-    by: ["commitmentId"],
-    where: { workspaceId: ws, commitmentId: { in: commitments.map((c) => c.id) } },
-    _sum: { totalCents: true },
-  });
+  const invoicedBy = await invoicedByCommitment(
+    ws,
+    commitments.map((c) => c.id),
+    db,
+  );
 
   // Each allocation's share of its expense's payments. That needs every
   // allocation of those expenses, including ones on other lines.
@@ -237,7 +236,6 @@ export async function listLinesWithFacts(
     );
   }
   const commitmentOf = new Map(expenses.map((e) => [e.id, e.commitmentId]));
-  const invoicedBy = new Map(invoiced.map((i) => [i.commitmentId, i._sum.totalCents ?? 0n]));
   const adjustmentBy = new Map(adjustments.map((a) => [a.lineId, a._sum.amountCents ?? 0n]));
   const outBy = new Map(outs.map((t) => [t.fromLineId, t._sum.amountCents ?? 0n]));
   const inBy = new Map(ins.map((t) => [t.toLineId, t._sum.amountCents ?? 0n]));
@@ -265,10 +263,47 @@ export async function listLinesWithFacts(
         .map((a) => ({
           amountCents: shareByAllocation.get(a.id)?.amount ?? 0n,
           paidCents: shareByAllocation.get(a.id)?.paid ?? 0n,
-          commitmentId: commitmentOf.get(a.expenseId) ?? null,
+          commitmentId: a.commitmentId ?? commitmentOf.get(a.expenseId) ?? null,
         })),
     },
   }));
+}
+
+/**
+ * What's been invoiced against each commitment: every expense linked to it,
+ * plus the parts of an order's bill that use it up (those are linked part
+ * by part, because one bill can cover several lines, ADR-029).
+ */
+export async function invoicedByCommitment(
+  ws: string,
+  commitmentIds: string[],
+  db: Db = getPrisma(),
+): Promise<Map<string, bigint>> {
+  if (commitmentIds.length === 0) return new Map();
+  const [whole, parts] = await Promise.all([
+    db.expense.groupBy({
+      by: ["commitmentId"],
+      where: { workspaceId: ws, commitmentId: { in: commitmentIds } },
+      _sum: { totalCents: true },
+    }),
+    db.expenseAllocation.groupBy({
+      by: ["commitmentId"],
+      where: { workspaceId: ws, commitmentId: { in: commitmentIds } },
+      _sum: { amountCents: true },
+    }),
+  ]);
+  const result = new Map<string, bigint>();
+  for (const row of whole) {
+    if (row.commitmentId) result.set(row.commitmentId, row._sum.totalCents ?? 0n);
+  }
+  for (const row of parts) {
+    if (!row.commitmentId) continue;
+    result.set(
+      row.commitmentId,
+      (result.get(row.commitmentId) ?? 0n) + (row._sum.amountCents ?? 0n),
+    );
+  }
+  return result;
 }
 
 export async function findLine(
@@ -426,6 +461,7 @@ export async function deleteLineRow(
             transfersOut: true,
             commitments: true,
             allocations: true,
+            orderItems: true,
           },
         },
       },

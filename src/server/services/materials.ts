@@ -18,7 +18,7 @@ import {
 
 import { removeFiles } from "./attachments";
 import { getRecordChoices } from "./choices";
-import { NotFoundError } from "./errors";
+import { NotFoundError, RuleError } from "./errors";
 import type { FormInput } from "./inputs";
 import {
   MATERIAL_CATEGORY_SUGGESTIONS,
@@ -140,6 +140,7 @@ export async function deleteMaterial(ctx: WorkspaceContext, id: string): Promise
   assertCan(ctx, "records:edit");
   const fileIds = await deleteMaterialRow(ctx, id);
   if (!fileIds) throw new NotFoundError("material");
+  if (fileIds === "on_order") throw new RuleError("material_on_order");
   await removeFiles(ctx, fileIds);
 }
 

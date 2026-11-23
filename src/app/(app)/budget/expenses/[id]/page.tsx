@@ -68,7 +68,11 @@ export default async function ExpensePage({
         <PageHeader
           title={isRefund ? `Refund: ${expense.description}` : expense.description}
           actions={
-            canEdit ? (
+            canEdit && expense.orderId ? (
+              <Button asChild variant="outline">
+                <Link href={`/orders/${expense.orderId}`}>Open the order</Link>
+              </Button>
+            ) : canEdit ? (
               <>
                 {isRefund ? null : (
                   <Button asChild variant="outline">
@@ -109,6 +113,13 @@ export default async function ExpensePage({
           </Detail>
           {expense.vendorName ? (
             <Detail label="Shop or supplier">{expense.vendorName}</Detail>
+          ) : null}
+          {expense.orderId ? (
+            <Detail label="Bill for">
+              <Link href={`/orders/${expense.orderId}`} className="text-primary hover:underline">
+                An order
+              </Link>
+            </Detail>
           ) : null}
           {expense.commitmentDescription ? (
             <Detail label="Bill for">{expense.commitmentDescription}</Detail>
@@ -230,7 +241,12 @@ export default async function ExpensePage({
               ))}
             </ul>
           )}
-          {canEdit && refundable > 0n ? (
+          {expense.orderId ? (
+            <p className="text-sm text-muted-foreground">
+              Returns from an order are recorded on the order&apos;s page.
+            </p>
+          ) : null}
+          {canEdit && refundable > 0n && !expense.orderId ? (
             <details className="rounded-[var(--radius-control)] border border-border p-3">
               <summary className="cursor-pointer text-sm font-medium">
                 Record a refund or return

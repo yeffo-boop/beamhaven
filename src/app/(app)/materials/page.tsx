@@ -42,14 +42,19 @@ export default async function MaterialsPage({ searchParams }: PageProps<"/materi
         title="Materials"
         description="Products you're considering or have bought: tile, fixtures, paint, appliances."
         actions={
-          canEdit ? (
-            <Button asChild>
-              <Link href="/materials/new">
-                <Plus aria-hidden="true" />
-                Add material
-              </Link>
+          <div className="flex flex-wrap gap-2">
+            <Button asChild variant="outline">
+              <Link href="/orders">Orders</Link>
             </Button>
-          ) : null
+            {canEdit ? (
+              <Button asChild>
+                <Link href="/materials/new">
+                  <Plus aria-hidden="true" />
+                  Add material
+                </Link>
+              </Button>
+            ) : null}
+          </div>
         }
       />
       <form method="get" className="flex flex-wrap items-end gap-3" aria-label="Filter materials">

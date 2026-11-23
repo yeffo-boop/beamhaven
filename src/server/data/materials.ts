@@ -108,18 +108,23 @@ async function setMaterial(
 /**
  * Deletes it with its photos and documents. Its warranties let go of it
  * (one that was only on this material goes too). Returns the files to
- * remove, or null if it isn't in this household.
+ * remove, null if it isn't in this household, or "on_order" if an order has it.
  */
 export async function deleteMaterialRow(
   ctx: WorkspaceContext,
   id: string,
-): Promise<string[] | null> {
+): Promise<string[] | null | "on_order"> {
   return getPrisma().$transaction(async (tx) => {
     const row = await tx.material.findFirst({
       where: { id, workspaceId: ctx.workspaceId },
-      select: { attachments: { select: { fileId: true } } },
+      select: {
+        attachments: { select: { fileId: true } },
+        _count: { select: { orderItems: true } },
+      },
     });
     if (!row) return null;
+    // What was bought stays part of the order's history.
+    if (row._count.orderItems > 0) return "on_order";
     const warrantyFiles = await unlinkWarranties(tx, ctx.workspaceId, { materialId: id });
     await tx.material.delete({ where: { id } });
     return [...warrantyFiles, ...row.attachments.map((a) => a.fileId)];

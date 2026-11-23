@@ -14,7 +14,8 @@ export type AttachmentTarget = {
     | "warranty"
     | "quote"
     | "contract"
-    | "material";
+    | "material"
+    | "order";
   id: string;
 };
 
@@ -38,6 +39,8 @@ function targetColumn(target: AttachmentTarget) {
       return { contractId: target.id };
     case "material":
       return { materialId: target.id };
+    case "order":
+      return { orderId: target.id };
   }
 }
 
@@ -67,6 +70,8 @@ export async function targetExists(
       return (await prisma.contract.count({ where })) === 1;
     case "material":
       return (await prisma.material.count({ where })) === 1;
+    case "order":
+      return (await prisma.order.count({ where })) === 1;
   }
 }
 

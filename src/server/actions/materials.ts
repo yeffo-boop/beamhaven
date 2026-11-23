@@ -13,7 +13,7 @@ import {
 } from "@/server/services/materials";
 
 import type { FormResult } from "./account";
-import { asFormResult, idFrom, text } from "./helpers";
+import { asFormResult, idFrom, problemRedirect, text } from "./helpers";
 
 /** Server Actions for materials (Milestone 6, part 1). */
 
@@ -78,6 +78,7 @@ export async function deleteMaterialAction(formData: FormData): Promise<void> {
     else if (m.roomId) back = `/rooms/${m.roomId}`;
     await deleteMaterial(ctx, id);
   } catch (error) {
+    problemRedirect(`/materials/${id}`, error);
     asFormResult(error);
     return;
   }
