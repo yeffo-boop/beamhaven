@@ -150,13 +150,15 @@ The MVP is not "finished" until **Milestone 10** puts it in production with auto
 
 Built in three parts: **part 1** materials, **part 2** orders with several items, the price paid, deliveries and the bill, **part 3** returns and refunds. All built.
 
-## Milestone 7: Tasks and Scheduling ⬜
+## Milestone 7: Tasks and Scheduling 🟡
 
 **Depends on:** Milestone 5 (simple tasks).
 
 - Milestones, task dependencies (blocking circular dependencies), and a clear "blocked" state.
 - Calendar views (month, week and agenda) for tasks, appointments, deliveries, inspections and payment deadlines.
 - Reminders, using pg-boss background jobs. In-app reminders come first; email follows once email is set up.
+
+Built in three parts: **part 1** milestones, task dependencies and the Schedule page (built), **part 2** the calendar with appointments and inspections, **part 3** reminders.
 
 ## Milestone 8: Documents and Design Boards ⬜
 

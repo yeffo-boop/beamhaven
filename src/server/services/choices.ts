@@ -4,6 +4,7 @@ import { assertCan } from "@/server/auth/permissions";
 import type { WorkspaceContext } from "@/server/data/context";
 import { listContractors } from "@/server/data/contractors";
 import { listMaterials } from "@/server/data/materials";
+import { listMilestones } from "@/server/data/milestones";
 import { listProjects } from "@/server/data/projects";
 import { listRooms } from "@/server/data/rooms";
 import { listMembers } from "@/server/data/workspaces";
@@ -17,17 +18,20 @@ export type RecordChoices = {
   materials: Choice[];
   /** People and contractors a task can go to: "user:<id>" or "contractor:<id>". */
   assignees: Choice[];
+  /** Every project's milestones, labelled "Project: milestone". */
+  milestones: (Choice & { projectId: string })[];
 };
 
 /** The pick lists that the contractor, warranty and task forms offer. */
 export async function getRecordChoices(ctx: WorkspaceContext): Promise<RecordChoices> {
   assertCan(ctx, "records:edit");
-  const [projects, rooms, contractors, members, materials] = await Promise.all([
+  const [projects, rooms, contractors, members, materials, milestones] = await Promise.all([
     listProjects(ctx),
     listRooms(ctx),
     listContractors(ctx),
     listMembers(ctx),
     listMaterials(ctx, {}),
+    listMilestones(ctx),
   ]);
   const usable = contractors.filter((c) => c.status !== "do_not_use");
   return {
@@ -45,6 +49,11 @@ export async function getRecordChoices(ctx: WorkspaceContext): Promise<RecordCho
         .map((m) => ({ value: `user:${m.userId}`, label: m.name })),
       ...usable.map((c) => ({ value: `contractor:${c.id}`, label: c.name })),
     ],
+    milestones: milestones.map((m) => ({
+      value: m.id,
+      label: `${m.projectName}: ${m.name}`,
+      projectId: m.projectId,
+    })),
   };
 }
 
@@ -55,4 +64,5 @@ export const NO_CHOICES: RecordChoices = {
   contractors: [],
   materials: [],
   assignees: [],
+  milestones: [],
 };

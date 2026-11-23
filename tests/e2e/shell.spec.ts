@@ -13,9 +13,9 @@ test("every section opens and is marked as the current page", async ({ page }, t
   await expect(nav.getByRole("link", { name: "Budget" })).toHaveAttribute("aria-current", "page");
 
   // Sections that aren't built yet say which milestone builds them.
-  await nav.getByRole("link", { name: "Schedule" }).click();
-  await expect(page.getByRole("heading", { level: 1, name: "Schedule" })).toBeVisible();
-  await expect(page.getByText("Coming in Milestone 7")).toBeVisible();
+  await nav.getByRole("link", { name: "Files" }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "Files" })).toBeVisible();
+  await expect(page.getByText("Coming in Milestone 8")).toBeVisible();
 
   await nav.getByRole("link", { name: "Contractors" }).click();
   await expect(page.getByRole("heading", { level: 1, name: "Contractors" })).toBeVisible();

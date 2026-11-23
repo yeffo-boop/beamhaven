@@ -17,6 +17,8 @@ import { ProjectRoomsForm } from "@/components/records/project-rooms-form";
 import { StatusBadge } from "@/components/records/status-badge";
 import { MaterialList } from "@/components/materials/list";
 import { OrderList } from "@/components/orders/list";
+import { MilestoneForm } from "@/components/schedule/forms";
+import { MilestoneList } from "@/components/schedule/milestones";
 import { Button } from "@/components/ui/button";
 import { formatDay } from "@/lib/dates";
 import { deleteProjectAction } from "@/server/actions/records";
@@ -32,6 +34,7 @@ import { getProject } from "@/server/services/projects";
 import { getRooms } from "@/server/services/rooms";
 import { getMaterials } from "@/server/services/materials";
 import { getOrders } from "@/server/services/orders";
+import { getMilestones } from "@/server/services/milestones";
 import { getTasks, getWarranties } from "@/server/services/tasks";
 
 export const metadata = { title: "Project" };
@@ -56,6 +59,7 @@ export default async function ProjectPage({ params, searchParams }: PageProps<"/
     contracts,
     materials,
     orders,
+    milestones,
   ] = await Promise.all([
     getPhotos(ctx, { kind: "project", id }),
     getActivity(ctx, "project", id),
@@ -69,6 +73,7 @@ export default async function ProjectPage({ params, searchParams }: PageProps<"/
     getContracts(ctx, { projectId: id }),
     getMaterials(ctx, { projectId: id }),
     getOrders(ctx, { projectId: id }),
+    getMilestones(ctx, { projectId: id }),
   ]);
   const today = new Date();
   const onProject = new Set(contractors.map((c) => c.contractorId));
@@ -252,6 +257,22 @@ export default async function ProjectPage({ params, searchParams }: PageProps<"/
         <ContractList contracts={contracts} show="contractor" />
       </Panel>
 
+      <Panel title="Milestones" id="milestones">
+        <p className="text-sm text-muted-foreground">
+          The stages of the project, like “Demolition” or “Cabinets in”. Put tasks in them to see
+          how each one is going.
+        </p>
+        <MilestoneList milestones={milestones} today={today} />
+        {canEdit ? (
+          <details className="rounded-[var(--radius-control)] border border-border p-3">
+            <summary className="cursor-pointer text-sm font-medium">Add a milestone</summary>
+            <div className="mt-3">
+              <MilestoneForm key={milestones.length} projectId={id} />
+            </div>
+          </details>
+        ) : null}
+      </Panel>
+
       <Panel title="Tasks" id="tasks">
         {canEdit ? (
           <details className="rounded-[var(--radius-control)] border border-border p-3">
@@ -262,6 +283,7 @@ export default async function ProjectPage({ params, searchParams }: PageProps<"/
                 assignees={choices.assignees}
                 projects={choices.projects}
                 rooms={projectRoomChoices}
+                milestones={milestones.map((m) => ({ value: m.id, label: m.name }))}
               />
             </div>
           </details>

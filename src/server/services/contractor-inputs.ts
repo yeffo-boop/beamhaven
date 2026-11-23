@@ -155,6 +155,7 @@ export const taskInput = z
     ),
     assignee,
     dueDate: optionalDate,
+    milestoneId: optionalText(64, "The milestone"),
   })
   .refine((t) => t.projectId || t.roomId, {
     message: "A task belongs to a project or a room",
@@ -162,6 +163,13 @@ export const taskInput = z
   });
 
 export const taskStatusInput = z.enum(TASK_STATUSES, { message: "Choose a status" });
+
+/** A project's milestone (Milestone 7). */
+export const milestoneInput = z.object({
+  name: requiredText(120, "Name the milestone", "The name"),
+  targetDate: optionalDate,
+  notes: optionalText(2000, "The notes"),
+});
 
 /** Days from `today` until `date` (negative once it has passed). */
 export function daysUntil(date: Date, today: Date): number {

@@ -306,3 +306,18 @@ Statuses: **Proposed** (waiting for Jeff) · **Accepted** · **Superseded**
 - The refund's expense is changed only from the order, like the bill.
 
 **Consequences.** The formulas in `docs/BUDGET_DEFINITIONS.md` are unchanged. Cancelling items that never arrived isn't a return; change the order before the bill instead.
+
+## ADR-031: Milestones group a project's tasks; tasks can wait on others (Milestone 7, part 1)
+
+**Date:** 2026-11-23. **Status:** accepted.
+
+**Decision.**
+
+- A **milestone** is a stage of one project, with an optional target date. A task can be in one milestone of its own project. The database enforces that: the task's foreign key includes the project (`(milestone_id, project_id, workspace_id)`), and a check refuses a milestone on a task with no project.
+- A milestone's progress ("3 of 5 tasks done") and whether it's late or done are **worked out from its tasks**, never stored.
+- A task can **wait on** any other task in the household (across projects too). A task is **blocked** while anything it waits on isn't done. That is shown, not stored as a status, so it clears by itself.
+- A blocked task can be started but **not marked done**. Reopening a task later doesn't undo tasks that were already finished after it.
+- **Loops are refused**, however long. The check follows every wait from the other task; the household's dependencies are locked while it runs (`pg_advisory_xact_lock`), so two people can't close a loop at the same moment.
+- Deleting a milestone keeps its tasks on the project. Deleting a project takes its milestones; tasks that stay (because they're also in a room) leave their milestone. Deleting a task removes its waits.
+
+**Consequences.** No dates are moved automatically when something is late; that's for the calendar (part 2) to show.

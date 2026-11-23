@@ -257,9 +257,10 @@ export async function unlinkProjectOrRoom(
     });
     // Tasks that are only on this project go with it; ones also on a room stay there.
     await tx.task.deleteMany({ where: { workspaceId, projectId: link.projectId, roomId: null } });
+    // Its milestones go with the project, so they come off the task too.
     await tx.task.updateMany({
       where: { workspaceId, projectId: link.projectId },
-      data: { projectId: null },
+      data: { projectId: null, milestoneId: null },
     });
   } else {
     await tx.task.deleteMany({ where: { workspaceId, roomId: link.roomId, projectId: null } });

@@ -4,6 +4,30 @@ Newest entries at the top. Each entry records what was done, which files changed
 
 ---
 
+## 2026-11-23: Milestone 7, part 1 (milestones and tasks that wait on others), built
+
+Jeff gave the go-ahead for Milestone 7 while Milestone 6's last PR was in CI.
+
+### Done
+
+- **Database** (one migration, `20261124030000_milestones_dependencies`): milestones, task dependencies, and a milestone link on tasks. It only adds tables and a column; no existing data changes.
+- **Milestones** on each project (a Milestones panel and a page for each): name, target date, notes, and progress worked out from their tasks ("3 of 5 tasks done", Late, Done).
+- **Waits on**: a task can wait on other tasks (any project). It shows as **Blocked** until they're done, and can't be marked done before then. Loops are refused, however long (ADR-031).
+- **Schedule** (was a placeholder): every milestone and task across projects, filtered by project and by still to do, blocked or done.
+
+### Tests (cloud workspace, 2026-11-23)
+
+- Lint, formatting and type check: passed.
+- Unit tests: 139 of 139 passed. The 4 new ones check the loop finder.
+- Integration tests: 103 of 103 passed. The 4 new ones cover milestones and their progress, the project rule, deleting milestones and projects, blocked tasks, loops, household isolation (in the code and in the database) and viewers.
+- End-to-end tests: the full run had 61 passed, 22 skipped on purpose and 2 failing: the shell test still expected the Schedule placeholder. After pointing it at a section that's still a placeholder (Files), the shell spec passed on its own (9 passed, 4 skipped). New: plan a project in milestones, make a task wait on another, see it blocked and then unblocked; the Schedule page fits the screen.
+
+### Next
+
+Part 2: the calendar (month, week and agenda) with appointments and inspections, deliveries and payments due.
+
+---
+
 ## 2026-11-23: Milestone 6, part 3 (returns and refunds), built: Milestone 6 done
 
 ### Done

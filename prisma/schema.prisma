@@ -219,6 +219,7 @@ model Project {
   roomEstimates    RoomEstimate[]
   materials        Material[]
   orders           Order[]
+  milestones       Milestone[]
 
   @@unique([id, workspaceId])
   @@index([workspaceId])
@@ -757,33 +758,81 @@ model Warranty {
 /// A simple to-do on a project or a room (at least one; checked by the
 /// database). The full schedule arrives in Milestone 7.
 model Task {
-  id                   String      @id
-  workspaceId          String      @map("workspace_id")
-  projectId            String?     @map("project_id")
-  project              Project?    @relation(fields: [projectId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
-  roomId               String?     @map("room_id")
-  room                 Room?       @relation(fields: [roomId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
+  id                   String           @id
+  workspaceId          String           @map("workspace_id")
+  projectId            String?          @map("project_id")
+  project              Project?         @relation(fields: [projectId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
+  roomId               String?          @map("room_id")
+  room                 Room?            @relation(fields: [roomId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
   title                String
   description          String?
   /// "todo", "doing" or "done".
-  status               String      @default("todo")
+  status               String           @default("todo")
   /// "low", "normal" or "high".
-  priority             String      @default("normal")
+  priority             String           @default("normal")
   /// A household member (checked by the service when assigning).
-  assigneeUserId       String?     @map("assignee_user_id")
-  assigneeContractorId String?     @map("assignee_contractor_id")
-  assigneeContractor   Contractor? @relation(fields: [assigneeContractorId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
-  dueDate              DateTime?   @map("due_date") @db.Date
-  completedAt          DateTime?   @map("completed_at")
-  createdById          String?     @map("created_by_id")
-  createdAt            DateTime    @default(now()) @map("created_at")
-  updatedAt            DateTime    @updatedAt @map("updated_at")
+  assigneeUserId       String?          @map("assignee_user_id")
+  assigneeContractorId String?          @map("assignee_contractor_id")
+  assigneeContractor   Contractor?      @relation(fields: [assigneeContractorId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
+  dueDate              DateTime?        @map("due_date") @db.Date
+  /// A stage of the task's own project (Milestone 7, ADR-031). The key
+  /// includes the project, so the database keeps the two together.
+  milestoneId          String?          @map("milestone_id")
+  milestone            Milestone?       @relation(fields: [milestoneId, projectId, workspaceId], references: [id, projectId, workspaceId], onDelete: Restrict)
+  /// Tasks this one waits on, and tasks waiting on it.
+  waitsOn              TaskDependency[] @relation("DependentTask")
+  neededFor            TaskDependency[] @relation("PrerequisiteTask")
+  completedAt          DateTime?        @map("completed_at")
+  createdById          String?          @map("created_by_id")
+  createdAt            DateTime         @default(now()) @map("created_at")
+  updatedAt            DateTime         @updatedAt @map("updated_at")
 
+  @@unique([id, workspaceId])
   @@index([workspaceId])
   @@index([projectId])
   @@index([roomId])
   @@index([assigneeContractorId])
+  @@index([milestoneId])
   @@map("tasks")
+}
+
+/// A stage of a project, like "Demolition" or "Cabinets in" (Milestone 7).
+/// It's done when all its tasks are; nothing about that is stored.
+model Milestone {
+  id          String    @id
+  workspaceId String    @map("workspace_id")
+  projectId   String    @map("project_id")
+  project     Project   @relation(fields: [projectId, workspaceId], references: [id, workspaceId], onDelete: Cascade)
+  name        String
+  targetDate  DateTime? @map("target_date") @db.Date
+  notes       String?
+  position    Int       @default(0)
+  createdById String?   @map("created_by_id")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  tasks       Task[]
+
+  @@unique([id, workspaceId])
+  @@unique([id, projectId, workspaceId])
+  @@unique([projectId, name])
+  @@index([workspaceId])
+  @@index([projectId])
+  @@map("milestones")
+}
+
+/// `taskId` can't start (or be finished) until `dependsOnId` is done.
+model TaskDependency {
+  workspaceId String   @map("workspace_id")
+  taskId      String   @map("task_id")
+  task        Task     @relation("DependentTask", fields: [taskId, workspaceId], references: [id, workspaceId], onDelete: Cascade)
+  dependsOnId String   @map("depends_on_id")
+  dependsOn   Task     @relation("PrerequisiteTask", fields: [dependsOnId, workspaceId], references: [id, workspaceId], onDelete: Cascade)
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@id([taskId, dependsOnId])
+  @@index([workspaceId])
+  @@index([dependsOnId])
+  @@map("task_dependencies")
 }
 
 /// A price a contractor has given. Each new price is a revision; the
