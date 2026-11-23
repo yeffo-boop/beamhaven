@@ -210,6 +210,8 @@ model Project {
   communications   Communication[]
   warranties       Warranty[]
   tasks            Task[]
+  quotes           Quote[]
+  contracts        Contract[]
 
   @@unique([id, workspaceId])
   @@index([workspaceId])
@@ -326,6 +328,10 @@ model Attachment {
   expense      Expense?    @relation(fields: [expenseId], references: [id], onDelete: Cascade)
   contractorId String?     @map("contractor_id")
   contractor   Contractor? @relation(fields: [contractorId, workspaceId], references: [id, workspaceId], onDelete: Cascade)
+  quoteId      String?     @map("quote_id")
+  quote        Quote?      @relation(fields: [quoteId, workspaceId], references: [id, workspaceId], onDelete: Cascade)
+  contractId   String?     @map("contract_id")
+  contract     Contract?   @relation(fields: [contractId, workspaceId], references: [id, workspaceId], onDelete: Cascade)
   warrantyId   String?     @map("warranty_id")
   warranty     Warranty?   @relation(fields: [warrantyId, workspaceId], references: [id, workspaceId], onDelete: Cascade)
   createdById  String?     @map("created_by_id")
@@ -339,6 +345,8 @@ model Attachment {
   @@index([expenseId])
   @@index([contractorId])
   @@index([warrantyId])
+  @@index([quoteId])
+  @@index([contractId])
   @@map("attachments")
 }
 
@@ -408,6 +416,7 @@ model BudgetLine {
   transfersOut  BudgetTransfer[]    @relation("TransferFrom")
   transfersIn   BudgetTransfer[]    @relation("TransferTo")
   commitments   Commitment[]
+  quotes        Quote[]
   allocations   ExpenseAllocation[]
 
   @@unique([id, workspaceId])
@@ -497,14 +506,20 @@ model Commitment {
   amountCents BigInt     @map("amount_cents")
   committedOn DateTime   @map("committed_on") @db.Date
   notes       String?
+  /// Set on a change order: the contract it changes.
+  contractId  String?    @map("contract_id")
+  contract    Contract?  @relation("ChangeOrders", fields: [contractId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
   createdById String?    @map("created_by_id")
   createdAt   DateTime   @default(now()) @map("created_at")
   updatedAt   DateTime   @updatedAt @map("updated_at")
   expenses    Expense[]
+  quote       Quote?
+  contractFor Contract?  @relation("ContractCommitment")
 
   @@unique([id, workspaceId])
   @@index([workspaceId])
   @@index([lineId])
+  @@index([contractId])
   @@map("commitments")
 }
 
@@ -526,6 +541,8 @@ model Expense {
   dueDate           DateTime?           @map("due_date") @db.Date
   totalCents        BigInt              @map("total_cents")
   notes             String?
+  /// For a contractor's bill: "deposit", "progress" or "final".
+  stage             String?
   createdById       String?             @map("created_by_id")
   createdAt         DateTime            @default(now()) @map("created_at")
   updatedAt         DateTime            @updatedAt @map("updated_at")
@@ -621,6 +638,8 @@ model Contractor {
   warranties         Warranty[]
   tasks              Task[]
   attachments        Attachment[]
+  quotes             Quote[]
+  contracts          Contract[]
 
   @@unique([id, workspaceId])
   @@unique([vendorId, workspaceId])
@@ -725,4 +744,93 @@ model Task {
   @@index([roomId])
   @@index([assigneeContractorId])
   @@map("tasks")
+}
+
+/// A price a contractor has given. Each new price is a revision; the
+/// latest is the one that counts. Approving it puts it in the budget as a
+/// commitment.
+model Quote {
+  id           String          @id
+  workspaceId  String          @map("workspace_id")
+  contractorId String          @map("contractor_id")
+  contractor   Contractor      @relation(fields: [contractorId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
+  projectId    String          @map("project_id")
+  project      Project         @relation(fields: [projectId, workspaceId], references: [id, workspaceId], onDelete: Cascade)
+  /// The budget line it was approved onto.
+  lineId       String?         @map("line_id")
+  line         BudgetLine?     @relation(fields: [lineId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
+  title        String
+  /// "received", "under_review", "approved" or "rejected".
+  status       String          @default("received")
+  validUntil   DateTime?       @map("valid_until") @db.Date
+  notes        String?
+  commitmentId String?         @unique @map("commitment_id")
+  commitment   Commitment?     @relation(fields: [commitmentId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
+  decidedAt    DateTime?       @map("decided_at")
+  decidedById  String?         @map("decided_by_id")
+  decisionNote String?         @map("decision_note")
+  createdById  String?         @map("created_by_id")
+  createdAt    DateTime        @default(now()) @map("created_at")
+  updatedAt    DateTime        @updatedAt @map("updated_at")
+  revisions    QuoteRevision[]
+  contract     Contract?
+  attachments  Attachment[]
+
+  @@unique([id, workspaceId])
+  @@unique([commitmentId, workspaceId])
+  @@index([workspaceId])
+  @@index([contractorId])
+  @@index([projectId])
+  @@map("quotes")
+}
+
+model QuoteRevision {
+  id             String   @id
+  workspaceId    String   @map("workspace_id")
+  quoteId        String   @map("quote_id")
+  quote          Quote    @relation(fields: [quoteId, workspaceId], references: [id, workspaceId], onDelete: Cascade)
+  revisionNumber Int      @map("revision_number")
+  amountCents    BigInt   @map("amount_cents")
+  receivedOn     DateTime @map("received_on") @db.Date
+  summary        String?
+  createdById    String?  @map("created_by_id")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  @@unique([quoteId, revisionNumber])
+  @@index([workspaceId])
+  @@map("quote_revisions")
+}
+
+/// A signed agreement with a contractor. Its value is its commitment's
+/// amount (one place for the number); change orders are commitments that
+/// point back at it.
+model Contract {
+  id           String       @id
+  workspaceId  String       @map("workspace_id")
+  contractorId String       @map("contractor_id")
+  contractor   Contractor   @relation(fields: [contractorId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
+  projectId    String       @map("project_id")
+  project      Project      @relation(fields: [projectId, workspaceId], references: [id, workspaceId], onDelete: Cascade)
+  quoteId      String?      @unique @map("quote_id")
+  quote        Quote?       @relation(fields: [quoteId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
+  commitmentId String       @unique @map("commitment_id")
+  commitment   Commitment   @relation("ContractCommitment", fields: [commitmentId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
+  title        String
+  signedOn     DateTime?    @map("signed_on") @db.Date
+  startDate    DateTime?    @map("start_date") @db.Date
+  endDate      DateTime?    @map("end_date") @db.Date
+  notes        String?
+  createdById  String?      @map("created_by_id")
+  createdAt    DateTime     @default(now()) @map("created_at")
+  updatedAt    DateTime     @updatedAt @map("updated_at")
+  changeOrders Commitment[] @relation("ChangeOrders")
+  attachments  Attachment[]
+
+  @@unique([id, workspaceId])
+  @@unique([quoteId, workspaceId])
+  @@unique([commitmentId, workspaceId])
+  @@index([workspaceId])
+  @@index([contractorId])
+  @@index([projectId])
+  @@map("contracts")
 }

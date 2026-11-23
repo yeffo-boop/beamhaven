@@ -48,7 +48,7 @@ export async function uploadPhoto(
   return saveUpload(ctx, target, upload, "photo");
 }
 
-/** A document for a contractor or warranty (a license, certificate or contract): a photo or a PDF. */
+/** A document for a contractor, warranty, quote or contract (a license, certificate or contract): a photo or a PDF. */
 export async function uploadDocument(
   ctx: WorkspaceContext,
   target: AttachmentTarget,
@@ -78,6 +78,8 @@ export function purposeFor(kind: AttachmentTarget["kind"]): Purpose {
       return "receipt";
     case "contractor":
     case "warranty":
+    case "quote":
+    case "contract":
       return "document";
   }
 }

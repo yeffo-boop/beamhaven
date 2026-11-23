@@ -167,6 +167,8 @@ export type ExpenseFields = {
   dueDate: Date | null;
   totalCents: bigint;
   notes: string | null;
+  /** For a contractor's bill: deposit, progress or final. */
+  stage: string | null;
 };
 
 export type SaveExpenseResult =
@@ -236,13 +238,20 @@ export type ExpenseSummary = {
   paidCents: bigint;
   state: PaymentState;
   isRefund: boolean;
+  stage: string | null;
   /** How much of it falls on the project asked about (all of it otherwise). */
   shareCents: bigint;
 };
 
 export async function listExpenses(
   ctx: WorkspaceContext,
-  where: { projectId?: string; lineId?: string; vendorId?: string; limit?: number } = {},
+  where: {
+    projectId?: string;
+    lineId?: string;
+    vendorId?: string;
+    commitmentIds?: string[];
+    limit?: number;
+  } = {},
 ): Promise<ExpenseSummary[]> {
   const prisma = getPrisma();
   const allocationFilter = where.lineId
@@ -254,6 +263,7 @@ export async function listExpenses(
     where: {
       workspaceId: ctx.workspaceId,
       ...(where.vendorId ? { vendorId: where.vendorId } : {}),
+      ...(where.commitmentIds ? { commitmentId: { in: where.commitmentIds } } : {}),
       ...(allocationFilter ? { allocations: { some: allocationFilter } } : {}),
     },
     orderBy: [{ expenseDate: "desc" }, { createdAt: "desc" }],
@@ -265,6 +275,7 @@ export async function listExpenses(
       dueDate: true,
       totalCents: true,
       refundOfExpenseId: true,
+      stage: true,
       vendor: { select: { name: true } },
       allocations: {
         ...(allocationFilter ? { where: allocationFilter } : {}),
@@ -290,6 +301,7 @@ export async function listExpenses(
       paidCents,
       state: paymentState(r.totalCents, paidCents),
       isRefund: r.refundOfExpenseId !== null,
+      stage: r.stage,
       shareCents: r.allocations.reduce((sum, a) => sum + a.amountCents, 0n),
     };
   });
@@ -334,6 +346,7 @@ export async function findExpense(
       dueDate: true,
       totalCents: true,
       notes: true,
+      stage: true,
       refundOfExpenseId: true,
       createdById: true,
       vendor: { select: { name: true } },
@@ -373,6 +386,7 @@ export async function findExpense(
     dueDate: row.dueDate,
     totalCents: row.totalCents,
     notes: row.notes,
+    stage: row.stage,
     vendorName: row.vendor?.name ?? null,
     commitmentDescription: row.commitment?.description ?? null,
     refundOfExpenseId: row.refundOfExpenseId,

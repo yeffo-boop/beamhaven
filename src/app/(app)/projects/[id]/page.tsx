@@ -2,6 +2,7 @@ import { Pencil } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { ContractList, QuoteList } from "@/components/agreements/lists";
 import { Available, Money } from "@/components/budget/money";
 import { ProblemNotice } from "@/components/budget/problem-notice";
 import { AddContractorToProjectForm, TaskForm, WarrantyForm } from "@/components/contractors/forms";
@@ -20,6 +21,7 @@ import { deleteProjectAction } from "@/server/actions/records";
 import { can } from "@/server/auth/permissions";
 import { getWorkspaceContext } from "@/server/auth/workspace";
 import { getActivity } from "@/server/services/activity";
+import { getContracts, getQuotes } from "@/server/services/agreements";
 import { getPhotos } from "@/server/services/attachments";
 import { getProjectBudget } from "@/server/services/budget";
 import { getRecordChoices, NO_CHOICES } from "@/server/services/choices";
@@ -37,17 +39,29 @@ export default async function ProjectPage({ params, searchParams }: PageProps<"/
   if (!ctx) notFound();
   const project = await orNotFound(getProject(ctx, id));
   const canEdit = can(ctx, "records:edit");
-  const [photos, activity, allRooms, budget, contractors, tasks, warranties, choices] =
-    await Promise.all([
-      getPhotos(ctx, { kind: "project", id }),
-      getActivity(ctx, "project", id),
-      canEdit ? getRooms(ctx) : Promise.resolve([]),
-      getProjectBudget(ctx, id),
-      getProjectContractors(ctx, id),
-      getTasks(ctx, { projectId: id }),
-      getWarranties(ctx, { projectId: id }),
-      canEdit ? getRecordChoices(ctx) : Promise.resolve(NO_CHOICES),
-    ]);
+  const [
+    photos,
+    activity,
+    allRooms,
+    budget,
+    contractors,
+    tasks,
+    warranties,
+    choices,
+    quotes,
+    contracts,
+  ] = await Promise.all([
+    getPhotos(ctx, { kind: "project", id }),
+    getActivity(ctx, "project", id),
+    canEdit ? getRooms(ctx) : Promise.resolve([]),
+    getProjectBudget(ctx, id),
+    getProjectContractors(ctx, id),
+    getTasks(ctx, { projectId: id }),
+    getWarranties(ctx, { projectId: id }),
+    canEdit ? getRecordChoices(ctx) : Promise.resolve(NO_CHOICES),
+    getQuotes(ctx, { projectId: id }),
+    getContracts(ctx, { projectId: id }),
+  ]);
   const today = new Date();
   const onProject = new Set(contractors.map((c) => c.contractorId));
   const projectRoomChoices = project.rooms.map((r) => ({ value: r.roomId, label: r.roomName }));
@@ -206,6 +220,28 @@ export default async function ProjectPage({ params, searchParams }: PageProps<"/
             </div>
           </details>
         ) : null}
+      </Panel>
+
+      <Panel
+        title="Quotes and contracts"
+        id="agreements"
+        actions={
+          canEdit && choices.contractors.length > 0 ? (
+            <>
+              <Button asChild size="sm">
+                <Link href={`/quotes/new?project=${id}`}>Add a quote</Link>
+              </Button>
+              <Button asChild size="sm" variant="outline">
+                <Link href={`/contracts/new?project=${id}`}>Add a contract</Link>
+              </Button>
+            </>
+          ) : null
+        }
+      >
+        <h3 className="text-sm font-semibold">Quotes</h3>
+        <QuoteList quotes={quotes} show="contractor" />
+        <h3 className="text-sm font-semibold">Contracts</h3>
+        <ContractList contracts={contracts} show="contractor" />
       </Panel>
 
       <Panel title="Tasks" id="tasks">

@@ -229,3 +229,20 @@ Statuses: **Proposed** (waiting for Jeff) · **Accepted** · **Superseded**
 - **Status:** Accepted (2026-11-23)
 - **Decision:** the mark is a gable roof resting on one long beam that runs past two posts, drawn on the same 24-unit grid and 2-unit stroke as our Lucide icons, in spruce. In the app it sits on a spruce rounded-square tile (`BrandMark`), and the same drawing makes the favicon, `icon.svg` and the Apple touch icon. The wordmark is the product name in Geist semibold with slightly tight letter spacing, so it still comes from `brand.name` and changes with it. The bare mark is kept in `docs/brand/mark.svg`.
 - **Why:** Jeff chose it from four directions (Post & Beam, Callout, Two-bowl B, Fanlight). It reads clearly at 16 pixels and doesn't depend on the name, which is still provisional (ADR-015). The roof, beam and posts tie it to the "Beam" in the name and to timber framing.
+
+## ADR-026: Quotes and contracts share one commitment (Milestone 5)
+
+**Date:** 2026-11-23. **Status:** accepted.
+
+**Context.** A quote that gets approved and then becomes a signed contract is the same money. If each made its own commitment, the budget would count it twice, or someone would have to remember to delete one.
+
+**Decision.**
+
+- Approving a quote creates a commitment (source `quote`) for its latest revision. A contract from that quote **takes the same commitment over** (source `contract`, the contract amount). Deleting the contract hands it back to the quote at the quote's price.
+- Change orders are ordinary commitments (source `change_order`) with a link to the contract.
+- Contractor payments are expenses linked to those commitments, with an optional stage (deposit, progress, final), and payments against the expenses. No separate payment table.
+- The budget's own commitment page refuses to change or delete these commitments and sends people to the quote or contract instead.
+- Approving, turning down, reopening a turned-down quote and taking an approval back need `budget:approve`; everything else needs `records:edit`.
+- Quote and contract rows are locked (`SELECT … FOR UPDATE`) while they change, so two people deciding at once can't both win.
+
+**Consequences.** The budget formulas in `docs/BUDGET_DEFINITIONS.md` didn't change. A quote can't be repriced once decided; reopen it (or take the approval back) first.

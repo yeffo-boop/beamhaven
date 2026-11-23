@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { PaymentForm, RefundForm } from "@/components/budget/forms";
+import { labelFor } from "@/components/contractors/labels";
 import { Money } from "@/components/budget/money";
 import { ProblemNotice } from "@/components/budget/problem-notice";
 import { ReceiptList } from "@/components/budget/receipt-list";
@@ -20,6 +21,7 @@ import { getWorkspaceContext } from "@/server/auth/workspace";
 import { lineTitle } from "@/server/data/budget";
 import { getActivity } from "@/server/services/activity";
 import { getReceipts } from "@/server/services/attachments";
+import { STAGE_LABELS } from "@/server/services/budget-inputs";
 import { getExpense } from "@/server/services/expenses";
 
 export const metadata = { title: "Expense" };
@@ -110,6 +112,9 @@ export default async function ExpensePage({
           ) : null}
           {expense.commitmentDescription ? (
             <Detail label="Bill for">{expense.commitmentDescription}</Detail>
+          ) : null}
+          {expense.stage ? (
+            <Detail label="Payment stage">{labelFor(STAGE_LABELS, expense.stage)}</Detail>
           ) : null}
           {expense.refundOfExpenseId ? (
             <Detail label="Refund of">

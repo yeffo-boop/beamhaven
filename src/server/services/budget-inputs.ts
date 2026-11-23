@@ -37,6 +37,11 @@ function money(options: { allowNegative?: boolean; allowZero?: boolean } = {}) {
 /** A required amount above zero. */
 export const requiredMoney = z.string({ message: "Enter an amount" }).pipe(money());
 
+/** A required amount that may be negative (a change order that lowers the price), but not zero. */
+export const signedMoney = z
+  .string({ message: "Enter an amount" })
+  .pipe(money({ allowNegative: true }));
+
 /** An optional amount of zero or more: "" is null. */
 export const optionalMoney = z
   .string()
@@ -115,12 +120,20 @@ export const commitmentInput = z.object({
   source: z.enum(COMMITMENT_SOURCES, { message: "Choose what kind of agreement it is" }),
   description: requiredText(200, "Describe what was agreed", "The description"),
   // A change order can lower the agreed amount, so negative is allowed.
-  amount: z.string({ message: "Enter an amount" }).pipe(money({ allowNegative: true })),
+  amount: signedMoney,
   committedOn: requiredDate,
   notes: optionalText(2000, "The notes"),
 });
 
 export const ALLOCATION_KINDS = ["item", "tax", "shipping"] as const;
+
+/** Which part of a contractor's price a bill is for. */
+export const PAYMENT_STAGES = ["deposit", "progress", "final"] as const;
+export const STAGE_LABELS: Record<(typeof PAYMENT_STAGES)[number], string> = {
+  deposit: "Deposit",
+  progress: "Progress payment",
+  final: "Final payment",
+};
 
 const allocationInput = z.object({
   lineId: z.string().trim().min(1, "Choose a budget line"),
@@ -146,6 +159,10 @@ export const expenseInput = z
     dueDate: optionalDate,
     total: requiredMoney,
     notes: optionalText(2000, "The notes"),
+    stage: z
+      .enum(["", ...PAYMENT_STAGES], { message: "Choose deposit, progress or final" })
+      .default("")
+      .transform((value) => (value === "" ? null : value)),
     allocations: z.array(allocationInput).min(1, "Charge it to at least one budget line").max(50),
   })
   .refine((e) => !e.dueDate || e.dueDate >= e.expenseDate, {

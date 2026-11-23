@@ -86,3 +86,12 @@ The kitchen has a Labor line with an **original budget of $20,000.00**.
 - **Viewers can see the budget**, read-only, like everything else in the household.
 - An expense's **paid status** (unpaid, partly paid, paid) is worked out from its payments, never stored. Payments can't add up to more than the expense.
 - A **refund** is charged back to the original expense's lines in the same proportions, and linked to the same commitment.
+
+## Decisions (Milestone 5)
+
+- A quote adds nothing to the budget until it is **approved**. Approving creates one commitment for the latest price, on a line of the quote's own project.
+- A **contract made from an approved quote takes over that same commitment** and sets it to the contract amount. It is never a second commitment, so the money is counted once.
+- A **change order** is a commitment of its own, linked to the contract, and can be negative (a credit). It can go on another line of the same project.
+- A contract's **total** = its commitment + its change orders. **Billed** and **paid** add up the expenses (and their payments) linked to any of those commitments.
+- A quote's, contract's or change order's commitment is changed **only on its own page**, never in the budget, so the two always agree. Bills linked to one keep it from being deleted.
+- Each bill can say which **payment stage** it is: deposit, progress payment or final payment. The stage is a label only; it changes no totals.

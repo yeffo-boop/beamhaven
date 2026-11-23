@@ -2,6 +2,7 @@ import { Pencil } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { ContractList, QuoteList } from "@/components/agreements/lists";
 import { CommitmentList, ExpenseList } from "@/components/budget/history";
 import { ProblemNotice } from "@/components/budget/problem-notice";
 import { CommunicationForm, LinkProjectForm, WarrantyForm } from "@/components/contractors/forms";
@@ -24,6 +25,7 @@ import { deleteContractorAction, unlinkProjectAction } from "@/server/actions/co
 import { can } from "@/server/auth/permissions";
 import { getWorkspaceContext } from "@/server/auth/workspace";
 import { getActivity } from "@/server/services/activity";
+import { getContracts, getQuotes } from "@/server/services/agreements";
 import { getDocuments } from "@/server/services/attachments";
 import { getRecordChoices, NO_CHOICES } from "@/server/services/choices";
 import { getCommunications, getContractor } from "@/server/services/contractors";
@@ -42,15 +44,18 @@ export default async function ContractorPage({
   if (!ctx) notFound();
   const c = await orNotFound(getContractor(ctx, id));
   const canEdit = can(ctx, "records:edit");
-  const [log, warranties, tasks, documents, money, activity, choices] = await Promise.all([
-    getCommunications(ctx, { contractorId: id }),
-    getWarranties(ctx, { contractorId: id }),
-    getTasks(ctx, { assigneeContractorId: id }),
-    getDocuments(ctx, { kind: "contractor", id }),
-    getVendorMoney(ctx, c.vendorId),
-    getActivity(ctx, "contractor", id),
-    canEdit ? getRecordChoices(ctx) : Promise.resolve(NO_CHOICES),
-  ]);
+  const [quotes, contracts, log, warranties, tasks, documents, money, activity, choices] =
+    await Promise.all([
+      getQuotes(ctx, { contractorId: id }),
+      getContracts(ctx, { contractorId: id }),
+      getCommunications(ctx, { contractorId: id }),
+      getWarranties(ctx, { contractorId: id }),
+      getTasks(ctx, { assigneeContractorId: id }),
+      getDocuments(ctx, { kind: "contractor", id }),
+      getVendorMoney(ctx, c.vendorId),
+      getActivity(ctx, "contractor", id),
+      canEdit ? getRecordChoices(ctx) : Promise.resolve(NO_CHOICES),
+    ]);
   const today = new Date();
   const linked = new Set(c.projects.map((p) => p.projectId));
   const unlinkedProjects = choices.projects.filter((p) => !linked.has(p.value));
@@ -194,6 +199,28 @@ export default async function ContractorPage({
         ) : null}
       </Panel>
 
+      <Panel
+        title="Quotes and contracts"
+        id="agreements"
+        actions={
+          canEdit ? (
+            <>
+              <Button asChild size="sm">
+                <Link href={`/quotes/new?contractor=${id}`}>Add a quote</Link>
+              </Button>
+              <Button asChild size="sm" variant="outline">
+                <Link href={`/contracts/new?contractor=${id}`}>Add a contract</Link>
+              </Button>
+            </>
+          ) : null
+        }
+      >
+        <h3 className="text-sm font-semibold">Quotes</h3>
+        <QuoteList quotes={quotes} show="project" />
+        <h3 className="text-sm font-semibold">Contracts</h3>
+        <ContractList contracts={contracts} show="project" />
+      </Panel>
+
       <Panel title="Communication log" id="log">
         {canEdit ? (
           <details className="rounded-[var(--radius-control)] border border-border p-3">
@@ -213,7 +240,8 @@ export default async function ContractorPage({
 
       <Panel title="Agreed and billed" id="money">
         <p className="text-sm text-muted-foreground">
-          Commitments and bills in the budget that name {c.name}.
+          Everything in the budget that names {c.name}: approved quotes, contracts, change orders,
+          other commitments and bills.
         </p>
         <CommitmentList commitments={money.commitments} showLine />
         <ExpenseList expenses={money.expenses} label={`Bills from ${c.name}`} />

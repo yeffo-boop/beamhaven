@@ -11,11 +11,16 @@ import { getWorkspaceContext } from "@/server/auth/workspace";
 export const metadata = { title: "New expense" };
 
 export default async function NewExpensePage({ searchParams }: PageProps<"/budget/expenses/new">) {
-  const { line, project } = await searchParams;
+  const { line, project, commitment, back: backTo } = await searchParams;
   const ctx = await getWorkspaceContext();
   if (!ctx || !can(ctx, "records:edit")) notFound();
   const choices = await expenseFormChoices(ctx);
-  const lineId = typeof line === "string" ? line : undefined;
+  // From a quote's or contract's page: a bill for that agreement, on its line.
+  const agreement =
+    typeof commitment === "string"
+      ? choices.commitments.find((c) => c.value === commitment)
+      : undefined;
+  const lineId = agreement?.lineId ?? (typeof line === "string" ? line : undefined);
   const projectId = typeof project === "string" ? project : undefined;
   // From a project's page, offer that project's lines first.
   const lines = projectId
@@ -30,11 +35,18 @@ export default async function NewExpensePage({ searchParams }: PageProps<"/budge
       : projectId
         ? lines.find((l) => l.projectId === projectId)?.value
         : undefined;
-  const back = lineId
-    ? `/budget/lines/${lineId}`
-    : projectId
-      ? `/projects/${projectId}/budget`
-      : "/budget";
+  // Only our own quote or contract pages, never a link to somewhere else.
+  const agreementBack =
+    typeof backTo === "string" && /^\/(contracts|quotes)\/[a-z0-9]{1,64}$/.test(backTo)
+      ? backTo
+      : null;
+  const back = agreementBack
+    ? agreementBack
+    : lineId
+      ? `/budget/lines/${lineId}`
+      : projectId
+        ? `/projects/${projectId}/budget`
+        : "/budget";
 
   return (
     <div className="flex flex-col gap-6">
@@ -57,6 +69,14 @@ export default async function NewExpensePage({ searchParams }: PageProps<"/budge
           vendors={choices.vendors}
           commitments={choices.commitments}
           {...(defaultLineId ? { defaultLineId } : {})}
+          {...(agreement
+            ? {
+                defaults: {
+                  commitmentId: agreement.value,
+                  vendorName: agreement.vendorName ?? "",
+                },
+              }
+            : {})}
           cancelHref={back}
         />
       )}

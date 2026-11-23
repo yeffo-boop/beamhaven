@@ -181,14 +181,17 @@ export async function updateContractorRow(
 export async function deleteContractorRow(
   ctx: WorkspaceContext,
   id: string,
-): Promise<{ deleted: boolean; fileIds: string[] }> {
+): Promise<
+  { status: "deleted"; fileIds: string[] } | { status: "not_found" } | { status: "has_agreements" }
+> {
   return getPrisma().$transaction(async (tx) => {
     const ws = ctx.workspaceId;
     const row = await tx.contractor.findFirst({
       where: { id, workspaceId: ws },
-      select: { vendorId: true },
+      select: { vendorId: true, _count: { select: { quotes: true, contracts: true } } },
     });
-    if (!row) return { deleted: false, fileIds: [] };
+    if (!row) return { status: "not_found" };
+    if (row._count.quotes + row._count.contracts > 0) return { status: "has_agreements" };
     const fileIds = await unlinkWarranties(tx, ws, { contractorId: id });
     await tx.task.updateMany({
       where: { workspaceId: ws, assigneeContractorId: id },
@@ -200,7 +203,7 @@ export async function deleteContractorRow(
     });
     await tx.contractor.delete({ where: { id } });
     await tx.vendor.update({ where: { id: row.vendorId }, data: { kind: "other" } });
-    return { deleted: true, fileIds: [...fileIds, ...attachments.map((a) => a.fileId)] };
+    return { status: "deleted", fileIds: [...fileIds, ...attachments.map((a) => a.fileId)] };
   });
 }
 
