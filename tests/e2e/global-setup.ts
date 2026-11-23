@@ -18,6 +18,7 @@ export default async function globalSetup() {
       ...process.env,
       ...e2eServerEnv,
       FIRST_ACCOUNT_NAME: testAccount.name,
+      FIRST_ACCOUNT_HOUSEHOLD: testAccount.household,
       FIRST_ACCOUNT_EMAIL: testAccount.email,
       FIRST_ACCOUNT_PASSWORD: testAccount.password,
     },

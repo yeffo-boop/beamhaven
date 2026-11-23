@@ -2,10 +2,17 @@ import { beforeEach, describe, expect, it } from "vitest";
 
 import { getAuth } from "@/server/auth/auth";
 import { createFirstAccount, FirstAccountError } from "@/server/auth/first-account";
+import { resolveWorkspaceContext } from "@/server/auth/workspace";
+import { getWorkspace } from "@/server/data/workspaces";
 
 import { resetDatabase } from "../support/reset-database";
 
-const owner = { name: "Test Owner", email: "Owner@Example.com", password: "correct horse battery" };
+const owner = {
+  name: "Test Owner",
+  householdName: "Test Household",
+  email: "Owner@Example.com",
+  password: "correct horse battery",
+};
 
 describe("first account and sign-in", () => {
   beforeEach(resetDatabase);
@@ -13,6 +20,11 @@ describe("first account and sign-in", () => {
   it("creates the first account, and the password works for sign-in", async () => {
     const created = await createFirstAccount(owner);
     expect(created.email).toBe("owner@example.com");
+
+    // ...as the owner of a new household with the name they gave.
+    const ctx = await resolveWorkspaceContext(created.id);
+    expect(ctx?.role).toBe("owner");
+    if (ctx) expect((await getWorkspace(ctx)).name).toBe("Test Household");
 
     const result = await getAuth().api.signInEmail({
       body: { email: "owner@example.com", password: owner.password },

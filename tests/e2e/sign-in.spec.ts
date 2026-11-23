@@ -57,7 +57,9 @@ test("signing out from Settings ends the session", async ({ page }) => {
   await page.getByLabel("Password").fill(testAccount.password);
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page.getByRole("heading", { level: 1, name: "Settings" })).toBeVisible();
-  await expect(page.getByRole("main").getByText(testAccount.email)).toBeVisible();
+  await expect(
+    page.getByRole("region", { name: "Account" }).getByText(testAccount.email),
+  ).toBeVisible();
 
   await page.getByRole("main").getByRole("button", { name: "Sign out" }).click();
   await expect(page).toHaveURL(/\/sign-in/);

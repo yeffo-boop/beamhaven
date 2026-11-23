@@ -14,7 +14,9 @@ export async function resetDatabase(): Promise<void> {
   const client = new Client({ connectionString: url });
   await client.connect();
   try {
-    await client.query("TRUNCATE users, sessions, accounts, verifications CASCADE");
+    await client.query(
+      "TRUNCATE users, sessions, accounts, verifications, workspaces, memberships, invitations CASCADE",
+    );
   } finally {
     await client.end();
   }

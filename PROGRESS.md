@@ -4,7 +4,41 @@ Newest entries at the top. Each entry records what was done, which files changed
 
 ---
 
-## 2026-11-23: Milestone 2, step 1 (sign-in and sign-out), in review
+## 2026-11-23: Milestone 2, step 2 (households, roles and isolation tests), in review
+
+### Done
+
+- **Households** (ADR-017, ADR-019): new `workspaces`, `memberships` and `invitations` tables, through Better Auth's organization plugin. In code a household is a general _workspace_, so a contracting company could be one later.
+- **Your existing account** gets its own household automatically when the migration runs, named "<your name>'s household", with you as **Owner**. (Renaming it comes with the settings step.)
+- **The setup command** now also asks for a household name.
+- **Roles:** Owner, Member and Viewer, checked by one function, `can()`. A database check refuses any other role. Only owners can invite or manage people; nobody can create or delete households from the browser.
+- **Data layer:** `WorkspaceContext` (renamed from `HouseholdContext`) is created only after checking membership, and every household query filters by it.
+- **Settings → Household** shows the household's name, your role and the people in it. Someone signed in but not in any household sees a short explanation instead of the app.
+
+### Tests (cloud workspace, 2026-11-23)
+
+- Lint, formatting and type check: passed.
+- Unit tests: 27 of 27 passed (including every cell of the role table).
+- Integration tests: 18 of 18 passed. The new **isolation tests** use two households (plus someone in both) and confirm that:
+  - nobody gets a household they don't belong to;
+  - each household's own role applies;
+  - lists only include the current household's people;
+  - Better Auth refuses to show, switch to, or change anything in another household;
+  - only owners can invite;
+  - nobody can create a household from the browser;
+  - the database refuses unknown roles.
+    Each refusal test also has a matching "this works in your own household" check, so they can't pass by accident.
+- The migration was also tested on a copy of the database with an existing account: it created "Jeff's household" with that account as owner.
+- End-to-end tests: 27 passed, 4 skipped on purpose.
+- Production build: passed.
+
+### Next step
+
+Jeff pulls the branch, runs `npm run db:migrate`, and checks Settings → Household. Then step 3: invitation and password-reset links.
+
+---
+
+## 2026-11-23: Milestone 2, step 1 (sign-in and sign-out), done (merged in PR #5; Jeff signed in on his Mac)
 
 ### Done
 

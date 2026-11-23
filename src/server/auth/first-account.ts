@@ -3,6 +3,7 @@ import "server-only";
 import { z } from "zod";
 
 import { countUsers } from "@/server/data/users";
+import { createWorkspaceWithOwner } from "@/server/data/workspaces";
 
 import { getAuth, PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH } from "./auth";
 
@@ -13,6 +14,11 @@ export const firstAccountSchema = z.object({
     .trim()
     .toLowerCase()
     .pipe(z.email({ message: "Enter a valid email address" })),
+  householdName: z
+    .string()
+    .trim()
+    .min(1, "Enter a household name")
+    .max(100, "That household name is too long"),
   password: z
     .string()
     .min(PASSWORD_MIN_LENGTH, `Use at least ${PASSWORD_MIN_LENGTH} characters`)
@@ -24,7 +30,8 @@ export type FirstAccountInput = z.input<typeof firstAccountSchema>;
 export class FirstAccountError extends Error {}
 
 /**
- * Creates the very first login. Public sign-up is switched off, so this is
+ * Creates the very first login, and a household with that person as its
+ * owner. Public sign-up is switched off, so this is
  * the only way in until invitations exist (Milestone 2, step 3).
  *
  * It refuses to run once any account exists, so it can't be used later to
@@ -32,7 +39,7 @@ export class FirstAccountError extends Error {}
  */
 export async function createFirstAccount(
   input: FirstAccountInput,
-): Promise<{ id: string; email: string }> {
+): Promise<{ id: string; email: string; workspaceId: string }> {
   const data = firstAccountSchema.parse(input);
 
   if ((await countUsers()) > 0) {
@@ -61,5 +68,6 @@ export async function createFirstAccount(
     accountId: user.id,
     password: hash,
   });
-  return { id: user.id, email: user.email };
+  const workspace = await createWorkspaceWithOwner({ userId: user.id, name: data.householdName });
+  return { id: user.id, email: user.email, workspaceId: workspace.id };
 }

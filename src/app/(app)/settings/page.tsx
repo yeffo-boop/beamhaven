@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 
+import { HouseholdMembers } from "@/components/household/household-members";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
@@ -42,9 +43,21 @@ export default function SettingsPage() {
         </Suspense>
       </section>
 
+      <section
+        aria-labelledby="household-heading"
+        className="flex flex-col gap-3 rounded-[var(--radius-card)] border border-border bg-surface p-5 md:p-6"
+      >
+        <h2 id="household-heading" className="font-semibold">
+          Household
+        </h2>
+        <Suspense fallback={<div className="h-24" />}>
+          <HouseholdMembers />
+        </Suspense>
+      </section>
+
       <section className="rounded-[var(--radius-card)] border border-dashed border-border bg-surface p-5 text-sm text-muted-foreground md:p-6">
-        Editing your profile and password, household members and invitations, and signing out of
-        every device arrive later in Milestone 2.
+        Inviting people, changing roles, editing your profile and password, and signing out of every
+        device arrive later in Milestone 2.
       </section>
     </div>
   );

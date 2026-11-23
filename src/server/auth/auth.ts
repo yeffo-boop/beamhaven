@@ -2,10 +2,13 @@ import "server-only";
 
 import { betterAuth } from "better-auth";
 import { nextCookies } from "better-auth/next-js";
+import { organization } from "better-auth/plugins";
 
 import { brand } from "@/config/brand";
 import { getEnv } from "@/config/env";
 import { getAuthDatabase } from "@/server/data/auth-database";
+
+import { accessControl, authRoles } from "./roles";
 
 export const PASSWORD_MIN_LENGTH = 12;
 export const PASSWORD_MAX_LENGTH = 128;
@@ -51,9 +54,34 @@ function createAuth() {
       },
     },
     telemetry: { enabled: false },
-    // nextCookies lets Server Actions set and clear the login cookie.
-    // It must stay last in this list.
-    plugins: [nextCookies()],
+    plugins: [
+      // Households (ADR-004, ADR-017). Better Auth calls them organizations;
+      // our tables call them workspaces, so a contracting company could be
+      // one later. The app calls them households.
+      organization({
+        ac: accessControl,
+        roles: authRoles,
+        creatorRole: "owner",
+        // People can't create households from the browser. The setup
+        // command (and later, an owner action) creates them on the server.
+        allowUserToCreateOrganization: false,
+        disableOrganizationDeletion: true,
+        schema: {
+          session: { fields: { activeOrganizationId: "activeWorkspaceId" } },
+          organization: {
+            modelName: "workspace",
+            additionalFields: {
+              kind: { type: "string", required: false, defaultValue: "household", input: false },
+            },
+          },
+          member: { modelName: "membership", fields: { organizationId: "workspaceId" } },
+          invitation: { fields: { organizationId: "workspaceId" } },
+        },
+      }),
+      // nextCookies lets Server Actions set and clear the login cookie.
+      // It must stay last in this list.
+      nextCookies(),
+    ],
   });
 }
 

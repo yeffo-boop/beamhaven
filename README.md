@@ -52,7 +52,8 @@ npm run db:up
 # 5. Create or update the database tables
 npm run db:migrate
 
-# 6. Create your login (once). It asks for your name, email and a password.
+# 6. Create your login and household (once). It asks for your name, a
+#    household name, your email and a password.
 npm run create-first-account
 
 # 7. Start the app, then open http://localhost:3000 and sign in

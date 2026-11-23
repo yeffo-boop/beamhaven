@@ -29,8 +29,8 @@ src/
   app/              Pages, layouts, Server Actions, route handlers. Keep these thin.
   components/ui/    shadcn/ui primitives
   components/       Shared app components (MoneyDisplay, StatusBadge, …)
-  server/auth/      Session and permission helpers: requireUser(), requireHouseholdRole(), can()
-  server/data/      The ONLY place that imports Prisma. Every function takes a HouseholdContext.
+  server/auth/      Session and permission helpers: requireUser(), requireWorkspace(), can(), assertCan()
+  server/data/      The ONLY place that imports Prisma. Every household function takes a WorkspaceContext.
   server/services/  Business rules (budget math, transfers, quote approval). Plain TypeScript.
   server/storage/   StorageProvider interface plus its local-disk implementation
   lib/              Pure helpers: money (cents), units (mm ↔ ft/in), dates, absoluteUrl()
@@ -45,8 +45,9 @@ docs/               DATA_MODEL.md, BUDGET_DEFINITIONS.md, UI_DIRECTION.md
 ### Security
 
 - **Every protected operation checks authorization on the server.** Hiding a button is not security.
-- **Every household-owned query is scoped by `householdId`**, through `src/server/data/`. Never import Prisma anywhere else.
+- **Every household-owned query is scoped by `workspaceId`** (a household is stored as a _workspace_, ADR-017), through `src/server/data/`. A `WorkspaceContext` comes only from `resolveWorkspaceContext()` / `requireWorkspace()`, which check membership. Never import Prisma anywhere else.
 - When a record belongs to another household, respond with **404**, not 403.
+- Role rules live only in `can()` (`src/server/auth/permissions.ts`). Every new kind of household record gets isolation tests (see `tests/integration/household-isolation.test.ts`).
 - Validate every input with Zod on the server.
 - No raw SQL built from strings. Use Prisma, or `$queryRaw` with tagged-template parameters.
 - Don't render user content with `dangerouslySetInnerHTML`.
