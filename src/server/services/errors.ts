@@ -43,6 +43,8 @@ export const RULE_MESSAGES = {
   quote_changed: "Someone else just decided this quote. Here's how it stands now.",
   contract_has_bills:
     "Bills are linked to this contract or its change orders. Delete or unlink them first.",
+  price_item_in_use:
+    "Room estimates use this item. Delete them, or switch them to another item, first.",
   room_has_budget:
     "This room is used by budget lines. Remove those lines (or charge them to the whole project) first.",
 } as const;

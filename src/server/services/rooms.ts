@@ -21,6 +21,7 @@ import { getMeasurementSystem } from "@/server/data/workspaces";
 
 import { removeFiles } from "./attachments";
 import { NotFoundError, RuleError } from "./errors";
+import { refreshEstimates, refreshEstimatesForRoom } from "./estimates";
 import { type FormInput, openingInput, roomInput } from "./inputs";
 
 export type RoomInput = FormInput<ReturnType<typeof roomInput>>;
@@ -83,6 +84,8 @@ export async function updateRoom(
   // A room stays on its property.
   const { fields } = await toRoomFields(ctx, { ...input, propertyId: before.propertyId });
   if (!(await updateRoomRow(ctx, id, fields))) throw new NotFoundError("room");
+  // Room estimates measure it, so a new size changes their numbers.
+  await refreshEstimatesForRoom(ctx, id);
   await recordActivity(ctx, {
     action: "room.updated",
     entityType: "room",
@@ -93,10 +96,11 @@ export async function updateRoom(
 
 export async function deleteRoom(ctx: WorkspaceContext, id: string): Promise<void> {
   assertCan(ctx, "records:edit");
-  const { deleted, hasBudget, fileIds } = await deleteRoomRow(ctx, id);
+  const { deleted, hasBudget, fileIds, estimateIds } = await deleteRoomRow(ctx, id);
   if (hasBudget) throw new RuleError("room_has_budget");
   if (!deleted) throw new NotFoundError("room");
   await removeFiles(ctx, fileIds);
+  await refreshEstimates(ctx, estimateIds);
 }
 
 export async function addOpening(
@@ -117,6 +121,7 @@ export async function addOpening(
     enteredUnit: width.unit,
   });
   if (!created) throw new NotFoundError("room");
+  await refreshEstimatesForRoom(ctx, roomId);
   await recordActivity(ctx, {
     action: "room.opening_added",
     entityType: "room",
@@ -133,6 +138,7 @@ export async function removeOpening(
 ): Promise<void> {
   assertCan(ctx, "records:edit");
   if (!(await deleteOpeningRow(ctx, roomId, openingId))) throw new NotFoundError("opening");
+  await refreshEstimatesForRoom(ctx, roomId);
   await recordActivity(ctx, {
     action: "room.opening_removed",
     entityType: "room",

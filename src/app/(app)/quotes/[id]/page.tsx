@@ -8,6 +8,7 @@ import {
   RevisionForm,
 } from "@/components/agreements/forms";
 import { BillList, QuoteStatusBadge } from "@/components/agreements/lists";
+import { EstimateComparison } from "@/components/estimates/compare";
 import { Money } from "@/components/budget/money";
 import { ProblemNotice } from "@/components/budget/problem-notice";
 import { PageHeader } from "@/components/page-header";
@@ -28,6 +29,7 @@ import { lineTitle } from "@/server/data/budget";
 import { getQuote } from "@/server/services/agreements";
 import { getDocuments } from "@/server/services/attachments";
 import { getLineChoices } from "@/server/services/budget";
+import { getEstimates } from "@/server/services/estimates";
 import { getBillsFor } from "@/server/services/expenses";
 
 export const metadata = { title: "Quote" };
@@ -41,11 +43,12 @@ export default async function QuotePage({ params, searchParams }: PageProps<"/qu
   const canEdit = can(ctx, "records:edit");
   const canApprove = can(ctx, "budget:approve");
   const open = q.status === "received" || q.status === "under_review";
-  const [documents, lines, bills] = await Promise.all([
+  const [documents, lines, bills, estimates] = await Promise.all([
     getDocuments(ctx, { kind: "quote", id }),
     canApprove && open ? getLineChoices(ctx) : Promise.resolve([]),
     // Before a contract takes it over, bills can be linked to the quote itself.
     q.commitmentId && !q.contractId ? getBillsFor(ctx, [q.commitmentId]) : Promise.resolve([]),
+    getEstimates(ctx, q.projectId),
   ]);
   const projectLines = lines
     .filter((l) => l.projectId === q.projectId)
@@ -192,6 +195,18 @@ export default async function QuotePage({ params, searchParams }: PageProps<"/qu
           </div>
         ) : null}
       </Panel>
+
+      {estimates.length > 0 || q.estimateId ? (
+        <Panel title="Compared with your estimate" id="compare">
+          <EstimateComparison
+            quoteId={id}
+            quoteCents={q.amountCents}
+            estimates={estimates}
+            chosenId={q.estimateId}
+            canEdit={canEdit}
+          />
+        </Panel>
+      ) : null}
 
       {q.status === "approved" && !q.contractId ? (
         <Panel title="Bills" id="bills">

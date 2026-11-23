@@ -4,6 +4,33 @@ Newest entries at the top. Each entry records what was done, which files changed
 
 ---
 
+## 2026-11-23: Milestone 5, part 3 (room estimates, price list, sales tax), built
+
+Jeff asked for flooring estimates (a price per sq ft, pick the rooms), then paint, and said to include the price list, sales tax and quote comparison too.
+
+### Done
+
+- **Database** (one migration, `20261123230000_room_estimates`): a price list, room estimates and their rooms or typed areas, a household sales tax rate, and links from budget lines and quotes to an estimate. It only adds tables and columns; no existing data changes.
+- **Price list** (Budget → Price list): items priced per sq ft, m², linear foot or metre, or per gallon or litre with coverage and coats, an optional install price, a waste allowance and whether tax applies. Presets for flooring, tile, wall paint (per gallon or per sq ft), ceiling paint and baseboard.
+- **Sales tax** on materials, set once for the household.
+- **Room estimates** (on a project's budget page): pick an item and tick the rooms. Each room's floor, wall or ceiling area, or the length around it, is worked out from its size (walls leave out windows and doors, trim leaves out doorways), with waste, tax and install. Paint is bought in whole gallons for all the rooms together. Rooms that aren't rectangles, and spaces like shower walls, can have a size typed in.
+- **Into the budget:** the result fills in the estimate on its own budget lines (one per room, or one for the project), material and install on their own categories. It updates by itself when a price, a room's size, the tax rate or the estimate changes (ADR-026).
+- **Quote comparison:** a quote can be compared with one of its project's estimates: the difference, and both as a price per sq ft.
+
+### Tests (cloud workspace, 2026-11-23)
+
+- Lint, formatting and type check: passed.
+- Unit tests: 123 of 123 passed. The 9 new ones check floor, wall, ceiling and trim sizes and the flooring, paint, trim and metric prices against hand calculations.
+- Integration tests: 82 of 82 passed. The 8 new ones cover flooring into budget lines, updates after price, room, tax and room-choice changes, paint by the gallon with typed sizes, letting go of lines (keeping one with money on it), the price list rules, the quote comparison, household isolation (in the code and in the database), and viewers.
+- End-to-end tests: 51 passed, 16 skipped on purpose. New: adding flooring from a preset, the tax rate, a room estimate over two rooms with the exact totals, a typed closet, and the budget lines; and no sideways scrolling on the price list.
+- Production build with no secrets set: passed.
+
+### Next
+
+Jeff's review of the three Milestone 5 pull requests, then updating the VM.
+
+---
+
 ## 2026-11-23: Milestone 5, part 2 (quotes, contracts, change orders, contractor payments), built
 
 ### Done

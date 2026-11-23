@@ -3,6 +3,7 @@ import "server-only";
 import { getPrisma } from "./client";
 import { unlinkProjectOrRoom } from "./contractors";
 import type { WorkspaceContext } from "./context";
+import { dropRoomFromEstimates } from "./estimates";
 import { newId } from "./ids";
 
 export type RoomFields = {
@@ -151,12 +152,14 @@ export async function updateRoomRow(
 export async function deleteRoomRow(
   ctx: WorkspaceContext,
   id: string,
-): Promise<{ deleted: boolean; hasBudget: boolean; fileIds: string[] }> {
+): Promise<{ deleted: boolean; hasBudget: boolean; fileIds: string[]; estimateIds: string[] }> {
   return getPrisma().$transaction(async (tx) => {
     const lines = await tx.budgetLine.count({
       where: { roomId: id, workspaceId: ctx.workspaceId },
     });
-    if (lines > 0) return { deleted: false, hasBudget: true, fileIds: [] };
+    if (lines > 0) return { deleted: false, hasBudget: true, fileIds: [], estimateIds: [] };
+    // Room estimates that measured it carry on without it.
+    const estimateIds = await dropRoomFromEstimates(tx, ctx.workspaceId, id);
     const warrantyFiles = await unlinkProjectOrRoom(tx, ctx.workspaceId, { roomId: id });
     const attachments = await tx.attachment.findMany({
       where: { roomId: id, workspaceId: ctx.workspaceId },
@@ -167,6 +170,7 @@ export async function deleteRoomRow(
       deleted: result.count === 1,
       hasBudget: false,
       fileIds: [...warrantyFiles, ...attachments.map((a) => a.fileId)],
+      estimateIds,
     };
   });
 }

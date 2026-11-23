@@ -246,3 +246,18 @@ Statuses: **Proposed** (waiting for Jeff) · **Accepted** · **Superseded**
 - Quote and contract rows are locked (`SELECT … FOR UPDATE`) while they change, so two people deciding at once can't both win.
 
 **Consequences.** The budget formulas in `docs/BUDGET_DEFINITIONS.md` didn't change. A quote can't be repriced once decided; reopen it (or take the approval back) first.
+
+## ADR-026: Room estimates fill in budget estimates, from a reusable price list (Milestone 5, part 3)
+
+**Date:** 2026-11-23. **Status:** accepted. Jeff asked for flooring (price per sq ft, pick the rooms) and paint estimates, and chose to add them, with a price list, sales tax and quote comparison, to Milestone 5.
+
+**Decision.**
+
+- One calculator with four measures (floor, walls, ceiling, around the room), so flooring, tile, paint, ceilings and trim are all the same feature. Presets only fill in the form.
+- Prices live on a household **price list** and estimates link to them, so changing a price updates every estimate that uses it.
+- An estimate writes only the budget line's **estimate**, never its plan. The plan is still Jeff's decision; the estimate shows up in the forecast until a quote or contract is agreed (`docs/BUDGET_DEFINITIONS.md`).
+- Numbers are recalculated when anything they depend on changes, and stored on the budget lines then, rather than worked out each time the budget is read. That keeps the budget's own queries unchanged.
+- The arithmetic is a pure module (`src/lib/room-estimate.ts`) with integer millimetres and cents throughout, tested against hand calculations.
+- Sales tax is one household rate on materials only. Different rates per item, and tax on labor, can come later if needed.
+
+**Consequences.** Rooms are assumed to be rectangles; anything else gets a typed size. Recalculating on every change is a little more work when saving a room or a price, which is fine at household scale.

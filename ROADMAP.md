@@ -135,7 +135,7 @@ The MVP is not "finished" until **Milestone 10** puts it in production with auto
 - A communication log (entered by hand).
 - Warranties with expiry dates.
 - **Simple tasks** (pulled forward from Milestone 7): a task list per project and room, with status, an assignee and a due date.
-- **Room-based cost estimates** (added by Jeff, 2026-11-23, as part 3): price a material or job per sq ft, per linear ft or per gallon, pick the rooms, and the cost is worked out from each room's floor area, wall area (perimeter × height, less doors and windows), ceiling area or perimeter, with a waste allowance. Flooring and paint come ready-made; odd spaces can take a typed area. A reusable price list, a sales tax rate on materials, and a quote's price compared with your own estimate. The results go into the budget as estimates, labeled as such.
+- **Room-based cost estimates** (added by Jeff, 2026-11-23, as part 3, built): price a material or job per sq ft, per linear ft or per gallon, pick the rooms, and the cost is worked out from each room's floor area, wall area (perimeter × height, less doors and windows), ceiling area or perimeter, with a waste allowance. Flooring and paint come ready-made; odd spaces can take a typed area. A reusable price list, a sales tax rate on materials, and a quote's price compared with your own estimate. The results go into the budget as estimates, labeled as such.
 
 **Acceptance:** the full flow works, from quote to approval to payments, and the budget totals stay correct. Room estimates match a hand calculation in tests.
 

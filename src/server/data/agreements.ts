@@ -79,6 +79,8 @@ export type QuoteRevisionRecord = {
 
 export type QuoteDetail = QuoteSummary & {
   notes: string | null;
+  /** A room estimate to compare its price with (Milestone 5, part 3). */
+  estimateId: string | null;
   line: LineLabel | null;
   decidedAt: Date | null;
   decidedByName: string | null;
@@ -95,6 +97,7 @@ const quoteSelect = {
   validUntil: true,
   commitmentId: true,
   notes: true,
+  estimateId: true,
   decidedAt: true,
   decidedById: true,
   decisionNote: true,
@@ -158,6 +161,7 @@ export async function findQuote(ctx: WorkspaceContext, id: string): Promise<Quot
   return {
     ...toQuoteSummary(row),
     notes: row.notes,
+    estimateId: row.estimateId,
     line: row.line ? toLabel(row.line) : null,
     decidedAt: row.decidedAt,
     decidedByName: row.decidedById ? (names.get(row.decidedById) ?? null) : null,
