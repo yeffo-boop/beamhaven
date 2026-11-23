@@ -171,3 +171,15 @@ Statuses: **Proposed** (waiting for Jeff) · **Accepted** · **Superseded**
   - **Content-Security-Policy:** scripts, styles, images, fonts and connections come only from this site, nothing may frame the app, and forms only submit to this site. Inline scripts are allowed (`'unsafe-inline'`).
 - **Why `'unsafe-inline'`:** Next.js and our theme script use inline scripts. The strict alternative, a nonce per request, makes every page fully dynamic and loses the instant-loading shell. React escapes everything it displays and we never insert user content as raw HTML, which is the main defence against injected scripts. Revisit if the app ever shows untrusted HTML.
 - **Later, with email (an open question):** send invitation and reset links by email, and add a self-service "forgot password" page.
+
+## ADR-021: How the server runs BeamHaven
+
+- **Status:** Accepted (2026-11-23)
+- **Decision:**
+  - One `Dockerfile` makes two images. `app` holds only Next.js's standalone server (about 340 MB, no build tools or source). `ops` holds the full toolset for migrations and admin commands, and only runs when asked.
+  - `docker-compose.yml` runs `db`, then `migrate` (`prisma migrate deploy`, then exits), then `app`, which starts only if the migration succeeded. `db` has no published port. `app` is published only on the VM's LAN address, and the firewall (UFW plus a `DOCKER-USER` rule, because Docker's ports skip UFW) lets only Nginx Proxy Manager connect.
+  - For now the VM clones the public GitHub repo and builds the images itself. Milestone 10 moves builds to GitHub Actions with versioned images, for one-step rollbacks.
+  - Staging uses the real address, `beamhaven.thehoschak.com`, and becomes production after the test data is wiped.
+  - Backups: `scripts/server/backup.sh` (a `pg_dump` plus a tar of uploads, kept 14 days on the VM) and `restore.sh` (asks you to type RESTORE first). Off-site copies wait for Milestone 10, since there is no backup destination yet.
+  - CI builds both images and starts the stack on every pull request.
+- **Why:** each piece stays small and replaceable. The website image carries nothing it doesn't need. Migrations run before every start. Building on the VM is the simplest thing that works while there's one server.

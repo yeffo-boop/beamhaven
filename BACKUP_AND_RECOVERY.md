@@ -1,6 +1,12 @@
 # Backup and Recovery
 
-**Status:** the strategy is set in Milestone 0. Scripts and exact commands are added and **tested** in Milestone 2.5 (manual backup and restore) and Milestone 10 (automated and off-site). Production isn't considered done until a restore has been tested.
+**Status:** Milestone 2.5 added the backup and restore scripts (`scripts/server/backup.sh` and `restore.sh`), tested in Docker on 2026-11-23: a backup, then a data change, then a restore brought the data back. The step-by-step use is in `DEPLOYMENT.md`, step 9. Milestone 10 adds off-site copies and monitoring. Production isn't considered done until a restore has been tested on the real VM.
+
+## What runs today (Milestone 2.5)
+
+- **Every night at 2:00 AM** (a cron job you add in `DEPLOYMENT.md` step 9), `backup.sh` writes a database dump and a tar of the uploaded files to `/opt/beamhaven/backups`. It checks that the dump can be read, and keeps 14 days.
+- **Restoring:** `restore.sh <dump> [uploads]` asks you to type `RESTORE`, stops the website, replaces the database (and files), and starts the website again.
+- **Gap:** these copies are on the VM's own disk. They cover mistakes and bad updates, but not losing the VM. Since there's no off-VM destination yet, keep `.env`'s two secrets in your password manager, and we pick a destination in Milestone 10.
 
 > You told us there is no backup plan today. This file is how we fix that for BeamHaven.
 
@@ -36,6 +42,6 @@
 5. **Move to a replacement VM:** follow `DEPLOYMENT.md` to build the new VM, copy `.env`, restore the database and files, then point Nginx Proxy Manager at the new IP.
 6. **Verify a restore:** `/api/health` reports OK, you can log in, the latest expense you remember is there, and a recent receipt opens.
 
-## Decision needed from Jeff (before Milestone 2.5)
+## Decision needed from Jeff (before Milestone 10)
 
-Which off-VM backup destination should we use: a NAS or Proxmox Backup Server, Backblaze B2, a USB drive, or a combination?
+Which off-VM backup destination should we use: a NAS or Proxmox Backup Server, Backblaze B2, a USB drive, or a combination? (As of 2026-11-23 there is none.)

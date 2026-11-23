@@ -1,0 +1,17 @@
+# Keep secrets, local data and build output out of the Docker build.
+.env
+.env.*
+!.env.example
+!.env.server.example
+.git
+node_modules
+.next
+src/generated
+test-results
+playwright-report
+coverage
+tests/e2e/.auth
+backups
+data
+*.tsbuildinfo
+.DS_Store

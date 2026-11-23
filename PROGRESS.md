@@ -4,6 +4,36 @@ Newest entries at the top. Each entry records what was done, which files changed
 
 ---
 
+## 2026-11-23: Milestone 2.5 (staging on Proxmox), files ready, VM setup next
+
+### Done
+
+- `Dockerfile` with two images: `app` (the website, 339 MB) and `ops` (migrations and admin commands). `docker-compose.yml` runs `db`, then `migrate`, then `app`; the database has no published port (ADR-021).
+- `.env.server.example`, the settings file for the VM.
+- `scripts/server/setup-vm.sh`: updates and automatic security updates, Docker, the firewall (SSH from 10.0.0.x; port 3000 only from Nginx Proxy Manager at 10.0.0.134, including Docker's own rules), and SSH keys only.
+- `scripts/server/backup.sh` and `restore.sh`, plus a nightly cron line.
+- `DEPLOYMENT.md` rewritten as step-by-step instructions; `BACKUP_AND_RECOVERY.md` updated.
+- CI now builds both images, starts the stack and checks health and that the database port is closed.
+
+### Tests (cloud workspace, Docker 29, 2026-11-23)
+
+- Both images built. The stack started: `migrate` applied both migrations and exited 0, `app` and `db` were healthy, `/api/health` said ok, and the CSP header was sent.
+- `ops` commands worked in the container: `create-first-account`, then sign-in through the API (200, 30-day cookie), then `password-reset-link`.
+- The database port was not published.
+- Backup, then changing the data, then a restore: the household name and uploads came back. Typing anything other than RESTORE cancelled without changes.
+- The `DOCKER-USER` firewall rule, applied with iptables: connections from another address were blocked and the allowed address got through. Loading it through UFW on Ubuntu is checked on the real VM.
+- Lint, formatting and type check: passed. No app code changed, so the unit, integration and e2e tests weren't re-run (they passed on the same code in PR #7).
+
+### Not yet tested
+
+`setup-vm.sh` as a whole, Nginx Proxy Manager and HTTPS. These need the real VM (DEPLOYMENT.md steps 1 to 9).
+
+### Next
+
+Jeff creates the VM (steps 1 to 4), and then we run steps 5 to 9 together.
+
+---
+
 ## 2026-11-23: Milestone 2, steps 3 and 4 (invitations, resets, account settings, security), done (merged in PR #7; Jeff checked on his Mac)
 
 Jeff asked to batch the remaining steps and test once at the end of the milestone.
