@@ -27,6 +27,7 @@ const targetSchema = z.object({
     "warranty",
     "quote",
     "contract",
+    "material",
   ]),
   targetId: z.string().min(1).max(64),
   caption: z.string().max(300).optional(),

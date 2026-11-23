@@ -14,6 +14,7 @@ import { Detail, EmptyState, Panel } from "@/components/records/panel";
 import { PhotoGallery } from "@/components/records/photo-gallery";
 import { openingKindLabel, roomTypeLabel } from "@/components/records/room-labels";
 import { StatusBadge } from "@/components/records/status-badge";
+import { MaterialList } from "@/components/materials/list";
 import { Button } from "@/components/ui/button";
 import { estimateRoomAreas, formatArea, formatLength } from "@/lib/units";
 import { deleteRoomAction, removeOpeningAction } from "@/server/actions/records";
@@ -24,6 +25,7 @@ import { getPhotos } from "@/server/services/attachments";
 import { getRecordChoices, NO_CHOICES } from "@/server/services/choices";
 import { getMeasurementPreference } from "@/server/services/preferences";
 import { getRoom } from "@/server/services/rooms";
+import { getMaterials } from "@/server/services/materials";
 import { getTasks, getWarranties } from "@/server/services/tasks";
 
 export const metadata = { title: "Room" };
@@ -35,13 +37,14 @@ export default async function RoomPage({ params, searchParams }: PageProps<"/roo
   if (!ctx) notFound();
   const room = await orNotFound(getRoom(ctx, id));
   const canEdit = can(ctx, "records:edit");
-  const [photos, activity, system, tasks, warranties, choices] = await Promise.all([
+  const [photos, activity, system, tasks, warranties, choices, materials] = await Promise.all([
     getPhotos(ctx, { kind: "room", id }),
     getActivity(ctx, "room", id),
     getMeasurementPreference(ctx),
     getTasks(ctx, { roomId: id }),
     getWarranties(ctx, { roomId: id }),
     canEdit ? getRecordChoices(ctx) : Promise.resolve(NO_CHOICES),
+    getMaterials(ctx, { roomId: id }),
   ]);
   const today = new Date();
   const roomProjects = room.projects.map((p) => ({ value: p.projectId, label: p.projectName }));
@@ -210,6 +213,24 @@ export default async function RoomPage({ params, searchParams }: PageProps<"/roo
           </details>
         ) : null}
         <TaskList tasks={tasks} canEdit={canEdit} today={today} show={["project"]} />
+      </Panel>
+
+      <Panel
+        title="Materials"
+        id="materials"
+        actions={
+          canEdit ? (
+            <Button asChild variant="outline" size="sm">
+              <Link href={`/materials/new?roomId=${id}`}>Add material</Link>
+            </Button>
+          ) : null
+        }
+      >
+        <MaterialList
+          materials={materials}
+          show="project"
+          empty="No materials for this room yet."
+        />
       </Panel>
 
       <Panel title="Warranties" id="warranties">

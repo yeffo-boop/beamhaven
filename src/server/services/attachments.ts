@@ -80,6 +80,7 @@ export function purposeFor(kind: AttachmentTarget["kind"]): Purpose {
     case "warranty":
     case "quote":
     case "contract":
+    case "material":
       return "document";
   }
 }

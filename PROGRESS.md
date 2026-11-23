@@ -4,6 +4,32 @@ Newest entries at the top. Each entry records what was done, which files changed
 
 ---
 
+## 2026-11-23: Milestone 6, part 1 (materials), built
+
+Jeff gave the go-ahead for Milestone 6 once Milestone 5 was merged (PR #14), and asked for each part to be merged as it's done.
+
+### Done
+
+- **Database** (one migration, `20261124000000_materials`): a materials table, plus a material link on warranties and on attachments. It only adds a table and columns; no existing data changes.
+- **Materials** (the Materials section, and a panel on each project and room page): name, kind, project and room, supplier, brand, model number, SKU, color or finish, product link, quantity and unit, expected price per unit, specifications and notes.
+- **Statuses**: Considering, Selected, Ordered, Delivered, Installed, Returned and Canceled, with the date of the last change and an activity log entry for each change.
+- **Photos, manuals and spec sheets** on each material (photos or PDFs), and **warranties** that can point to a material.
+- The materials list filters by project and status.
+
+### Tests (cloud workspace, 2026-11-23)
+
+- Lint, formatting and type check: passed.
+- Unit tests: 127 of 127 passed. The 4 new ones check reading, writing and pricing quantities.
+- Integration tests: 89 of 89 passed. The 7 new ones cover recording a material and its supplier, the form rules, statuses and their dates and log, documents and warranties when a material is deleted, materials outliving their project and room, household isolation (in the code and in the database), and viewers.
+- End-to-end tests: the full run had 54 passed, 18 skipped on purpose and 1 failing (the new materials test, a test-wording problem); after fixing the test, the materials spec passed on its own (5 passed, 2 skipped). New: adding a material from a project, changing its status and finding it with the filters; and no sideways scrolling on the materials pages.
+- Production build with no secrets set: passed (as part of the end-to-end run).
+
+### Next
+
+Part 2: orders.
+
+---
+
 ## 2026-11-23: Milestone 5, part 3 (room estimates, price list, sales tax), built
 
 Jeff asked for flooring estimates (a price per sq ft, pick the rooms), then paint, and said to include the price list, sales tax and quote comparison too.

@@ -124,7 +124,7 @@ The MVP is not "finished" until **Milestone 10** puts it in production with auto
 
 **Acceptance:** the numbers match a hand-worked example spreadsheet; transfers preserve the totals; the tests pass.
 
-## Milestone 5: Contractors (MVP Complete) 🟡
+## Milestone 5: Contractors (MVP Complete) ✅
 
 **Depends on:** Milestone 4.
 
@@ -139,7 +139,7 @@ The MVP is not "finished" until **Milestone 10** puts it in production with auto
 
 **Acceptance:** the full flow works, from quote to approval to payments, and the budget totals stay correct. Room estimates match a hand calculation in tests.
 
-## Milestone 6: Materials and Orders ⬜
+## Milestone 6: Materials and Orders 🟡
 
 **Depends on:** Milestone 4.
 
@@ -147,6 +147,8 @@ The MVP is not "finished" until **Milestone 10** puts it in production with auto
 - Orders holding several items, partial deliveries, returns and refunds.
 - The purchase price saved at the time of purchase, so it stays correct if the store's price changes.
 - Product links, photos, specifications and manuals.
+
+Built in three parts: **part 1** materials (built), **part 2** orders with several items, the price paid and deliveries, **part 3** returns and refunds.
 
 ## Milestone 7: Tasks and Scheduling ⬜
 

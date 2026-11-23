@@ -28,11 +28,13 @@ export default async function WarrantyPage({ params }: PageProps<"/warranties/[i
     getDocuments(ctx, { kind: "warranty", id }),
     canEdit ? getRecordChoices(ctx) : Promise.resolve(NO_CHOICES),
   ]);
-  const back = w.projectId
-    ? { href: `/projects/${w.projectId}`, label: w.projectName }
-    : w.roomId
-      ? { href: `/rooms/${w.roomId}`, label: w.roomName }
-      : { href: `/contractors/${w.contractorId}`, label: w.contractorName };
+  const back = w.materialId
+    ? { href: `/materials/${w.materialId}`, label: w.materialName }
+    : w.projectId
+      ? { href: `/projects/${w.projectId}`, label: w.projectName }
+      : w.roomId
+        ? { href: `/rooms/${w.roomId}`, label: w.roomName }
+        : { href: `/contractors/${w.contractorId}`, label: w.contractorName };
   const dash = <span className="text-muted-foreground">Not set</span>;
 
   return (
@@ -94,6 +96,15 @@ export default async function WarrantyPage({ params }: PageProps<"/warranties/[i
               dash
             )}
           </Detail>
+          <Detail label="Material">
+            {w.materialId ? (
+              <Link href={`/materials/${w.materialId}`} className="text-primary hover:underline">
+                {w.materialName}
+              </Link>
+            ) : (
+              dash
+            )}
+          </Detail>
           <Detail label="Starts">{formatDay(w.startsOn) ?? dash}</Detail>
           <Detail label="Expires">{formatDay(w.expiresOn) ?? "No end date"}</Detail>
         </dl>
@@ -119,6 +130,7 @@ export default async function WarrantyPage({ params }: PageProps<"/warranties/[i
               contractorId: w.contractorId ?? "",
               projectId: w.projectId ?? "",
               roomId: w.roomId ?? "",
+              materialId: w.materialId ?? "",
               startsOn: dayInputValue(w.startsOn),
               expiresOn: dayInputValue(w.expiresOn),
               notes: w.notes ?? "",
@@ -126,6 +138,7 @@ export default async function WarrantyPage({ params }: PageProps<"/warranties/[i
             contractors={choices.contractors}
             projects={choices.projects}
             rooms={choices.rooms}
+            materials={choices.materials}
           />
         </Panel>
       ) : null}

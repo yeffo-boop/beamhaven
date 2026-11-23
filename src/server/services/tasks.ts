@@ -98,7 +98,7 @@ export type WarrantyInput = FormInput<typeof warrantyInput>;
 
 export async function getWarranties(
   ctx: WorkspaceContext,
-  where: { contractorId?: string; projectId?: string; roomId?: string },
+  where: { contractorId?: string; projectId?: string; roomId?: string; materialId?: string },
 ): Promise<WarrantyRecord[]> {
   assertCan(ctx, "records:view");
   return listWarranties(ctx, where);
@@ -118,7 +118,7 @@ export async function createWarranty(
   assertCan(ctx, "records:edit");
   const fields = warrantyInput.parse(input);
   const created = await insertWarranty(ctx, fields);
-  if (!created) throw new NotFoundError("contractor, project or room");
+  if (!created) throw new NotFoundError("contractor, project, room or material");
   if (fields.contractorId) {
     await recordActivity(ctx, {
       action: "contractor.warranty_added",

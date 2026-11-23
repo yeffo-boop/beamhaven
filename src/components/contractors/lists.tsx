@@ -193,7 +193,7 @@ export function WarrantyList({
   warranties: WarrantyRecord[];
   today: Date;
   /** Which links to mention (the page's own one is left out). */
-  show: ("contractor" | "project" | "room")[];
+  show: ("contractor" | "project" | "room" | "material")[];
 }) {
   if (warranties.length === 0) return <EmptyState>No warranties recorded.</EmptyState>;
   return (
@@ -209,6 +209,7 @@ export function WarrantyList({
               show.includes("contractor") ? w.contractorName : null,
               show.includes("project") ? w.projectName : null,
               show.includes("room") ? w.roomName : null,
+              show.includes("material") ? w.materialName : null,
               w.expiresOn ? null : "No end date",
             ]
               .filter(Boolean)

@@ -132,6 +132,16 @@ Contractor payments are **Expenses linked to the contract's Commitment** (or to 
 
 Optional links between these records (a warranty's project, a task's assignee) are `ON DELETE RESTRICT` in the database, because with the household in every foreign key, Postgres would otherwise try to clear `workspace_id` too. The services let go of the link themselves when the other record is deleted: a warranty or task left with no link at all is deleted with it.
 
+## 4b. Materials (Milestone 6)
+
+Built in parts. **Part 1** (materials) is in the database; orders, deliveries and returns follow.
+
+| Model        | Key fields                                                                                                                                                                                                                 | Notes                                                                                                                                                                                                                                                            |
+| ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Material** | id, workspaceId, projectId, roomId, supplierId (a **Vendor**; each nullable), name, category, brand, modelNumber, sku, colorFinish, productUrl, quantityMilli, unit, unitPriceCents, status, statusChangedAt, specs, notes | `status` is `considering` \| `selected` \| `ordered` \| `delivered` \| `installed` \| `returned` \| `canceled`. The quantity is in thousandths (2.5 boxes = 2500, more than zero). The price is only the **expected** one; what was paid will live on the order. |
+
+Photos, manuals and spec sheets are attachments with `material_id` (purpose `document`: a photo or a PDF). A warranty can point to a material (`Warranty.materialId`), and a warranty on a material alone is allowed. When a project or room is deleted its materials stay and lose the link; when a material is deleted its warranties lose it (a warranty left with no link at all goes too).
+
 ## 5. Files and attachments (storage in Milestone 3, used everywhere)
 
 | Model          | Key fields                                                                                                                                                                                                                                                                                                                      | Notes                                                                                                                                                                                      |
@@ -153,7 +163,7 @@ Written by the service layer whenever something important changes. It powers the
 
 ## 7. Later milestones (outline only)
 
-- **Materials and orders (M6):** `Material`, `Order`, `OrderItem` (which saves `unitPriceCents` at the time of purchase), `Shipment`, `ShipmentItem`, `Return`.
+- **Orders (M6, parts 2 and 3):** `Order`, `OrderItem` (which saves `unitPriceCents` at the time of purchase), `Shipment`, `ShipmentItem`, `Return`.
 - **Scheduling (M7):** `Milestone`, `TaskDependency` (with a cycle check), `CalendarEvent` (appointments, inspections and deliveries), `Reminder`.
 - **Design boards (M8):** `DesignBoard`, `BoardItem` (an image, a product reference, or a color or finish), plus `isPreferred` / `isApproved` flags.
 - **Notifications (M9):** `Notification` (per user and household), `NotificationPreference`.

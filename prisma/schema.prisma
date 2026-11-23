@@ -116,6 +116,7 @@ model Workspace {
   vendors           Vendor[]
   contractors       Contractor[]
   priceItems        PriceItem[]
+  materials         Material[]
 
   @@map("workspaces")
 }
@@ -216,6 +217,7 @@ model Project {
   quotes           Quote[]
   contracts        Contract[]
   roomEstimates    RoomEstimate[]
+  materials        Material[]
 
   @@unique([id, workspaceId])
   @@index([workspaceId])
@@ -249,6 +251,7 @@ model Room {
   warranties      Warranty[]
   tasks           Task[]
   estimateAreas   RoomEstimateArea[]
+  materials       Material[]
 
   @@unique([id, workspaceId])
   @@index([workspaceId])
@@ -339,6 +342,8 @@ model Attachment {
   contract     Contract?   @relation(fields: [contractId, workspaceId], references: [id, workspaceId], onDelete: Cascade)
   warrantyId   String?     @map("warranty_id")
   warranty     Warranty?   @relation(fields: [warrantyId, workspaceId], references: [id, workspaceId], onDelete: Cascade)
+  materialId   String?     @map("material_id")
+  material     Material?   @relation(fields: [materialId, workspaceId], references: [id, workspaceId], onDelete: Cascade)
   createdById  String?     @map("created_by_id")
   createdAt    DateTime    @default(now()) @map("created_at")
 
@@ -352,6 +357,7 @@ model Attachment {
   @@index([warrantyId])
   @@index([quoteId])
   @@index([contractId])
+  @@index([materialId])
   @@map("attachments")
 }
 
@@ -496,6 +502,7 @@ model Vendor {
   commitments Commitment[]
   expenses    Expense[]
   contractor  Contractor?
+  materials   Material[]
 
   @@unique([id, workspaceId])
   @@unique([workspaceId, name])
@@ -706,6 +713,8 @@ model Warranty {
   project      Project?     @relation(fields: [projectId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
   roomId       String?      @map("room_id")
   room         Room?        @relation(fields: [roomId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
+  materialId   String?      @map("material_id")
+  material     Material?    @relation(fields: [materialId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
   coverage     String
   /// Who honours it, when that isn't the contractor (a manufacturer, say).
   provider     String?
@@ -722,6 +731,7 @@ model Warranty {
   @@index([contractorId])
   @@index([projectId])
   @@index([roomId])
+  @@index([materialId])
   @@map("warranties")
 }
 
@@ -931,4 +941,56 @@ model RoomEstimateArea {
   @@index([estimateId])
   @@index([roomId])
   @@map("room_estimate_areas")
+}
+
+// ---------------------------------------------------------------------------
+// Materials (Milestone 6). A product being considered or bought: tile, a
+// faucet, paint, an appliance. Orders, deliveries and returns follow.
+// ---------------------------------------------------------------------------
+
+/// A product for a project or room (either, both or neither). Links are
+/// RESTRICT in the database; the services let go of them before a project,
+/// room or supplier is deleted (see docs/DATA_MODEL.md).
+model Material {
+  id              String       @id
+  workspaceId     String       @map("workspace_id")
+  workspace       Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  projectId       String?      @map("project_id")
+  project         Project?     @relation(fields: [projectId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
+  roomId          String?      @map("room_id")
+  room            Room?        @relation(fields: [roomId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
+  /// Where it comes from: the store or supplier, shared with expenses.
+  supplierId      String?      @map("supplier_id")
+  supplier        Vendor?      @relation(fields: [supplierId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
+  name            String
+  /// A free-text kind, like "Tile" or "Faucet", for grouping.
+  category        String?
+  brand           String?
+  modelNumber     String?      @map("model_number")
+  sku             String?
+  colorFinish     String?      @map("color_finish")
+  productUrl      String?      @map("product_url")
+  /// How many, in thousandths (2.5 boxes = 2500), so no floats are stored.
+  quantityMilli   Int?         @map("quantity_milli")
+  /// What one is: "box", "sq ft", "each".
+  unit            String?
+  /// The expected price for one unit. What was actually paid lives on the order (part 2).
+  unitPriceCents  BigInt?      @map("unit_price_cents")
+  /// considering, selected, ordered, delivered, installed, returned or canceled.
+  status          String       @default("considering")
+  statusChangedAt DateTime     @default(now()) @map("status_changed_at")
+  specs           String?
+  notes           String?
+  createdById     String?      @map("created_by_id")
+  createdAt       DateTime     @default(now()) @map("created_at")
+  updatedAt       DateTime     @updatedAt @map("updated_at")
+  attachments     Attachment[]
+  warranties      Warranty[]
+
+  @@unique([id, workspaceId])
+  @@index([workspaceId])
+  @@index([projectId])
+  @@index([roomId])
+  @@index([supplierId])
+  @@map("materials")
 }
