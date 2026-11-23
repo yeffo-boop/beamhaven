@@ -1,6 +1,6 @@
 # Budget Definitions
 
-**Status:** Proposed in Milestone 0. Becomes the spec for Milestone 4.
+**Status:** Built in Milestone 4. The code in `src/server/services/budget-math.ts` follows this file, and `docs/budget-worked-example.csv` is the worked example below as a spreadsheet that a test checks BeamHaven against.
 
 Budget numbers are only useful if every term means exactly one thing, and no dollar is counted twice.
 This file is the single source of truth. Code, tests and on-screen help text must all use these definitions.
@@ -78,7 +78,11 @@ The kitchen has a Labor line with an **original budget of $20,000.00**.
 
 ---
 
-## Open questions for Jeff (answer before Milestone 4)
+## Decisions (Milestone 4)
 
-- Should baselining happen automatically the first time a project moves to "In progress", or only when someone presses a button?
-- Should household Viewers be able to see the budget at all?
+- **Locking in (baselining)** happens when someone presses **Lock in budget** on the project's budget page (Jeff, 2026-11-23). Until then the planned amounts can be edited freely, and there's no variance. Once a project is In progress, its pages remind you if the budget isn't locked in yet. Owners and Members can lock in.
+- After lock-in, a **new line starts at $0** (original and current), so the locked-in total never changes; money reaches it by a transfer or an adjustment.
+- **Adjustments and transfers** need the budget locked in (before that, edit the plan).
+- **Viewers can see the budget**, read-only, like everything else in the household.
+- An expense's **paid status** (unpaid, partly paid, paid) is worked out from its payments, never stored. Payments can't add up to more than the expense.
+- A **refund** is charged back to the original expense's lines in the same proportions, and linked to the same commitment.

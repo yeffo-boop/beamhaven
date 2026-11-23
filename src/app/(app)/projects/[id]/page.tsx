@@ -2,6 +2,8 @@ import { Pencil } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { Available, Money } from "@/components/budget/money";
+import { ProblemNotice } from "@/components/budget/problem-notice";
 import { PageHeader } from "@/components/page-header";
 import { ActivityList } from "@/components/records/activity-list";
 import { ConfirmAction } from "@/components/records/confirm-action";
@@ -17,22 +19,27 @@ import { can } from "@/server/auth/permissions";
 import { getWorkspaceContext } from "@/server/auth/workspace";
 import { getActivity } from "@/server/services/activity";
 import { getPhotos } from "@/server/services/attachments";
+import { getProjectBudget } from "@/server/services/budget";
 import { getProject } from "@/server/services/projects";
 import { getRooms } from "@/server/services/rooms";
 
 export const metadata = { title: "Project" };
 
-export default async function ProjectPage({ params }: PageProps<"/projects/[id]">) {
+export default async function ProjectPage({ params, searchParams }: PageProps<"/projects/[id]">) {
   const { id } = await params;
+  const { problem } = await searchParams;
   const ctx = await getWorkspaceContext();
   if (!ctx) notFound();
   const project = await orNotFound(getProject(ctx, id));
   const canEdit = can(ctx, "records:edit");
-  const [photos, activity, allRooms] = await Promise.all([
+  const [photos, activity, allRooms, budget] = await Promise.all([
     getPhotos(ctx, { kind: "project", id }),
     getActivity(ctx, "project", id),
     canEdit ? getRooms(ctx) : Promise.resolve([]),
+    getProjectBudget(ctx, id),
   ]);
+  const needsLockIn =
+    project.status === "in_progress" && budget.lock.lockedAt === null && budget.lines.length > 0;
   const propertyRooms = allRooms.filter((room) => room.propertyId === project.propertyId);
   const dash = <span className="text-muted-foreground">Not set</span>;
 
@@ -72,6 +79,8 @@ export default async function ProjectPage({ params }: PageProps<"/projects/[id]"
         </div>
       </div>
 
+      <ProblemNotice code={problem} />
+
       <Panel title="Details" id="details">
         {project.description ? (
           <p className="text-sm whitespace-pre-line">{project.description}</p>
@@ -82,6 +91,44 @@ export default async function ProjectPage({ params }: PageProps<"/projects/[id]"
           <Detail label="Actually started">{formatDay(project.actualStart) ?? dash}</Detail>
           <Detail label="Actually finished">{formatDay(project.actualEnd) ?? dash}</Detail>
         </dl>
+      </Panel>
+
+      <Panel
+        title="Budget"
+        id="budget"
+        actions={
+          <Button asChild variant="outline" size="sm">
+            <Link href={`/projects/${id}/budget`}>Open budget</Link>
+          </Button>
+        }
+      >
+        {budget.lines.length === 0 ? (
+          <EmptyState>No budget yet.</EmptyState>
+        ) : (
+          <dl className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+            <Detail label="Budget">
+              <Money cents={budget.totals.current} />
+            </Detail>
+            <Detail label="Forecast">
+              <Money cents={budget.totals.forecast} />
+            </Detail>
+            <Detail label="Spent">
+              <Money cents={budget.totals.expenses} />
+            </Detail>
+            <Detail label="Available">
+              <Available cents={budget.totals.available} />
+            </Detail>
+          </dl>
+        )}
+        {needsLockIn ? (
+          <p role="status" className="text-sm">
+            Work has started but the budget isn’t locked in yet.{" "}
+            <Link href={`/projects/${id}/budget`} className="text-primary hover:underline">
+              Lock it in
+            </Link>{" "}
+            to track how far things drift from the plan.
+          </p>
+        ) : null}
       </Panel>
 
       <Panel title="Rooms" id="rooms">

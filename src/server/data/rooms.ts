@@ -150,14 +150,22 @@ export async function updateRoomRow(
 export async function deleteRoomRow(
   ctx: WorkspaceContext,
   id: string,
-): Promise<{ deleted: boolean; fileIds: string[] }> {
+): Promise<{ deleted: boolean; hasBudget: boolean; fileIds: string[] }> {
   return getPrisma().$transaction(async (tx) => {
+    const lines = await tx.budgetLine.count({
+      where: { roomId: id, workspaceId: ctx.workspaceId },
+    });
+    if (lines > 0) return { deleted: false, hasBudget: true, fileIds: [] };
     const attachments = await tx.attachment.findMany({
       where: { roomId: id, workspaceId: ctx.workspaceId },
       select: { fileId: true },
     });
     const result = await tx.room.deleteMany({ where: { id, workspaceId: ctx.workspaceId } });
-    return { deleted: result.count === 1, fileIds: attachments.map((a) => a.fileId) };
+    return {
+      deleted: result.count === 1,
+      hasBudget: false,
+      fileIds: attachments.map((a) => a.fileId),
+    };
   });
 }
 

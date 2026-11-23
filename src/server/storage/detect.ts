@@ -12,6 +12,17 @@ function ascii(bytes: Uint8Array, start: number, end: number): string {
   return String.fromCharCode(...bytes.subarray(start, end));
 }
 
+export type DocumentType = ImageType | "application/pdf";
+
+/**
+ * For receipts: a photo, or a PDF (which starts with "%PDF-"). PDFs are
+ * only ever offered as downloads, never shown inside BeamHaven's pages.
+ */
+export function detectReceiptType(bytes: Uint8Array): DocumentType | null {
+  if (bytes.length >= 5 && ascii(bytes, 0, 5) === "%PDF-") return "application/pdf";
+  return detectImageType(bytes);
+}
+
 export function detectImageType(bytes: Uint8Array): ImageType | null {
   if (bytes.length < 12) return null;
   if (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return "image/jpeg";

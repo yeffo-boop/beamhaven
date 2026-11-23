@@ -61,7 +61,7 @@ export function requiredText(max: number, emptyMessage: string, label: string) {
 }
 
 /** "2026-12-01" from a date field, or "" for none. */
-const optionalDate = z
+export const optionalDate = z
   .string()
   .trim()
   .default("")
@@ -74,6 +74,8 @@ const optionalDate = z
     }
     return date;
   });
+
+export const requiredDate = optionalDate.refine((value) => value !== null, "Enter a date");
 
 /** A typed length such as 12' 4" or 3.76 m, as whole millimetres; "" for none. */
 export function optionalLength(system: MeasurementSystem) {

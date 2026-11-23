@@ -19,6 +19,7 @@ export type ProjectSummary = ProjectFields & {
   propertyId: string;
   propertyName: string;
   roomCount: number;
+  budgetLockedAt: Date | null;
   updatedAt: Date;
 };
 
@@ -33,6 +34,7 @@ const summarySelect = {
   actualStart: true,
   actualEnd: true,
   updatedAt: true,
+  budgetLockedAt: true,
   property: { select: { name: true } },
   _count: { select: { rooms: true } },
 } as const;
@@ -127,14 +129,34 @@ export async function updateProjectRow(
 export async function deleteProjectRow(
   ctx: WorkspaceContext,
   id: string,
-): Promise<{ deleted: boolean; fileIds: string[] }> {
+): Promise<{ deleted: boolean; hasBudget: boolean; fileIds: string[] }> {
   return getPrisma().$transaction(async (tx) => {
+    // Empty budget lines go with the project; money recorded against them
+    // (or transfers touching them) keeps the project.
+    const recorded = await tx.budgetLine.count({
+      where: {
+        projectId: id,
+        workspaceId: ctx.workspaceId,
+        OR: [
+          { adjustments: { some: {} } },
+          { transfersIn: { some: {} } },
+          { transfersOut: { some: {} } },
+          { commitments: { some: {} } },
+          { allocations: { some: {} } },
+        ],
+      },
+    });
+    if (recorded > 0) return { deleted: false, hasBudget: true, fileIds: [] };
     const attachments = await tx.attachment.findMany({
       where: { projectId: id, workspaceId: ctx.workspaceId },
       select: { fileId: true },
     });
     const result = await tx.project.deleteMany({ where: { id, workspaceId: ctx.workspaceId } });
-    return { deleted: result.count === 1, fileIds: attachments.map((a) => a.fileId) };
+    return {
+      deleted: result.count === 1,
+      hasBudget: false,
+      fileIds: attachments.map((a) => a.fileId),
+    };
   });
 }
 
