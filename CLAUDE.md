@@ -77,7 +77,7 @@ docs/               DATA_MODEL.md, BUDGET_DEFINITIONS.md, UI_DIRECTION.md
 
 | Task                                 | Command                                            |
 | ------------------------------------ | -------------------------------------------------- |
-| Install dependencies                 | `npm install`                                      |
+| Install dependencies                 | `npm ci` (exact versions from the lock file)       |
 | Run the dev server                   | `npm run dev` (then open http://localhost:3000)    |
 | Lint                                 | `npm run lint`                                     |
 | Check / fix formatting               | `npm run format:check` / `npm run format`          |

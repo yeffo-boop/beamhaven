@@ -41,8 +41,9 @@ cd beamhaven
 #    CHANGE_ME passwords with the same new password of your choice.
 cp .env.example .env
 
-# 3. Install the project's packages (again whenever package.json changes)
-npm install
+# 3. Install the exact package versions from package-lock.json
+#    (run again after pulling changes that touch package.json)
+npm ci
 
 # 4. Start the local database (OrbStack must be running)
 npm run db:up
