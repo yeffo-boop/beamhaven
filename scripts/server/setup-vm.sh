@@ -5,6 +5,9 @@
 #   sudo ./scripts/server/setup-vm.sh <NPM_IP> <LAN_RANGE>
 # For example:
 #   sudo ./scripts/server/setup-vm.sh 10.0.0.134 10.0.0.0/24
+# Not set up your SSH key yet? Add --skip-ssh to leave step 4 for later, then
+# run the script again without it once your key works:
+#   sudo ./scripts/server/setup-vm.sh 10.0.0.134 10.0.0.0/24 --skip-ssh
 #
 # It is safe to run again; each step checks what's already done. It:
 #   1. installs all updates and turns on automatic security updates
@@ -16,6 +19,9 @@ set -euo pipefail
 
 NPM_IP="${1:-}"
 LAN_RANGE="${2:-}"
+SKIP_SSH=false
+[[ "${3:-}" == "--skip-ssh" ]] && SKIP_SSH=true
+[[ -z "${3:-}" || "$SKIP_SSH" == true ]] || { echo "ERROR: unknown option: $3 (did you mean --skip-ssh?)" >&2; exit 1; }
 APP_PORT="${APP_PORT:-3000}"
 ADMIN_USER="${SUDO_USER:-}"
 
@@ -30,7 +36,9 @@ grep -q '^ID=ubuntu' /etc/os-release || fail "This script is for Ubuntu."
 
 # Refuse to turn off passwords unless a key is already set up, so you can't lock yourself out.
 keys="/home/$ADMIN_USER/.ssh/authorized_keys"
-[[ -s "$keys" ]] || fail "No SSH key found in $keys. Set up your key first (DEPLOYMENT.md, step 5)."
+if [[ "$SKIP_SSH" == false && ! -s "$keys" ]]; then
+  fail "No SSH key found in $keys. Set up your key first (DEPLOYMENT.md, step 4), or add --skip-ssh to do it later."
+fi
 
 export DEBIAN_FRONTEND=noninteractive
 
@@ -90,6 +98,10 @@ ufw reload
 ufw status verbose
 
 step "4. SSH: keys only"
+if [[ "$SKIP_SSH" == true ]]; then
+  echo "Skipped (--skip-ssh). Password logins stay on, from your LAN only."
+  echo "Once your SSH key works, run this script again without --skip-ssh."
+else
 cat > /etc/ssh/sshd_config.d/10-beamhaven.conf <<'EOF'
 PasswordAuthentication no
 KbdInteractiveAuthentication no
@@ -97,6 +109,7 @@ PermitRootLogin no
 EOF
 sshd -t || fail "The SSH settings didn't check out; nothing was reloaded."
 systemctl reload ssh
+fi
 
 echo
 echo "Setup finished. Log out and back in so 'docker' works without sudo."
