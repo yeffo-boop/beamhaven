@@ -4,3 +4,5 @@ coverage
 package-lock.json
 AGENTS.md
 src/generated
+playwright-report
+test-results

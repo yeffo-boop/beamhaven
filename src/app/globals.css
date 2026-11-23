@@ -3,13 +3,14 @@
 /*
  * BeamHaven design tokens (docs/UI_DIRECTION.md).
  * Light mode is the default. Dark mode follows the system setting, and can be
- * forced with data-theme="light" or data-theme="dark" on <html> (a manual
- * switch is added with the app shell).
+ * forced with data-theme="light" or data-theme="dark" on <html>, which the
+ * appearance switch (src/components/theme) sets.
  */
 :root {
   --background: #f7f5f1; /* plaster */
   --surface: #ffffff;
   --border: #e4e0d8;
+  --muted: #efece6;
   --text: #1f1e1c; /* ink */
   --text-muted: #6b665e;
   --accent: #2f5d50; /* spruce */
@@ -26,6 +27,7 @@
     --background: #141311;
     --surface: #1c1b18;
     --border: #2e2c28;
+    --muted: #26241f;
     --text: #edeae4;
     --text-muted: #a39d93;
     --accent: #6fa593;
@@ -42,6 +44,7 @@
   --background: #141311;
   --surface: #1c1b18;
   --border: #2e2c28;
+  --muted: #26241f;
   --text: #edeae4;
   --text-muted: #a39d93;
   --accent: #6fa593;
@@ -53,14 +56,32 @@
   color-scheme: dark;
 }
 
+/*
+ * Tailwind color names. These follow shadcn/ui's naming so components added
+ * later with `npx shadcn add` pick up BeamHaven's colors automatically:
+ *   primary = the spruce brand color (buttons, active nav, focus rings)
+ *   accent / secondary / muted = quiet hover and background fills
+ */
 @theme inline {
   --color-background: var(--background);
+  --color-foreground: var(--text);
   --color-surface: var(--surface);
+  --color-card: var(--surface);
+  --color-card-foreground: var(--text);
+  --color-popover: var(--surface);
+  --color-popover-foreground: var(--text);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--text-muted);
   --color-border: var(--border);
-  --color-text: var(--text);
-  --color-text-muted: var(--text-muted);
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
+  --color-input: var(--border);
+  --color-ring: var(--accent);
+  --color-primary: var(--accent);
+  --color-primary-foreground: var(--accent-foreground);
+  --color-secondary: var(--muted);
+  --color-secondary-foreground: var(--text);
+  --color-accent: var(--muted);
+  --color-accent-foreground: var(--text);
+  --color-destructive: var(--danger);
   --color-positive: var(--positive);
   --color-warning: var(--warning);
   --color-danger: var(--danger);
