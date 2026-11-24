@@ -43,7 +43,7 @@ export function SidebarView({
   return (
     <nav
       aria-label="Main"
-      className="sticky top-0 hidden h-dvh w-[72px] shrink-0 flex-col gap-1 overflow-y-auto border-r border-border px-3 py-5 md:flex lg:w-60"
+      className="sticky top-0 hidden h-dvh w-[72px] shrink-0 flex-col gap-1 overflow-y-auto border-r border-border px-3 py-5 md:flex lg:w-60 print:hidden"
     >
       <Link
         href="/"

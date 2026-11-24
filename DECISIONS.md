@@ -435,3 +435,25 @@ Statuses: **Proposed** (waiting for Jeff) · **Accepted** · **Superseded**
 **Why not PostgreSQL full-text search?** It would need a migration with search columns and indexes on many tables, and it handles partial words (like "plumb" for "plumber") poorly. A household has hundreds or a few thousand records, so simple matching is fast enough and finds partial words. If it gets slow, the `pg_trgm` extension can add indexes for exactly this kind of matching without changing how search behaves.
 
 **Consequences.** There's no ranking by relevance beyond the simple rule above, and file contents (inside a PDF, for example) aren't searched, only titles and notes.
+
+## ADR-039: Reports are CSV downloads and print-ready pages, not generated PDFs (Milestone 9, part 3)
+
+**Date:** 2026-11-24. **Status:** accepted.
+
+**Decision.**
+
+- **Reports** (`/reports`, under Library in the navigation) lets you pick all projects or one, then:
+  - download **CSV spreadsheets** of budget lines, expenses or tasks;
+  - open a **printable project report**: status and dates, the budget numbers, the budget by category, milestones, open tasks and expenses.
+- CSV files come from `/api/reports/<budget|expenses|tasks>?project=<id>`. Only household members get a file; an unknown report or another household's project is "not found" (404), like every other record. Files aren't cached.
+- CSV details, in `src/lib/csv.ts`, which has unit tests:
+  - Amounts are plain numbers in dollars (`1234.56`), so spreadsheets can add them up.
+  - Days are `2026-11-24`.
+  - The file starts with a byte-order mark so Excel reads accents correctly.
+  - Text that starts with `=`, `+`, `-` or `@` gets a leading apostrophe. Otherwise a spreadsheet could run it as a formula ("CSV injection"), for example an expense described as `=HYPERLINK(…)`.
+- For one project, the expenses export adds that project's share of each expense, since one expense can be split across projects. The numbers come from the same budget calculations as the Budget pages (`docs/BUDGET_DEFINITIONS.md`).
+- **PDF:** the report page is laid out for printing. "Print or save as PDF" opens the browser's print dialog, and when printing, the app's navigation and buttons are hidden.
+
+**Why not make PDFs on the server?** That needs either a PDF library, which means laying everything out a second time, or a headless browser in the container, which is large and a security risk. Every browser Jeff uses (Safari on Mac and iPad, Chrome) already saves a page as a PDF.
+
+**Consequences.** How the PDF looks depends a little on the browser. There's no scheduled or emailed report. A household-wide printable summary can be added later in the same way.

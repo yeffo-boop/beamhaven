@@ -4,6 +4,33 @@ Newest entries at the top. Each entry records what was done, which files changed
 
 ---
 
+## 2026-11-24: Milestone 9, part 3 (reports and exports), built
+
+### Done
+
+- **Reports** (new, under Library; ADR-039): pick all projects or one, then:
+  - download a spreadsheet (CSV) of **budget lines**, **expenses** (with what's paid and still owed, and a project's share) or **tasks**;
+  - open a **printable project report**: status and dates, budget, budget by category, milestones, open tasks and expenses. "Print or save as PDF" opens the print dialog; the app's menus are left out of the printout.
+- Spreadsheet cells that could run as formulas are made plain text.
+- No database changes.
+
+### Tests (cloud workspace, 2026-11-24)
+
+- Lint, formatting and type check: passed. Production build: passed.
+- Unit: 153 of 153 passed, including 4 new ones for the CSV writer (`tests/unit/csv.test.ts`): quoting, formula protection, money as numbers, safe file names.
+- Integration: 159 of 159 passed, including 5 new ones in `tests/integration/reports.test.ts`: budget lines, expenses with a project's share, tasks, the printable report's contents, unknown reports, other households' projects, and viewers.
+- End-to-end: full run, 92 passed, 38 skipped on purpose, 0 failed. New: download a project's tasks file and check its header; open the printable report and check the menus are hidden when printing; unknown exports are "not found"; the page fits the screen.
+
+### For Jeff to check
+
+After `update.sh`, open Reports, pick a project, download the expenses file and open it in Numbers or Excel. Then open the project report and choose "Save as PDF" from the print dialog.
+
+### Next
+
+Milestone 9, part 4: in-app notifications.
+
+---
+
 ## 2026-11-24: Milestone 9, part 2 (search), built
 
 ### Done

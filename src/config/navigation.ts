@@ -1,6 +1,7 @@
 import {
   CalendarDays,
   DoorOpen,
+  FileSpreadsheet,
   FileText,
   FolderKanban,
   HardHat,
@@ -115,6 +116,14 @@ export const navGroups: NavGroup[] = [
         icon: Palette,
         description: "Design boards with images, products, colors and finishes for each room.",
         milestone: 8,
+      },
+      {
+        id: "reports",
+        label: "Reports",
+        href: "/reports",
+        icon: FileSpreadsheet,
+        description: "Spreadsheet exports and printable project reports.",
+        milestone: 9,
       },
     ],
   },
