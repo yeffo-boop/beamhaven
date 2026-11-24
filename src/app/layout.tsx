@@ -21,6 +21,8 @@ export const metadata: Metadata = {
   description: brand.tagline,
   // Private household app: keep it out of search engines.
   robots: { index: false, follow: false },
+  // Opens full screen when added to an iPhone or iPad home screen (ADR-044).
+  appleWebApp: { capable: true, title: brand.name, statusBarStyle: "default" },
 };
 
 export const viewport: Viewport = {

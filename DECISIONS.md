@@ -534,3 +534,40 @@ Statuses: **Proposed** (waiting for Jeff) · **Accepted** · **Superseded**
 - CI runs the wipe, the restore over a running database, and the restore check against the real Docker stack.
 
 **Consequences.** A restore briefly leaves the database empty. If loading the backup then fails, the database stays empty until another restore succeeds. The safety copy from `before-restore/` is there for exactly that. The safety copies take disk space until deleted.
+
+## ADR-044: BeamHaven installs on a phone as a web app, without an offline mode (Milestone 12, part 1)
+
+**Date:** 2026-11-24. **Status:** accepted.
+
+**Decision.** A web app manifest (`src/app/manifest.ts`) and three icons in `public/` let BeamHaven be added to a phone or tablet home screen, where it opens full screen. iPhones and iPads also get `apple-mobile-web-app-capable`. There is **no service worker**, so no offline mode: the data lives on the server, and an offline copy would need its own sync and conflict rules.
+
+**Consequences.** Nothing to install from an app store, and updates arrive with `update.sh` as usual. Without a connection the app shows the browser's usual offline page.
+
+## ADR-045: A private calendar link per person, holding only a hash of its secret (Milestone 12, part 1)
+
+**Date:** 2026-11-24. **Status:** accepted.
+
+**Decision.** Settings has **Calendar on your phone**, which makes a link like `<APP_URL>/api/calendar/<secret>` for Apple, Google or Outlook to subscribe to. Calendar apps can't sign in, so the 32 random bytes in the address are the key.
+
+- Only the SHA-256 of the secret is stored (`calendar_feeds`), so the link is shown once. Making a new link replaces the old one; **Turn off** deletes it.
+- Every request checks that the person still belongs to the household, so the link stops when they leave.
+- The feed holds the same entries as the Schedule page (appointments, task due dates, milestones, deliveries and bills), from 90 days back to about 13 months ahead, in the household's time zone. Each entry keeps a stable ID, so calendars update it rather than adding copies.
+- The route is rate-limited per address (120 an hour), and answers 404 for any unknown link.
+
+**Consequences.** Anyone given the link can read the calendar until it's replaced. Calendar apps check every few hours, so changes are not instant.
+
+## ADR-046: An allowance is a budget line that materials are chosen against (Milestone 12, part 1)
+
+**Date:** 2026-11-24. **Status:** accepted.
+
+**Decision.** Rather than a new kind of record, any budget line can serve as an allowance. A material gets an optional `budgetLineId`; the line's page shows the allowance (its current budget), what the chosen materials are expected to cost, what's left, and what the options still being considered would add. Definitions are in `docs/BUDGET_DEFINITIONS.md`. The check sits beside the budget math and changes none of it, so nothing is counted twice.
+
+**Consequences.** Amounts are before tax, from each material's expected price. A line in another project can't be chosen, and moving a material to another project clears the link.
+
+## ADR-047: A punch list per project, with open, fixed and signed-off items (Milestone 12, part 1)
+
+**Date:** 2026-11-24. **Status:** accepted.
+
+**Decision.** `PunchItem` belongs to a project, optionally to a room and a contractor, and can hold photos and PDFs (attachments with `punch_item_id`). Its status moves open → fixed (the contractor says it's done) → signed off (someone in the household checked it), and it can be reopened. We record when it was fixed and signed off, and who signed it off. The items are deleted with their project; a deleted room or contractor only loses the link. The `attachments_one_target_check` constraint now includes `punch_item_id`.
+
+**Consequences.** In Milestone 13 a client role can be allowed to see a project's punch list without new tables.

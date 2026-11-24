@@ -197,6 +197,10 @@ export async function deleteContractorRow(
       where: { workspaceId: ws, assigneeContractorId: id },
       data: { assigneeContractorId: null },
     });
+    await tx.punchItem.updateMany({
+      where: { workspaceId: ws, contractorId: id },
+      data: { contractorId: null },
+    });
     // Appointments with them stay on the calendar.
     await tx.appointment.updateMany({
       where: { workspaceId: ws, contractorId: id },
@@ -261,10 +265,24 @@ export async function unlinkProjectOrRoom(
     where: { workspaceId, ...link },
     data: "projectId" in link ? { projectId: null } : { roomId: null },
   });
+  if ("projectId" in link) {
+    // The project's budget lines go with it, so allowances on them do too (ADR-046).
+    await tx.material.updateMany({
+      where: { workspaceId, budgetLine: { projectId: link.projectId } },
+      data: { budgetLineId: null },
+    });
+  }
   await tx.material.updateMany({
     where: { workspaceId, ...link },
     data: "projectId" in link ? { projectId: null } : { roomId: null },
   });
+  // Punch list items stay on their project, without the room (ADR-047).
+  if ("roomId" in link) {
+    await tx.punchItem.updateMany({
+      where: { workspaceId, roomId: link.roomId },
+      data: { roomId: null },
+    });
+  }
   // Library documents stay in the library.
   await tx.document.updateMany({
     where: { workspaceId, ...link },

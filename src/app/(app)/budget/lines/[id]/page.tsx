@@ -19,13 +19,16 @@ import { ProblemNotice } from "@/components/budget/problem-notice";
 import { PageHeader } from "@/components/page-header";
 import { ConfirmAction } from "@/components/records/confirm-action";
 import { orNotFound } from "@/components/records/or-not-found";
-import { Panel } from "@/components/records/panel";
+import { EmptyState, Panel } from "@/components/records/panel";
+import { Available, Money } from "@/components/budget/money";
+import { MaterialList } from "@/components/materials/list";
 import { Button } from "@/components/ui/button";
 import { moneyInputValue } from "@/lib/money";
 import { deleteLineAction } from "@/server/actions/budget";
 import { can } from "@/server/auth/permissions";
 import { getWorkspaceContext } from "@/server/auth/workspace";
 import { lineTitle } from "@/server/data/budget";
+import { getAllowance } from "@/server/services/allowances";
 import { getLine, getLineChoices } from "@/server/services/budget";
 import { totals } from "@/server/services/budget-math";
 import { getVendors } from "@/server/services/expenses";
@@ -44,9 +47,10 @@ export default async function BudgetLinePage({
   const { line } = detail;
   const canEdit = can(ctx, "records:edit");
   const canApprove = can(ctx, "budget:approve");
-  const [choices, vendors] = await Promise.all([
+  const [choices, vendors, allowance] = await Promise.all([
     canEdit ? getLineChoices(ctx) : Promise.resolve([]),
     canEdit ? getVendors(ctx) : Promise.resolve([]),
+    getAllowance(ctx, id),
   ]);
   const otherLocked = choices
     .filter((l) => l.projectLocked && l.id !== id)
@@ -115,6 +119,54 @@ export default async function BudgetLinePage({
           />
         </Panel>
       ) : null}
+
+      <Panel title="Allowance" id="allowance">
+        {allowance.materials.length === 0 ? (
+          <EmptyState>
+            Use this line as an allowance (for example “tile, $3,000”): on a material’s page, choose
+            this line under Allowance, and the total of your picks shows here.
+          </EmptyState>
+        ) : (
+          <>
+            <dl className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+              <div className="flex flex-col gap-0.5">
+                <dt className="text-xs text-muted-foreground">Allowance (current budget)</dt>
+                <dd className="text-sm">
+                  <Money cents={allowance.check.allowance} />
+                </dd>
+              </div>
+              <div className="flex flex-col gap-0.5">
+                <dt className="text-xs text-muted-foreground">Chosen so far</dt>
+                <dd className="text-sm">
+                  <Money cents={allowance.check.chosen} />
+                </dd>
+              </div>
+              <div className="flex flex-col gap-0.5">
+                <dt className="text-xs text-muted-foreground">Left</dt>
+                <dd className="text-sm">
+                  <Available cents={allowance.check.remaining} />
+                </dd>
+              </div>
+              {allowance.check.considering > 0n ? (
+                <div className="flex flex-col gap-0.5">
+                  <dt className="text-xs text-muted-foreground">Still considering</dt>
+                  <dd className="text-sm">
+                    <Money cents={allowance.check.considering} />
+                  </dd>
+                </div>
+              ) : null}
+            </dl>
+            <p className="text-xs text-muted-foreground">
+              Estimated from each material’s price and quantity, before tax. Returned and canceled
+              ones don’t count.
+              {allowance.check.unpriced > 0
+                ? ` ${allowance.check.unpriced} ${allowance.check.unpriced === 1 ? "material has" : "materials have"} no price or quantity yet, so ${allowance.check.unpriced === 1 ? "it isn’t" : "they aren’t"} counted.`
+                : ""}
+            </p>
+            <MaterialList materials={allowance.materials} show="room" empty="" />
+          </>
+        )}
+      </Panel>
 
       <Panel title="Commitments" id="commitments">
         <CommitmentList commitments={detail.commitments} />

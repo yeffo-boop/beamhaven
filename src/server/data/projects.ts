@@ -156,7 +156,13 @@ export async function deleteProjectRow(
     const attachments = await tx.attachment.findMany({
       where: {
         workspaceId: ctx.workspaceId,
-        OR: [{ projectId: id }, { quote: { projectId: id } }, { order: { projectId: id } }],
+        OR: [
+          { projectId: id },
+          { quote: { projectId: id } },
+          { order: { projectId: id } },
+          // Punch list items go with the project (ADR-047), and so do their photos.
+          { punchItem: { projectId: id } },
+        ],
       },
       select: { fileId: true },
     });

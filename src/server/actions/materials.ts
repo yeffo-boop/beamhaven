@@ -4,6 +4,7 @@ import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { requireWorkspace } from "@/server/auth/workspace";
+import { setMaterialAllowance } from "@/server/services/allowances";
 import {
   changeMaterialStatus,
   createMaterial,
@@ -61,6 +62,18 @@ export async function setMaterialStatusAction(formData: FormData): Promise<void>
   const ctx = await requireWorkspace();
   try {
     await changeMaterialStatus(ctx, idFrom(formData), text(formData, "status"));
+  } catch (error) {
+    asFormResult(error);
+    return;
+  }
+  refresh();
+}
+
+/** Chooses the material against an allowance (a budget line), or clears it (ADR-046). */
+export async function setMaterialAllowanceAction(formData: FormData): Promise<void> {
+  const ctx = await requireWorkspace();
+  try {
+    await setMaterialAllowance(ctx, idFrom(formData), text(formData, "budgetLineId"));
   } catch (error) {
     asFormResult(error);
     return;

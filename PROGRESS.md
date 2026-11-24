@@ -4,6 +4,36 @@ Newest entries at the top. Each entry records what was done, which files changed
 
 ---
 
+## 2026-11-24: Milestone 12, part 1 (phone install, calendar feed, allowances, punch list), built
+
+### Done
+
+- **Install on a phone** (ADR-044): a web app manifest and icons. In Safari, Share › Add to Home Screen; in Chrome, ⋮ › Add to Home screen. It opens full screen. There's no offline mode.
+- **Calendar on your phone** (ADR-045): Settings › Calendar on your phone makes a private link (shown once) to subscribe to in Apple, Google or Outlook calendars. It has appointments, task due dates, milestones, deliveries and bills, in the household's time zone. You can replace the link or turn it off. It stops working if the person leaves the household.
+- **Allowances** (ADR-046, `docs/BUDGET_DEFINITIONS.md`): on a material's page, choose a budget line under **Allowance**. The line's page then shows the allowance, what's chosen so far, what's left (or "Over by"), and what the options you're still considering would add. None of the budget's own numbers change.
+- **Punch list** (ADR-047): a **Punch list** panel on each project. Items can have a room, a contractor, photos and notes, and go Open → Fixed → Signed off (and can be reopened).
+- **One database migration** (`20261124155849_homeowner_extras`). It only adds two tables (`calendar_feeds`, `punch_items`) and two empty columns (`materials.budget_line_id`, `attachments.punch_item_id`), and widens one check so attachments can belong to a punch list item. No existing rows change. `update.sh` takes a backup before it runs.
+
+### Tests (cloud workspace, 2026-11-24)
+
+See the pull request for the exact commands and results.
+
+- New unit tests: the iCalendar writer (`tests/unit/ical.test.ts`) and the allowance math (`tests/unit/allowance.test.ts`).
+- New integration tests, each with household isolation and viewer checks: `calendar-feed.test.ts`, `punch-list.test.ts`, `allowances.test.ts`.
+
+### For Jeff to check after `update.sh`
+
+1. Settings › Calendar on your phone › Turn on calendar link, then subscribe on your iPhone (the steps are on the page).
+2. On a project, add a punch list item with a photo, then mark it fixed and sign it off.
+3. On a material, choose an allowance line, then open that line from the budget.
+4. On your phone, add BeamHaven to the home screen.
+
+### Next step
+
+Milestone 12, part 2: email through Resend. Jeff needs to sign up at Resend and add its DNS records at GoDaddy (steps to follow).
+
+---
+
 ## 2026-11-24: Roadmap updated with the features picked from the competitor review
 
 ### Done

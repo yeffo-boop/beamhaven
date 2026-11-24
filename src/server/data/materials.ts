@@ -28,6 +28,8 @@ export type MaterialFields = {
 
 export type MaterialRecord = MaterialFields & {
   id: string;
+  /** The allowance (a budget line) it's chosen against, if any (ADR-046). */
+  budgetLineId: string | null;
   projectName: string | null;
   roomName: string | null;
   supplierName: string | null;
@@ -37,6 +39,7 @@ export type MaterialRecord = MaterialFields & {
 
 export type MaterialFilter = {
   id?: string;
+  budgetLineId?: string;
   projectId?: string;
   roomId?: string;
   status?: string;
@@ -101,6 +104,17 @@ async function setMaterial(
       where: { id },
       data: { ...data, ...(moved ? { statusChangedAt: new Date() } : {}) },
     });
+    // Moved to another project: an allowance on the old project no longer applies (ADR-046).
+    if (data.projectId) {
+      await tx.material.updateMany({
+        where: {
+          id,
+          budgetLineId: { not: null },
+          NOT: { budgetLine: { projectId: data.projectId } },
+        },
+        data: { budgetLineId: null },
+      });
+    }
     return true;
   });
 }
@@ -151,6 +165,7 @@ export async function listMaterials(
       projectId: true,
       roomId: true,
       supplierId: true,
+      budgetLineId: true,
       brand: true,
       modelNumber: true,
       sku: true,
@@ -186,4 +201,34 @@ export async function listMaterialCategories(ctx: WorkspaceContext): Promise<str
     orderBy: { category: "asc" },
   });
   return rows.flatMap((r) => (r.category ? [r.category] : []));
+}
+
+/**
+ * Chooses a material against an allowance (a budget line), or clears it.
+ * The line must be in this household, and on the material's project when
+ * it has one. Returns false if either isn't found that way.
+ */
+export async function setMaterialAllowanceRow(
+  ctx: WorkspaceContext,
+  id: string,
+  budgetLineId: string | null,
+): Promise<boolean> {
+  const prisma = getPrisma();
+  const material = await prisma.material.findFirst({
+    where: { id, workspaceId: ctx.workspaceId },
+    select: { projectId: true },
+  });
+  if (!material) return false;
+  if (budgetLineId) {
+    const line = await prisma.budgetLine.count({
+      where: {
+        id: budgetLineId,
+        workspaceId: ctx.workspaceId,
+        ...(material.projectId ? { projectId: material.projectId } : {}),
+      },
+    });
+    if (line !== 1) return false;
+  }
+  await prisma.material.update({ where: { id }, data: { budgetLineId } });
+  return true;
 }

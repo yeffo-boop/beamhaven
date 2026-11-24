@@ -19,7 +19,8 @@ export type ActivityInput = {
     | "order"
     | "appointment"
     | "document"
-    | "board";
+    | "board"
+    | "punch_item";
   entityId: string;
   summary: string;
 };

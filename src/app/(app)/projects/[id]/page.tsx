@@ -11,6 +11,8 @@ import { addDays } from "@/lib/calendar";
 import { AddContractorToProjectForm, TaskForm, WarrantyForm } from "@/components/contractors/forms";
 import { ProjectContractorList, TaskList, WarrantyList } from "@/components/contractors/lists";
 import { PageHeader } from "@/components/page-header";
+import { PunchItemForm } from "@/components/punch-list/punch-form";
+import { PunchList } from "@/components/punch-list/punch-list";
 import { ActivityList } from "@/components/records/activity-list";
 import { ConfirmAction } from "@/components/records/confirm-action";
 import { orNotFound } from "@/components/records/or-not-found";
@@ -45,6 +47,7 @@ import { getDocumentLibrary } from "@/server/services/documents";
 import { getMaterials } from "@/server/services/materials";
 import { getOrders } from "@/server/services/orders";
 import { getMilestones } from "@/server/services/milestones";
+import { getPunchList, punchSummary } from "@/server/services/punch-list";
 import { getTasks, getWarranties } from "@/server/services/tasks";
 
 export const metadata = { title: "Project" };
@@ -75,6 +78,7 @@ export default async function ProjectPage({ params, searchParams }: PageProps<"/
     householdToday,
     documents,
     boards,
+    punchItems,
   ] = await Promise.all([
     getPhotos(ctx, { kind: "project", id }),
     getActivity(ctx, "project", id),
@@ -92,7 +96,9 @@ export default async function ProjectPage({ params, searchParams }: PageProps<"/
     getHouseholdToday(ctx),
     getDocumentLibrary(ctx, { projectId: id }),
     getBoards(ctx, { projectId: id }),
+    getPunchList(ctx, id),
   ]);
+  const punch = punchSummary(punchItems);
   const comingUp = await getCalendar(ctx, {
     from: householdToday,
     to: addDays(householdToday, COMING_UP_DAYS - 1),
@@ -347,6 +353,32 @@ export default async function ProjectPage({ params, searchParams }: PageProps<"/
           </details>
         ) : null}
         <TaskList tasks={tasks} canEdit={canEdit} today={today} show={["room"]} />
+      </Panel>
+
+      <Panel
+        title="Punch list"
+        id="punch-list"
+        actions={
+          punchItems.length > 0 ? (
+            <span className="text-sm text-muted-foreground">
+              {punch.open} open · {punch.fixed} fixed · {punch.signedOff} signed off
+            </span>
+          ) : null
+        }
+      >
+        <PunchList items={punchItems} canEdit={canEdit} />
+        {canEdit ? (
+          <details className="rounded-[var(--radius-control)] border border-border p-3">
+            <summary className="cursor-pointer text-sm font-medium">Add to the punch list</summary>
+            <div className="mt-3">
+              <PunchItemForm
+                projectId={id}
+                rooms={projectRoomChoices.length > 0 ? projectRoomChoices : choices.rooms}
+                contractors={choices.contractors}
+              />
+            </div>
+          </details>
+        ) : null}
       </Panel>
 
       <Panel

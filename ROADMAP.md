@@ -211,14 +211,14 @@ They become a new Milestone 12 (homeowner extras) and Milestone 13 (contractor t
 - **Questions about your project:** ask in plain English ("how much have we spent on the kitchen?") and get an answer that names the records it came from.
 - AI answers only from records the user is allowed to see, are labeled "AI-generated", and need confirmation before any data changes.
 
-## Milestone 12: Homeowner Extras ⬜
+## Milestone 12: Homeowner Extras 🟨 (part 1 built: phone install, calendar feed, allowances, punch list; part 2: email)
 
 **Depends on:** Milestone 10. Jeff approved the features on 2026-11-24.
 
-- **Install on a phone:** a web app manifest and icons, so BeamHaven can be added to the home screen and opens full screen. No offline mode (the data lives on the server).
-- **Calendar feed:** each person can turn on a private calendar link (iCal) with appointments, task due dates and milestones, for Apple or Google Calendar. The link can be replaced if it leaks.
-- **Allowances:** a budget line can hold an allowance for a selection (for example "tile, $3,000"). Materials picked against it show whether they are under or over, and the budget shows the difference.
-- **Punch list:** end-of-project fix items, each with a room, an optional contractor, photos and a status (open, fixed, signed off).
+- **Install on a phone** ✅ (ADR-044): a web app manifest and icons, so BeamHaven can be added to the home screen and opens full screen. No offline mode (the data lives on the server).
+- **Calendar feed** ✅ (ADR-045): each person can turn on a private calendar link (iCal) with appointments, task due dates and milestones, for Apple or Google Calendar. The link can be replaced if it leaks.
+- **Allowances** ✅ (ADR-046): a budget line can hold an allowance for a selection (for example "tile, $3,000"). Materials picked against it show whether they are under or over, and the budget shows the difference.
+- **Punch list** ✅ (ADR-047): end-of-project fix items, each with a room, an optional contractor, photos and a status (open, fixed, signed off).
 - **Email:** invitations, password resets, notifications and an optional daily summary, sent through Resend (Jeff chose it on 2026-11-24), behind a small mail interface so the service can be swapped. Email stays off until it is set up; copy-the-link keeps working.
 
 **Acceptance:** each feature works on the VM; household isolation tests cover every new record; email can be switched on and off by settings alone.
