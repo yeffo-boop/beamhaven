@@ -4,6 +4,22 @@ Newest entries at the top. Each entry records what was done, which files changed
 
 ---
 
+## 2026-11-24: Off-site backups can go to Google Cloud Storage
+
+### Done
+
+- Jeff chose Google Cloud Storage for the off-site copies.
+- `offsite.sh` now supports `RESTIC_REPOSITORY=gs:<bucket>:/beamhaven`. It signs in with a service account key file, `gcs-key.json`, which sits next to `.env`, is ignored by Git, and is mounted read-only. It also passes `GOOGLE_PROJECT_ID`, and stops with a clear message if the key file is missing.
+- `BACKUP_AND_RECOVERY.md` has the Google Cloud console steps: a bucket in the Standard class, and a service account limited to that bucket.
+
+### Tests (cloud workspace, 2026-11-24)
+
+- A missing key file stops with the message and exit code 2.
+- With a key file, the container gets `GOOGLE_APPLICATION_CREDENTIALS`, `GOOGLE_PROJECT_ID` and the key, but not the database password.
+- **Not tested against real Google Cloud** (no account here). Jeff's first `backup.sh` run is that test.
+
+---
+
 ## 2026-11-24: Milestone 10, part 3 (production checklist, restore check, wiping the test data), built
 
 ### Done
