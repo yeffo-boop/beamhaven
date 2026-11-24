@@ -147,8 +147,7 @@ describe("document library", () => {
     await expect(last).rejects.toBeInstanceOf(RuleError);
     await expect(last).rejects.toMatchObject({ code: "document_last_version" });
 
-    // Numbers keep going up: a new upload after a removal is version 2 again
-    // only because the highest left is 1.
+    // The next number is one more than the highest left.
     expect(await addDocumentVersion(a.ctx, id, { name: "v3.pdf", bytes: PDF2 })).toEqual({
       number: 2,
     });

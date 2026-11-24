@@ -1313,7 +1313,7 @@ model DocumentVersion {
   workspaceId String     @map("workspace_id")
   documentId  String     @map("document_id")
   document    Document   @relation(fields: [documentId, workspaceId], references: [id, workspaceId], onDelete: Cascade)
-  /// 1, 2, 3...; never reused, even if a version is removed.
+  /// 1, 2, 3...: one more than the highest left, so removing the newest frees its number.
   number      Int
   fileId      String     @unique @map("file_id")
   file        FileObject @relation(fields: [fileId, workspaceId], references: [id, workspaceId], onDelete: Cascade)
