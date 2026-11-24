@@ -202,6 +202,11 @@ export async function deleteContractorRow(
       where: { workspaceId: ws, contractorId: id },
       data: { contractorId: null },
     });
+    // So do their documents in the library.
+    await tx.document.updateMany({
+      where: { workspaceId: ws, contractorId: id },
+      data: { contractorId: null },
+    });
     const attachments = await tx.attachment.findMany({
       where: { workspaceId: ws, contractorId: id },
       select: { fileId: true },
@@ -257,6 +262,11 @@ export async function unlinkProjectOrRoom(
     data: "projectId" in link ? { projectId: null } : { roomId: null },
   });
   await tx.material.updateMany({
+    where: { workspaceId, ...link },
+    data: "projectId" in link ? { projectId: null } : { roomId: null },
+  });
+  // Library documents stay in the library.
+  await tx.document.updateMany({
     where: { workspaceId, ...link },
     data: "projectId" in link ? { projectId: null } : { roomId: null },
   });

@@ -4,6 +4,33 @@ Newest entries at the top. Each entry records what was done, which files changed
 
 ---
 
+## 2026-11-24: Milestone 8, part 1 (the document library), built
+
+### Done
+
+- **Database** (one migration, `20261124060000_documents`): documents and document versions tables. It only adds tables; no existing data changes.
+- **Files page**: a library of plans, renderings, permits, contracts, manuals, warranties, inspection reports and invoices. Search (names, notes and file names), plus category and project filters. A search also lists matching receipts and documents attached to expenses, contractors, quotes and other records, with a link to each one's record (ADR-034).
+- **A document's page**: the current version (photos shown, PDFs as a download), details, every version with who uploaded it and a note, **Upload a new version**, edit, and delete. A version uploaded by mistake can be removed, but not the last one.
+- **Projects** have a Documents panel listing the project's documents, with a form to add one.
+- Uploads are checked like receipts: a photo or a PDF, read from the contents, within the size limit.
+
+### Tests (cloud workspace, 2026-11-24)
+
+- Lint, formatting and type check: passed. Production build: passed.
+- Unit: 146 of 146 passed.
+- Integration: 127 of 127 passed, including 12 new ones in `tests/integration/documents.test.ts`: versions and numbering (also for uploads at the same moment), the last-version rule, deleting with files, links cleared when a project, room or contractor goes, search, viewers, and other households getting "not found".
+- End-to-end: full run, 74 passed, 26 skipped on purpose, 0 failed (new: add a plan on a project, refuse an HTML file, upload a revision, download, remove a version, find it in Files, delete it; the Files pages fit the screen).
+
+### For Jeff to check
+
+After `update.sh` on the VM, open Files, add a PDF, then upload a second version from its page.
+
+### Next
+
+Milestone 8, part 2: design boards on the Inspiration page.
+
+---
+
 ## 2026-11-24: Milestone 7, part 3 (reminders), built: Milestone 7 done
 
 ### Done

@@ -350,3 +350,18 @@ Statuses: **Proposed** (waiting for Jeff) · **Accepted** · **Superseded**
 - The worker reads the calendar through a **read-only system context** (`systemWorkspaceContext`, viewer role, no person). It's the one exception to "contexts come only from `resolveWorkspaceContext()`", and services that change records refuse it.
 
 **Consequences.** No email or push notifications yet: those can be added as new pg-boss jobs once email is set up (ROADMAP). Reminder timing isn't configurable per person yet. If the worker is down, the website works and reminders catch up when it's back (for that day's window).
+
+## ADR-034: A document library with numbered versions, separate from attachments (Milestone 8, part 1)
+
+**Date:** 2026-11-24. **Status:** accepted. Builds on ADR-012 (private files).
+
+**Decision.**
+
+- The **Files** page is a library of **documents**: plans, renderings, permits, contracts, manuals, warranties, inspection reports, invoices and other papers. Each has a name, a category, notes and optional links to a project, room and contractor in the same household.
+- A document is a list of **versions**, numbered 1, 2, 3… Uploading a new file adds the next number and makes it current; earlier versions are kept and can still be downloaded. Two uploads at the same moment can't get the same number (the document's row is locked while numbering, and a unique key backs it up). A version uploaded by mistake can be removed, but never the last one: delete the document instead.
+- Files are checked the same way as receipts: a photo or a PDF, the type read from the contents, the size limit applied, stored under a random key and only served through the household-checked download route. PDFs are always downloaded, never opened inside BeamHaven.
+- Uploads go through `/api/documents` (like `/api/uploads`, with an origin check and a rate limit) because Server Actions limit request size.
+- Receipts, contractor licenses and quote PDFs **stay attached to their records** (no copying or moving). The Files search also looks through those attachments' file names and captions and links to where each one is kept, so one search finds everything.
+- Deleting a project, room or contractor keeps its documents and clears the link.
+
+**Consequences.** A document can only link to one project, room and contractor; tags can come later if that's too limiting. PDFs have no in-page preview, which is the safe choice (a PDF opened on our address could run scripts in some viewers). Floor plans and renderings are documents in those categories, so they get versions too.
