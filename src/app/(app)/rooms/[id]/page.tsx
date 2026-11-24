@@ -269,7 +269,7 @@ export default async function RoomPage({ params, searchParams }: PageProps<"/roo
       </Panel>
 
       <Panel title="Photos" id="photos">
-        <PhotoGallery photos={photos} targetKind="room" targetId={id} canEdit={canEdit} />
+        <PhotoGallery photos={photos} targetKind="room" targetId={id} canEdit={canEdit} progress />
       </Panel>
 
       <Panel title="Activity" id="activity">

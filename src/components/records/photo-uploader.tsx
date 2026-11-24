@@ -4,6 +4,8 @@ import { ImagePlus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useId, useRef, useState } from "react";
 
+import { inputClass } from "@/components/forms/field";
+import { PHASE_OPTIONS } from "@/components/photos/phases";
 import { Button } from "@/components/ui/button";
 import type { AttachmentTarget } from "@/server/data/files";
 
@@ -15,16 +17,20 @@ export function PhotoUploader({
   targetKind,
   targetId,
   noun = "photo",
+  phases = false,
 }: {
   targetKind: AttachmentTarget["kind"];
   targetId: string;
   /** Receipts and documents also accept PDFs. */
   noun?: "photo" | "receipt" | "document";
+  /** Progress photos: ask whether they're before, during or after the work. */
+  phases?: boolean;
 }) {
   const acceptsPdf = noun !== "photo";
   const router = useRouter();
   const inputId = useId();
   const input = useRef<HTMLInputElement>(null);
+  const [phase, setPhase] = useState("");
   const [status, setStatus] = useState<{ busy: boolean; message?: string; error?: boolean }>({
     busy: false,
   });
@@ -38,6 +44,7 @@ export function PhotoUploader({
     const form = new FormData();
     form.set("targetKind", targetKind);
     form.set("targetId", targetId);
+    if (phases && phase) form.set("phase", phase);
     for (const file of Array.from(files).slice(0, 10)) form.append("file", file);
     try {
       const response = await fetch("/api/uploads", { method: "POST", body: form });
@@ -60,6 +67,25 @@ export function PhotoUploader({
 
   return (
     <div className="flex flex-wrap items-center gap-3">
+      {phases ? (
+        <div className="flex items-center gap-2">
+          <label htmlFor={`${inputId}-phase`} className="text-sm font-medium">
+            Stage for new photos
+          </label>
+          <select
+            id={`${inputId}-phase`}
+            value={phase}
+            onChange={(event) => setPhase(event.target.value)}
+            className={`${inputClass} h-9 w-auto`}
+          >
+            {PHASE_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+        </div>
+      ) : null}
       <input
         ref={input}
         id={inputId}

@@ -1,5 +1,5 @@
 import { connection } from "next/server";
-import { z } from "zod";
+import { z, ZodError } from "zod";
 
 import { getEnv } from "@/config/env";
 import { PermissionError } from "@/server/auth/permissions";
@@ -32,10 +32,14 @@ const targetSchema = z.object({
   ]),
   targetId: z.string().min(1).max(64),
   caption: z.string().max(300).optional(),
+  // Progress photos (Milestone 8, part 3); checked properly by the service.
+  phase: z.string().max(20).optional(),
+  takenOn: z.string().max(20).optional(),
 });
 
 /**
- * Uploads photos to a property, project or room, receipts (photos or
+ * Uploads photos to a property, project or room (optionally with a
+ * "phase" and "takenOn" day), receipts (photos or
  * PDFs) to an expense, or documents (photos or PDFs) to a contractor or
  * warranty: POST multipart/form-data with targetKind, targetId
  * and one or more "file" fields.
@@ -75,6 +79,8 @@ export async function POST(request: Request) {
     targetKind: form.get("targetKind"),
     targetId: form.get("targetId"),
     caption: form.get("caption") ?? undefined,
+    phase: form.get("phase") ?? undefined,
+    takenOn: form.get("takenOn") ?? undefined,
   });
   const files = form.getAll("file").filter((value): value is File => value instanceof File);
   if (!parsed.success || files.length === 0 || files.length > 10) {
@@ -93,11 +99,17 @@ export async function POST(request: Request) {
           ? await uploadReceipt(ctx, target.id, upload)
           : purpose === "document"
             ? await uploadDocument(ctx, target, upload)
-            : await uploadPhoto(ctx, target, upload);
+            : await uploadPhoto(ctx, target, upload, {
+                ...(parsed.data.phase ? { phase: parsed.data.phase } : {}),
+                ...(parsed.data.takenOn ? { takenOn: parsed.data.takenOn } : {}),
+              });
       uploaded.push(attachmentId);
     }
   } catch (error) {
     if (error instanceof UploadError) return json({ error: error.message, uploaded }, 400);
+    if (error instanceof ZodError) {
+      return json({ error: "Choose before, during or after, and a valid date.", uploaded }, 400);
+    }
     if (error instanceof PermissionError) {
       return json({ error: "Viewers can't add files.", uploaded }, 403);
     }

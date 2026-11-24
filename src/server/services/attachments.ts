@@ -15,12 +15,15 @@ import {
   insertAttachedFile,
   listAttachments,
   type NewFile,
+  type PhotoDetails,
   type StoredFile,
+  updatePhotoRow,
 } from "@/server/data/files";
 import { detectImageType, detectReceiptType } from "@/server/storage/detect";
 import { getStorage, newStorageKey } from "@/server/storage/storage";
 
 import { NotFoundError } from "./errors";
+import { photoDetailsInput, photoPhaseInput } from "./photo-inputs";
 
 /** Something wrong with the uploaded file itself; the message is shown to the person. */
 export class UploadError extends Error {}
@@ -44,9 +47,25 @@ export async function uploadPhoto(
   ctx: WorkspaceContext,
   target: AttachmentTarget,
   upload: Upload,
+  details: { phase?: string; takenOn?: string } = {},
 ): Promise<{ attachmentId: string; fileId: string }> {
+  assertCan(ctx, "records:edit");
   if (purposeFor(target.kind) !== "photo") throw new NotFoundError("photo target");
-  return saveUpload(ctx, target, upload, "photo");
+  return saveUpload(ctx, target, upload, "photo", photoPhaseInput.parse(details));
+}
+
+/** Changes a progress photo's caption, phase (before, during, after) and day taken. */
+export async function updatePhotoDetails(
+  ctx: WorkspaceContext,
+  target: AttachmentTarget,
+  attachmentId: string,
+  input: { caption?: string; phase?: string; takenOn?: string },
+): Promise<void> {
+  assertCan(ctx, "records:edit");
+  if (purposeFor(target.kind) !== "photo") throw new NotFoundError("photo target");
+  if (!(await updatePhotoRow(ctx, target, attachmentId, photoDetailsInput.parse(input)))) {
+    throw new NotFoundError("photo");
+  }
 }
 
 /** A document for a contractor, warranty, quote or contract (a license, certificate or contract): a photo or a PDF. */
@@ -168,11 +187,12 @@ async function saveUpload(
   target: AttachmentTarget,
   upload: Upload,
   purpose: Purpose,
+  photo?: PhotoDetails,
 ): Promise<{ attachmentId: string; fileId: string }> {
   const { file, discard } = await storeUploadedFile(ctx, upload, purpose);
   const caption = upload.caption?.trim().slice(0, 300) || null;
   try {
-    const created = await insertAttachedFile(ctx, target, file, purpose, caption);
+    const created = await insertAttachedFile(ctx, target, file, purpose, caption, photo);
     if (!created) throw new NotFoundError(target.kind);
     await recordActivity(ctx, {
       action: `${target.kind}.${purpose}_added`,

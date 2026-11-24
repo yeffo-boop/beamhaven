@@ -436,7 +436,13 @@ export default async function ProjectPage({ params, searchParams }: PageProps<"/
       </Panel>
 
       <Panel title="Photos" id="photos">
-        <PhotoGallery photos={photos} targetKind="project" targetId={id} canEdit={canEdit} />
+        <PhotoGallery
+          photos={photos}
+          targetKind="project"
+          targetId={id}
+          canEdit={canEdit}
+          progress
+        />
       </Panel>
 
       <Panel title="Activity" id="activity">

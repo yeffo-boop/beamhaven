@@ -343,6 +343,10 @@ model Attachment {
   file         FileObject  @relation(fields: [fileId, workspaceId], references: [id, workspaceId], onDelete: Cascade)
   purpose      String      @default("photo")
   caption      String?
+  /// Progress photos only: "before", "during" or "after" the work (Milestone 8, part 3).
+  phase        String?
+  /// Progress photos only: the day it was taken, if known.
+  takenOn      DateTime?   @map("taken_on") @db.Date
   propertyId   String?     @map("property_id")
   property     Property?   @relation(fields: [propertyId], references: [id], onDelete: Cascade)
   projectId    String?     @map("project_id")

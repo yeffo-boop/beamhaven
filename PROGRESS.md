@@ -4,6 +4,39 @@ Newest entries at the top. Each entry records what was done, which files changed
 
 ---
 
+## 2026-11-24: Milestone 8, part 3 (progress photos), built: Milestone 8 done
+
+### Done
+
+- **Database** (one migration, `20261124080000_photo_phases`): two optional columns on photo attachments, the phase and the day taken. It only adds columns, and existing photos show as "not sorted".
+- **Projects and rooms**: photos are grouped into Before, During, After and Not sorted, oldest first.
+  - When adding photos, you can pick a **Stage for new photos**.
+  - Each photo's **Details** sets its caption, stage and the day it was taken.
+- **Before and after**: once there's a before photo and an after photo, a comparison appears. It shows the before photo over the after photo, with a slider to wipe between them, and pickers to choose which two to compare (ADR-036).
+- Photo uploads now also accept a phase and a day. The upload route checks them and refuses anything else with a clear message.
+
+### Tests (cloud workspace, 2026-11-24)
+
+- Lint, formatting and type check: passed. Production build: passed.
+- Unit: 146 of 146 passed.
+- Integration: 142 of 142 passed, including 5 new ones in `tests/integration/progress-photos.test.ts`:
+  - the phase and day on upload, and changed later;
+  - an unknown phase or a bad date refused;
+  - details only on that record's photos (not a document, not through another record);
+  - viewers;
+  - other households getting "not found".
+- End-to-end: full run, 79 passed, 30 skipped on purpose, 0 failed. New test: upload a before photo, upload another and sort it as after with a caption and day, then see the comparison and move the slider.
+
+### For Jeff to check
+
+After `update.sh`, open a project or room. Add a photo with the stage set to Before, then one set to After, and try the slider.
+
+### Next
+
+Milestone 9 (dashboard and reports) needs Jeff's go-ahead.
+
+---
+
 ## 2026-11-24: Milestone 8, part 2 (design boards), built
 
 ### Done
