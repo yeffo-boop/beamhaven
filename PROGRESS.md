@@ -4,6 +4,22 @@ Newest entries at the top. Each entry records what was done, which files changed
 
 ---
 
+## 2026-11-24: Roadmap updated with the features picked from the competitor review
+
+### Done
+
+- Jeff compared BeamHaven with HomeZada, Houzz, Buildertrend, JobTread and Houzz Pro, and picked what to add (see "Changes agreed on 2026-11-24" in `ROADMAP.md`).
+- New **Milestone 12 (Homeowner Extras):** phone install, calendar feed, allowances, punch list, email.
+- New **Milestone 13 (Contractor Tools):** client portal, e-signatures, daily job logs, lead tracking.
+- Milestone 11 (AI) gains receipt scanning and questions about your project. It still waits on Jeff's approval of the costs.
+- The old Milestone 12 (refinement) is now Milestone 14. Online payments and QuickBooks sync are left out for now.
+
+### Next step
+
+Milestone 12, part 1. Email (part 2) will use Resend, which Jeff chose on 2026-11-24.
+
+---
+
 ## 2026-11-24: Milestone 10 done: BeamHaven is in production
 
 ### Done (on Jeff's VM, as Jeff reported them on 2026-11-24)
