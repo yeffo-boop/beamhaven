@@ -172,6 +172,7 @@ Photos, manuals and spec sheets are attachments with `material_id` (purpose `doc
 | **Workspace** (added) | timeZone                                                                                                         | IANA name, `UTC` until an owner sets it. Used for "today" and (part 3) reminders.                                                                                         |
 
 | **Reminder** | workspaceId, userId, entryKey, kind, title, href, day, readAt | One person's in-app reminder, written by the worker (ADR-033). Unique per (userId, entryKey, day). Goes with the household or the person. href must be an in-app path. |
+| **Notification** | workspaceId, userId, actorUserId, kind, summary, href, createdAt, readAt | Something another person did that involves you (Milestone 9, part 4, ADR-040). kind: `task_assigned`, `task_done`, `quote_decided`, `board_item_approved` (a database check). Never to yourself, only to current members. Goes with the household or the person. href must be an in-app path. |
 
 The calendar itself isn't stored: it's read from appointments, tasks' due dates, milestones' target dates, deliveries, orders' expected dates and unpaid bills' due dates (ADR-032).
 

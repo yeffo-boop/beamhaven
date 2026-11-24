@@ -25,6 +25,7 @@ import { removeFiles, storeUploadedFile, type Upload, UploadError } from "./atta
 import { boardInput, boardItemInput, reorderInput } from "./board-inputs";
 import { NotFoundError, RuleError } from "./errors";
 import type { FormInput } from "./inputs";
+import { notifyBoardItemApproved } from "./notifications";
 
 /** Design boards (Milestone 8, part 2, ADR-035). */
 
@@ -163,6 +164,7 @@ export async function markBoardItem(
       entityId: boardId,
       summary: on ? `Approved “${item.title}”` : `Took back the approval of “${item.title}”`,
     });
+    if (on) await notifyBoardItemApproved(ctx, boardId, item.title);
   }
 }
 

@@ -43,6 +43,7 @@ import {
   rejectInput,
   revisionInput,
 } from "./quote-inputs";
+import { notifyQuoteDecided } from "./notifications";
 
 /**
  * Quotes, contracts and change orders. Approving and turning down quotes
@@ -196,6 +197,7 @@ export async function approveQuote(
     "quote_approved",
     `Approved the quote “${quote.title}” for ${formatMoney(result.amountCents)}`,
   );
+  await notifyQuoteDecided(ctx, id, quote.title, true);
 }
 
 export async function rejectQuote(
@@ -208,6 +210,7 @@ export async function rejectQuote(
   const quote = await getQuote(ctx, id);
   changed(await rejectQuoteRow(ctx, id, note));
   await log(ctx, quote, "quote_rejected", `Turned down the quote “${quote.title}”`);
+  await notifyQuoteDecided(ctx, id, quote.title, false);
 }
 
 export async function withdrawApproval(ctx: WorkspaceContext, id: string): Promise<void> {

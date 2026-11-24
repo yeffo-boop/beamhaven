@@ -98,7 +98,7 @@ test("put an inspection on a project, see it coming up and on the calendar, then
 });
 
 test("calendar pages fit the screen", async ({ page }) => {
-  for (const path of [`/schedule?date=${daysFromNow(0)}`, "/settings", "/reminders"]) {
+  for (const path of [`/schedule?date=${daysFromNow(0)}`, "/settings", "/notifications"]) {
     await page.goto(path);
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
     const overflow = await page.evaluate(
@@ -108,11 +108,15 @@ test("calendar pages fit the screen", async ({ page }) => {
   }
 });
 
-test("the reminders bell opens the reminders", async ({ page }) => {
+test("the bell opens notifications and reminders", async ({ page }) => {
   await page.goto("/projects");
-  await visible(page.getByRole("link", { name: /^Reminders/ }))
+  await visible(page.getByRole("link", { name: /^Notifications/ }))
     .first()
     .click();
-  await expect(page.getByRole("heading", { level: 1, name: "Reminders" })).toBeVisible();
-  await expect(page.getByRole("region", { name: "New" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "Notifications" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Reminders" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "From your household" })).toBeVisible();
+  // The old address still works.
+  await page.goto("/reminders");
+  await expect(page.getByRole("heading", { level: 1, name: "Notifications" })).toBeVisible();
 });
