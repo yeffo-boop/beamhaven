@@ -122,6 +122,7 @@ model Workspace {
   priceItems        PriceItem[]
   materials         Material[]
   reminders         Reminder[]
+  documents         Document[]
 
   @@map("workspaces")
 }
@@ -226,6 +227,7 @@ model Project {
   orders           Order[]
   milestones       Milestone[]
   appointments     Appointment[]
+  documents        Document[]
 
   @@unique([id, workspaceId])
   @@index([workspaceId])
@@ -261,6 +263,7 @@ model Room {
   estimateAreas   RoomEstimateArea[]
   materials       Material[]
   appointments    Appointment[]
+  documents       Document[]
 
   @@unique([id, workspaceId])
   @@index([workspaceId])
@@ -310,17 +313,18 @@ model Opening {
 // ---------------------------------------------------------------------------
 
 model FileObject {
-  id           String       @id
-  workspaceId  String       @map("workspace_id")
-  storageKey   String       @unique @map("storage_key")
-  originalName String       @map("original_name")
+  id              String           @id
+  workspaceId     String           @map("workspace_id")
+  storageKey      String           @unique @map("storage_key")
+  originalName    String           @map("original_name")
   /// Worked out from the file's contents, never from its name or the browser.
-  mimeType     String       @map("mime_type")
-  sizeBytes    Int          @map("size_bytes")
-  sha256       String
-  uploadedById String?      @map("uploaded_by_id")
-  createdAt    DateTime     @default(now()) @map("created_at")
-  attachments  Attachment[]
+  mimeType        String           @map("mime_type")
+  sizeBytes       Int              @map("size_bytes")
+  sha256          String
+  uploadedById    String?          @map("uploaded_by_id")
+  createdAt       DateTime         @default(now()) @map("created_at")
+  attachments     Attachment[]
+  documentVersion DocumentVersion?
 
   @@unique([id, workspaceId])
   @@index([workspaceId])
@@ -686,6 +690,7 @@ model Contractor {
   quotes             Quote[]
   contracts          Contract[]
   appointments       Appointment[]
+  documents          Document[]
 
   @@unique([id, workspaceId])
   @@unique([vendorId, workspaceId])
@@ -1268,4 +1273,57 @@ model Reminder {
   @@unique([userId, entryKey, day])
   @@index([workspaceId, userId, readAt])
   @@map("reminders")
+}
+
+// ---------------------------------------------------------------------------
+// Document library (Milestone 8, part 1, ADR-034). A document keeps every
+// version of its file; the newest is the current one.
+// ---------------------------------------------------------------------------
+
+model Document {
+  id           String            @id
+  workspaceId  String            @map("workspace_id")
+  workspace    Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  title        String
+  /// "plan", "rendering", "permit", "contract", "manual", "warranty",
+  /// "inspection", "invoice" or "other".
+  category     String            @default("other")
+  projectId    String?           @map("project_id")
+  project      Project?          @relation(fields: [projectId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
+  roomId       String?           @map("room_id")
+  room         Room?             @relation(fields: [roomId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
+  contractorId String?           @map("contractor_id")
+  contractor   Contractor?       @relation(fields: [contractorId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
+  notes        String?
+  createdById  String?           @map("created_by_id")
+  createdAt    DateTime          @default(now()) @map("created_at")
+  updatedAt    DateTime          @updatedAt @map("updated_at")
+  versions     DocumentVersion[]
+
+  @@unique([id, workspaceId])
+  @@index([workspaceId, category])
+  @@index([projectId])
+  @@index([roomId])
+  @@index([contractorId])
+  @@map("documents")
+}
+
+model DocumentVersion {
+  id          String     @id
+  workspaceId String     @map("workspace_id")
+  documentId  String     @map("document_id")
+  document    Document   @relation(fields: [documentId, workspaceId], references: [id, workspaceId], onDelete: Cascade)
+  /// 1, 2, 3...; never reused, even if a version is removed.
+  number      Int
+  fileId      String     @unique @map("file_id")
+  file        FileObject @relation(fields: [fileId, workspaceId], references: [id, workspaceId], onDelete: Cascade)
+  /// What changed ("Revised after the inspector's comments").
+  note        String?
+  createdById String?    @map("created_by_id")
+  createdAt   DateTime   @default(now()) @map("created_at")
+
+  @@unique([documentId, number])
+  @@unique([fileId, workspaceId])
+  @@index([workspaceId])
+  @@map("document_versions")
 }

@@ -184,7 +184,14 @@ The calendar itself isn't stored: it's read from appointments, tasks' due dates,
 
 Built so far: purposes `photo` (property, project, room) and `receipt` (expense; a photo or a PDF, which is only ever sent as a download). The other targets arrive with their milestones. The bytes live in the storage folder under `<workspaceId>/<random 64-character hex>`; the database never holds file contents.
 
-Document versions (Milestone 8) will add a `Document` with a `DocumentVersion` table pointing to FileObjects.
+### Document library (Milestone 8, part 1)
+
+| Model               | Key fields                                                                                       | Notes                                                                                                                                                                                    |
+| ------------------- | ------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Document**        | id, workspaceId, title, category, projectId, roomId, contractorId, notes, createdById, updatedAt | category: plan, rendering, permit, contract, manual, warranty, inspection, invoice or other (a database check). Optional links to the same household's records, cleared on their delete. |
+| **DocumentVersion** | id, workspaceId, documentId, number, fileId (unique), note, createdById, createdAt               | One per uploaded file; the highest number is current. Unique (documentId, number). Deleting the document deletes its versions and their files. The last version can't be removed alone.  |
+
+The library is separate from attachments: a receipt stays on its expense and a license on its contractor. A search on the Files page also looks through those attachments' names and captions (ADR-034).
 
 ## 6. Activity history (from Milestone 3 on)
 
@@ -198,7 +205,7 @@ Written by the service layer whenever something important changes. It powers the
 
 - **Orders (M6, parts 2 and 3):** `Order`, `OrderItem` (which saves `unitPriceCents` at the time of purchase), `Shipment`, `ShipmentItem`, `Return`.
 - **Scheduling (M7):** `Milestone`, `TaskDependency` (with a cycle check), `CalendarEvent` (appointments, inspections and deliveries), `Reminder`.
-- **Design boards (M8):** `DesignBoard`, `BoardItem` (an image, a product reference, or a color or finish), plus `isPreferred` / `isApproved` flags.
+- **Design boards (M8, part 2):** `DesignBoard`, `BoardItem` (an image, a product reference, or a color or finish), plus `isPreferred` / `isApproved` flags.
 - **Notifications (M9):** `Notification` (per user and household), `NotificationPreference`.
 - **AI (M11):** `AiUsage` (tokens and cost per user and household), `AiConsent`.
 

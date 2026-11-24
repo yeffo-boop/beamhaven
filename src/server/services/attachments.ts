@@ -14,6 +14,7 @@ import {
   findFile,
   insertAttachedFile,
   listAttachments,
+  type NewFile,
   type StoredFile,
 } from "@/server/data/files";
 import { detectImageType, detectReceiptType } from "@/server/storage/detect";
@@ -126,12 +127,16 @@ const PURPOSES = {
 
 export type Purpose = keyof typeof PURPOSES;
 
-async function saveUpload(
+/**
+ * Checks an uploaded file (size, and type from its contents) and stores its
+ * bytes under a new random key. The caller records it; if that fails, it
+ * calls `discard` so no bytes are left that nothing points to.
+ */
+export async function storeUploadedFile(
   ctx: WorkspaceContext,
-  target: AttachmentTarget,
   upload: Upload,
   purpose: Purpose,
-): Promise<{ attachmentId: string; fileId: string }> {
+): Promise<{ file: NewFile; discard: () => Promise<void> }> {
   assertCan(ctx, "records:edit");
   const { bytes } = upload;
   const maxBytes = getEnv().UPLOAD_MAX_MB * 1024 * 1024;
@@ -146,32 +151,39 @@ async function saveUpload(
   const storageKey = newStorageKey(ctx.workspaceId);
   const storage = getStorage();
   await storage.put(storageKey, bytes);
+  return {
+    file: {
+      storageKey,
+      originalName: cleanFileName(upload.name, purpose),
+      mimeType,
+      sizeBytes: bytes.length,
+      sha256: createHash("sha256").update(bytes).digest("hex"),
+    },
+    discard: () => storage.delete(storageKey),
+  };
+}
+
+async function saveUpload(
+  ctx: WorkspaceContext,
+  target: AttachmentTarget,
+  upload: Upload,
+  purpose: Purpose,
+): Promise<{ attachmentId: string; fileId: string }> {
+  const { file, discard } = await storeUploadedFile(ctx, upload, purpose);
   const caption = upload.caption?.trim().slice(0, 300) || null;
   try {
-    const created = await insertAttachedFile(
-      ctx,
-      target,
-      {
-        storageKey,
-        originalName: cleanFileName(upload.name, purpose),
-        mimeType,
-        sizeBytes: bytes.length,
-        sha256: createHash("sha256").update(bytes).digest("hex"),
-      },
-      purpose,
-      caption,
-    );
+    const created = await insertAttachedFile(ctx, target, file, purpose, caption);
     if (!created) throw new NotFoundError(target.kind);
     await recordActivity(ctx, {
       action: `${target.kind}.${purpose}_added`,
       entityType: target.kind,
       entityId: target.id,
-      summary: rules.added,
+      summary: PURPOSES[purpose].added,
     });
     return created;
   } catch (error) {
     // Don't leave bytes behind that no record points to.
-    await storage.delete(storageKey);
+    await discard();
     throw error;
   }
 }

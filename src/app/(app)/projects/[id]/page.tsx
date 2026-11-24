@@ -15,6 +15,8 @@ import { ActivityList } from "@/components/records/activity-list";
 import { ConfirmAction } from "@/components/records/confirm-action";
 import { orNotFound } from "@/components/records/or-not-found";
 import { Detail, EmptyState, Panel } from "@/components/records/panel";
+import { AddDocumentForm } from "@/components/documents/document-forms";
+import { DocumentList } from "@/components/documents/document-list";
 import { PhotoGallery } from "@/components/records/photo-gallery";
 import { ProjectRoomsForm } from "@/components/records/project-rooms-form";
 import { StatusBadge } from "@/components/records/status-badge";
@@ -37,6 +39,7 @@ import { getHouseholdToday } from "@/server/services/preferences";
 import { getProjectContractors } from "@/server/services/contractors";
 import { getProject } from "@/server/services/projects";
 import { getRooms } from "@/server/services/rooms";
+import { getDocumentLibrary } from "@/server/services/documents";
 import { getMaterials } from "@/server/services/materials";
 import { getOrders } from "@/server/services/orders";
 import { getMilestones } from "@/server/services/milestones";
@@ -68,6 +71,7 @@ export default async function ProjectPage({ params, searchParams }: PageProps<"/
     orders,
     milestones,
     householdToday,
+    documents,
   ] = await Promise.all([
     getPhotos(ctx, { kind: "project", id }),
     getActivity(ctx, "project", id),
@@ -83,6 +87,7 @@ export default async function ProjectPage({ params, searchParams }: PageProps<"/
     getOrders(ctx, { projectId: id }),
     getMilestones(ctx, { projectId: id }),
     getHouseholdToday(ctx),
+    getDocumentLibrary(ctx, { projectId: id }),
   ]);
   const comingUp = await getCalendar(ctx, {
     from: householdToday,
@@ -379,6 +384,33 @@ export default async function ProjectPage({ params, searchParams }: PageProps<"/
                 contractors={choices.contractors}
                 projects={choices.projects}
                 rooms={projectRoomChoices}
+              />
+            </div>
+          </details>
+        ) : null}
+      </Panel>
+
+      <Panel
+        title="Documents"
+        id="documents"
+        actions={
+          <Button asChild variant="outline" size="sm">
+            <Link href={`/files?project=${id}`}>Open in Files</Link>
+          </Button>
+        }
+      >
+        <DocumentList
+          documents={documents}
+          empty="No plans, permits or other documents for this project yet."
+          showProject={false}
+        />
+        {canEdit ? (
+          <details className="rounded-[var(--radius-control)] border border-border p-3">
+            <summary className="cursor-pointer text-sm font-medium">Add a document</summary>
+            <div className="mt-3">
+              <AddDocumentForm
+                choices={{ ...choices, rooms: projectRoomChoices }}
+                fixedProjectId={id}
               />
             </div>
           </details>
