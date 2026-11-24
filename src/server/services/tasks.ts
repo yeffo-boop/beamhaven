@@ -26,6 +26,7 @@ import { removeFiles } from "./attachments";
 import { taskInput, taskStatusInput, warrantyInput } from "./contractor-inputs";
 import { fieldError, NotFoundError, RuleError } from "./errors";
 import type { FormInput } from "./inputs";
+import { notifyTaskAssigned, notifyTaskDone } from "./notifications";
 
 // --- Tasks -----------------------------------------------------------------
 
@@ -89,6 +90,8 @@ export async function createTask(ctx: WorkspaceContext, input: TaskInput): Promi
       summary: `Added the task “${fields.title}”`,
     });
   }
+  await notifyTaskAssigned(ctx, created.id, fields.title, fields.assigneeUserId);
+  if (fields.status === "done") await notifyTaskDone(ctx, created.id);
   return { id: created.id };
 }
 
@@ -98,8 +101,14 @@ export async function updateTask(
   input: TaskInput,
 ): Promise<void> {
   assertCan(ctx, "records:edit");
-  const result = await updateTaskRow(ctx, id, taskFields(input));
+  const fields = taskFields(input);
+  const before = await findTask(ctx, id);
+  const result = await updateTaskRow(ctx, id, fields);
   if (result.status !== "saved") taskProblem(result, "task");
+  if (fields.assigneeUserId !== before?.assigneeUserId) {
+    await notifyTaskAssigned(ctx, id, fields.title, fields.assigneeUserId);
+  }
+  if (fields.status === "done" && before?.status !== "done") await notifyTaskDone(ctx, id);
 }
 
 export async function changeTaskStatus(
@@ -109,9 +118,11 @@ export async function changeTaskStatus(
 ): Promise<void> {
   assertCan(ctx, "records:edit");
   const parsed = taskStatusInput.parse(status);
+  const before = await findTask(ctx, id);
   const result = await setTaskStatus(ctx, id, parsed);
   if (result.status === "blocked") throw new RuleError("task_blocked");
   if (result.status !== "saved") throw new NotFoundError("task");
+  if (parsed === "done" && before?.status !== "done") await notifyTaskDone(ctx, id);
 }
 
 export async function deleteTask(ctx: WorkspaceContext, id: string): Promise<void> {

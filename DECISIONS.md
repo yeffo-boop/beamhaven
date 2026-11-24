@@ -457,3 +457,22 @@ Statuses: **Proposed** (waiting for Jeff) · **Accepted** · **Superseded**
 **Why not make PDFs on the server?** That needs either a PDF library, which means laying everything out a second time, or a headless browser in the container, which is large and a security risk. Every browser Jeff uses (Safari on Mac and iPad, Chrome) already saves a page as a PDF.
 
 **Consequences.** How the PDF looks depends a little on the browser. There's no scheduled or emailed report. A household-wide printable summary can be added later in the same way.
+
+## ADR-040: In-app notifications are written when someone else does something that involves you (Milestone 9, part 4)
+
+**Date:** 2026-11-24. **Status:** accepted. Builds on ADR-033 (reminders).
+
+**Decision.**
+
+- A new **notifications** table holds one row per person per event. It stores who it's for, who did it, what happened, a link inside the app, and whether it's been read. The person's name is looked up when it's shown, as in the activity history.
+- Four kinds, each written right after the change is saved:
+  - **A task is given to you** (a new task, or a change of who it's for).
+  - **A task you made, or that's yours, is finished.** This is written only when it turns done, not each time it's saved.
+  - **A quote you entered is approved or turned down.**
+  - **Something is approved on a design board you started.**
+- **Never to yourself.** Only to people who are still members of the household, so nothing reaches someone who has left. The same person never gets two for one event, for example when they both made the task and were assigned it.
+- **Where:** the bell in the sidebar and the phone's top bar now counts unread notifications and reminders together, and opens a **Notifications** page with two lists: "From your household" and "Reminders". The old `/reminders` address sends you there. "Mark all read" clears both. Each person only ever sees and marks their own.
+- Viewers get notifications too (for example a task given to them), since they can read every record.
+- Database checks allow only the four kinds and in-app links.
+
+**Consequences.** No email or push yet: like reminders, those wait for email to be set up. Comments and @-mentions don't exist yet, so they don't notify. Notifications aren't cleared automatically; if the list grows large, a later job can delete read ones older than, say, six months.

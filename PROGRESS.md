@@ -4,6 +4,36 @@ Newest entries at the top. Each entry records what was done, which files changed
 
 ---
 
+## 2026-11-24: Milestone 9, part 4 (in-app notifications), built: Milestone 9 done
+
+### Done
+
+- **Notifications** (ADR-040): you now hear in the app when someone else:
+  - gives you a task;
+  - finishes a task you made or that's yours;
+  - approves or turns down a quote you entered;
+  - approves something on a design board you started.
+- You're never notified about your own actions, and only current household members are notified.
+- The **bell** now counts notifications and reminders together and opens a new **Notifications** page with "From your household" and "Reminders". The old Reminders address still works.
+- **Database** (one migration, `20261124090000_notifications`): adds a new `notifications` table. It only adds; existing data isn't touched.
+
+### Tests (cloud workspace, 2026-11-24)
+
+- Lint, formatting and type check: passed. Production build: passed. The migration was applied to the local and test databases.
+- Unit: 153 of 153 passed.
+- Integration: 164 of 164 passed, including 5 new ones in `tests/integration/notifications.test.ts`: tasks given and reassigned, finished tasks (creator and assignee, not repeated), quotes approved and turned down, board approvals, nothing to yourself, nothing outside the household, only marking your own read, and the database checks.
+- End-to-end: full run, 92 passed, 38 skipped on purpose, 0 failed. Updated: the bell opens Notifications, and the old Reminders address still works.
+
+### For Jeff to check
+
+After `update.sh` (it runs the new migration), sign in as another household member, give Jeff a task, then check that Jeff's bell shows it.
+
+### Next
+
+Milestone 9 is done. Milestone 10 (production deployment) needs Jeff's go-ahead.
+
+---
+
 ## 2026-11-24: Milestone 9, part 3 (reports and exports), built
 
 ### Done

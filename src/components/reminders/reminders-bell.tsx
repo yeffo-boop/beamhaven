@@ -3,20 +3,25 @@ import Link from "next/link";
 
 import { cn } from "@/lib/utils";
 import { getWorkspaceContext } from "@/server/auth/workspace";
+import { getUnreadNotificationCount } from "@/server/services/notifications";
 import { getUnreadReminderCount } from "@/server/services/reminders";
 
 /**
- * A bell linking to Reminders, with how many are unread. Reads the session,
- * so it must sit inside <Suspense>.
+ * A bell linking to Notifications, with how many notifications and reminders
+ * are unread. Reads the session, so it must sit inside <Suspense>.
  */
 export async function RemindersBell({ compact = false }: { compact?: boolean }) {
   const ctx = await getWorkspaceContext();
   if (!ctx) return null;
-  const unread = await getUnreadReminderCount(ctx);
-  const label = unread === 0 ? "Reminders" : `Reminders, ${unread} unread`;
+  const [reminders, notifications] = await Promise.all([
+    getUnreadReminderCount(ctx),
+    getUnreadNotificationCount(ctx),
+  ]);
+  const unread = reminders + notifications;
+  const label = unread === 0 ? "Notifications" : `Notifications, ${unread} unread`;
   return (
     <Link
-      href="/reminders"
+      href="/notifications"
       title={label}
       aria-label={label}
       className={cn(
@@ -25,7 +30,7 @@ export async function RemindersBell({ compact = false }: { compact?: boolean }) 
       )}
     >
       <Bell className="size-[18px] shrink-0" aria-hidden="true" />
-      {compact ? null : <span className="hidden lg:inline">Reminders</span>}
+      {compact ? null : <span className="hidden lg:inline">Notifications</span>}
       {unread > 0 ? (
         <span
           aria-hidden="true"

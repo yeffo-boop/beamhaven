@@ -169,7 +169,7 @@ Built in three parts: **part 1** milestones, task dependencies and the Schedule 
 - Floor plans and renderings (images and PDFs), with versions. ✅ (part 1: library categories)
 - Progress photos by phase, with before-and-after comparison. ✅ (part 3)
 
-## Milestone 9: Dashboard and Reports 🟨
+## Milestone 9: Dashboard and Reports ✅
 
 **Depends on:** Milestones 4 to 8.
 
@@ -177,7 +177,7 @@ Built in three parts: **part 1** milestones, task dependencies and the Schedule 
 - ✅ An activity feed (part 1, ADR-037).
 - ✅ Search across everything a user is allowed to see (part 2, ADR-038).
 - ✅ Financial and project reports, with CSV and PDF exports (part 3, ADR-039).
-- In-app notifications.
+- ✅ In-app notifications (part 4, ADR-040).
 
 ## Milestone 10: Production Deployment ⬜
 
