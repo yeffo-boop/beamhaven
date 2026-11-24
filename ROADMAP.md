@@ -189,6 +189,16 @@ Built in three parts: **part 1** milestones, task dependencies and the Schedule 
 - Health checks, log rotation, and containers that restart after a reboot. ✅ built (part 2, ADR-042); the reboot test is Jeff's, on the VM.
 - A production readiness checklist. ✅ (`PRODUCTION_CHECKLIST.md`, with `wipe-test-data.sh` for clearing the test data)
 
+## Changes agreed on 2026-11-24
+
+After a look at competing apps (HomeZada, Houzz, Buildertrend, JobTread, Houzz Pro), Jeff picked these additions on 2026-11-24:
+
+- Homeowner features: email alerts and a daily summary, a calendar feed, installing BeamHaven on a phone like an app, allowances, a punch list, receipt scanning and questions about your own project.
+- Contractor features: a client portal, e-signatures, daily job logs and lead tracking.
+- **Left out for now:** online payments and QuickBooks sync. Also 3D room planners (too big for what they give).
+
+They become a new Milestone 12 (homeowner extras) and Milestone 13 (contractor tools). The old Milestone 12 (refinement) becomes Milestone 14. Milestone 11 still waits on Jeff's approval of the AI costs, so Milestone 12 can be built first.
+
 ## Milestone 11: AI Features ⬜
 
 **Depends on:** Milestone 9 and Jeff's approval of the costs.
@@ -197,9 +207,34 @@ Built in three parts: **part 1** milestones, task dependencies and the Schedule 
 - A provider abstraction, so the AI service can be swapped later.
 - Usage tracking and spending limits.
 - First workflows: quote summaries and comparisons, and explanations of renovation terms.
+- **Receipt scanning:** a photo of a receipt is read and turned into a draft expense, which a person checks and saves.
+- **Questions about your project:** ask in plain English ("how much have we spent on the kitchen?") and get an answer that names the records it came from.
 - AI answers only from records the user is allowed to see, are labeled "AI-generated", and need confirmation before any data changes.
 
-## Milestone 12: Refinement and Future Readiness ⬜
+## Milestone 12: Homeowner Extras ⬜
+
+**Depends on:** Milestone 10. Jeff approved the features on 2026-11-24.
+
+- **Install on a phone:** a web app manifest and icons, so BeamHaven can be added to the home screen and opens full screen. No offline mode (the data lives on the server).
+- **Calendar feed:** each person can turn on a private calendar link (iCal) with appointments, task due dates and milestones, for Apple or Google Calendar. The link can be replaced if it leaks.
+- **Allowances:** a budget line can hold an allowance for a selection (for example "tile, $3,000"). Materials picked against it show whether they are under or over, and the budget shows the difference.
+- **Punch list:** end-of-project fix items, each with a room, an optional contractor, photos and a status (open, fixed, signed off).
+- **Email:** invitations, password resets, notifications and an optional daily summary, sent through Resend (Jeff chose it on 2026-11-24), behind a small mail interface so the service can be swapped. Email stays off until it is set up; copy-the-link keeps working.
+
+**Acceptance:** each feature works on the VM; household isolation tests cover every new record; email can be switched on and off by settings alone.
+
+## Milestone 13: Contractor Tools ⬜
+
+**Depends on:** Milestone 12, and Jeff's go-ahead to start. Builds on ADR-017.
+
+- **Client role and portal:** a company workspace can invite a client who sees only the projects they are given. They see progress, photos, the schedule, chosen documents and what is waiting on them. Internal costs and notes stay hidden.
+- **E-signatures:** contracts and change orders can be sent for signature. The signer types their name and agrees; we keep who signed, when, from where, and a fingerprint (hash) of the exact document they signed.
+- **Daily job logs:** a dated entry per project with work done, crew on site, weather, problems and photos, optionally shared with the client.
+- **Lead tracking:** a simple pipeline of possible jobs (new, contacted, quoted, won, lost) that turns into a project and a client when won.
+
+**Acceptance:** a client can never see another client's project, or internal costs, as proven by isolation tests; a signed document can't be changed afterwards.
+
+## Milestone 14: Refinement and Future Readiness ⬜
 
 - Mobile usability, performance, accessibility and onboarding.
 - A security review.
@@ -208,9 +243,9 @@ Built in three parts: **part 1** milestones, task dependencies and the Schedule 
 
 ---
 
-## Future direction: small contracting companies (not scheduled)
+## Future direction: small contracting companies (Milestone 13 starts this)
 
-Jeff may later offer BeamHaven to small construction and contracting companies, not only homeowners. A company would create projects and bids, and give each client a portal into their own project. **None of this is being built now** (ADR-017), but we design so it can be added without a rewrite:
+Jeff may later offer BeamHaven to small construction and contracting companies, not only homeowners. A company would create projects and bids, and give each client a portal into their own project. The first contractor tools are planned as Milestone 13. Until then we design so it can be added without a rewrite:
 
 - A "household" is stored as a general **workspace**, which could later be a company.
 - All permission checks go through one `can()` function, so a **client** role that only sees one project can be added later.
