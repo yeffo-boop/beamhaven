@@ -176,7 +176,7 @@ Built in three parts: **part 1** milestones, task dependencies and the Schedule 
 - ✅ The consolidated dashboard (part 1, ADR-037).
 - ✅ An activity feed (part 1, ADR-037).
 - ✅ Search across everything a user is allowed to see (part 2, ADR-038).
-- Financial and project reports, with CSV and PDF exports.
+- ✅ Financial and project reports, with CSV and PDF exports (part 3, ADR-039).
 - In-app notifications.
 
 ## Milestone 10: Production Deployment ⬜

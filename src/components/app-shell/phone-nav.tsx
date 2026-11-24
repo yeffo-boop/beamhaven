@@ -29,7 +29,7 @@ import { BrandMark } from "./brand-mark";
 /** Phone-only top bar with the product name and the reminders bell. */
 export function PhoneTopBar({ reminders }: { reminders?: ReactNode }) {
   return (
-    <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-border bg-background/95 px-4 backdrop-blur md:hidden">
+    <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-border bg-background/95 px-4 backdrop-blur md:hidden print:hidden">
       <Link href="/" className="flex items-center gap-2">
         <BrandMark className="size-6" />
         <span className="font-semibold tracking-tight">{brand.name}</span>
@@ -70,7 +70,7 @@ export function PhoneTabBarView({ pathname }: { pathname: string | null }) {
   return (
     <nav
       aria-label="Main"
-      className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-border bg-surface px-1 pt-1 pb-[max(env(safe-area-inset-bottom),0.5rem)] md:hidden"
+      className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-border bg-surface px-1 pt-1 pb-[max(env(safe-area-inset-bottom),0.5rem)] md:hidden print:hidden"
     >
       {tabs.map((item) => {
         const Icon = item.icon;
