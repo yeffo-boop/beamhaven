@@ -6,7 +6,7 @@ import type { ReactNode } from "react";
 
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { brand } from "@/config/brand";
-import { isActive, type NavItem, navGroups, settingsItem } from "@/config/navigation";
+import { isActive, type NavItem, navGroups, searchItem, settingsItem } from "@/config/navigation";
 import { cn } from "@/lib/utils";
 
 import { BrandMark } from "./brand-mark";
@@ -54,6 +54,10 @@ export function SidebarView({
           {brand.name}
         </span>
       </Link>
+
+      <div className="mb-2">
+        <SidebarLink item={searchItem} active={active(searchItem)} />
+      </div>
 
       {navGroups.map((group, index) => (
         <div key={group.label ?? index} className="flex flex-col gap-1">

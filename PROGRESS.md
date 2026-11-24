@@ -4,6 +4,33 @@ Newest entries at the top. Each entry records what was done, which files changed
 
 ---
 
+## 2026-11-24: Milestone 9, part 2 (search), built
+
+### Done
+
+- **Search** (ADR-038): a Search link at the top of the sidebar, and a magnifying glass in the phone's top bar.
+  - It looks through 16 kinds of record by their names and notes: projects, rooms, properties, tasks, milestones, expenses, contractors, quotes, contracts, warranties, materials, orders, appointments, files, design boards and the things on them.
+  - Every word you type has to appear, in any order, so "walnut counters" finds the task "Oil the walnut counters".
+  - Results are grouped by kind, with where each one belongs (its project, contractor or board).
+- No database changes.
+
+### Tests (cloud workspace, 2026-11-24)
+
+- Lint, formatting and type check: passed. Production build: passed.
+- Unit: 149 of 149 passed.
+- Integration: 154 of 154 passed, including 5 new ones in `tests/integration/search.test.ts`: matching across kinds and related names, every word needed, empty and odd queries (symbols are plain text), viewers, and never another household's records.
+- End-to-end: full run, 85 passed, 36 skipped on purpose, 0 failed. New: find a project by a word and open it; Search from the phone's top bar fits the screen.
+
+### For Jeff to check
+
+After `update.sh`, click Search and look for a word you know is in a project, a contractor or an expense.
+
+### Next
+
+Milestone 9, part 3: the Reports page, with CSV exports and printable reports.
+
+---
+
 ## 2026-11-24: Milestone 9, part 1 (Home dashboard and activity feed), built
 
 ### Done

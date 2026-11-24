@@ -8,6 +8,7 @@ import {
   type LucideIcon,
   Package,
   Palette,
+  Search,
   Settings,
   Wallet,
 } from "lucide-react";
@@ -126,6 +127,16 @@ export const settingsItem: NavItem = {
   icon: Settings,
   description: "Your profile, household members, preferences and appearance.",
   milestone: 2,
+};
+
+/** Search sits above the sections on the sidebar and in the phone's top bar (ADR-038). */
+export const searchItem: NavItem = {
+  id: "search",
+  label: "Search",
+  href: "/search",
+  icon: Search,
+  description: "Find anything in the household by name or notes.",
+  milestone: 9,
 };
 
 export const allNavItems: NavItem[] = [...navGroups.flatMap((g) => g.items), settingsItem];
