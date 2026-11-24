@@ -17,8 +17,18 @@ x-database-url: &database-url
   # The host is "db", the database's name inside Docker's private network.
   DATABASE_URL: postgresql://${POSTGRES_USER:-beamhaven}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@db:5432/${POSTGRES_DB:-beamhaven}?schema=public
 
+# Container logs are capped at 5 files of 20 MB each, so they can't fill the
+# disk. setup-vm.sh sets the same for all of Docker; this keeps it true even
+# if that file is changed (Milestone 10, part 2).
+x-logging: &logging
+  driver: local
+  options:
+    max-size: "20m"
+    max-file: "5"
+
 services:
   db:
+    logging: *logging
     image: postgres:18-alpine
     restart: unless-stopped
     environment:
@@ -37,6 +47,7 @@ services:
     security_opt: [no-new-privileges:true]
 
   migrate:
+    logging: *logging
     build: { context: ., target: ops }
     image: beamhaven-ops:local
     env_file: .env
@@ -48,6 +59,7 @@ services:
     security_opt: [no-new-privileges:true]
 
   app:
+    logging: *logging
     build: { context: ., target: app }
     image: beamhaven-app:local
     restart: unless-stopped
@@ -57,12 +69,16 @@ services:
       NODE_ENV: production
       # Always the "uploads" volume below, whatever .env says.
       STORAGE_LOCAL_PATH: /data/uploads
+      # Written by scripts/server/backup.sh; owners are warned when backups stop (ADR-041).
+      BACKUP_STATUS_FILE: /data/backup-status/last-backup.json
     ports:
       # Published only on the VM's own network address (never 0.0.0.0).
       # The firewall then lets only Nginx Proxy Manager reach it.
       - "${APP_BIND_IP:?Set APP_BIND_IP in .env}:${APP_PORT:-3000}:3000"
     volumes:
       - uploads:/data/uploads
+      # Only the small status file's folder, read-only: never the backups themselves.
+      - ./backups/status:/data/backup-status:ro
     depends_on:
       migrate: { condition: service_completed_successfully }
     security_opt: [no-new-privileges:true]
@@ -72,6 +88,7 @@ services:
   # It has no ports: nothing connects to it. Watch it with:
   #   docker compose logs -f worker
   worker:
+    logging: *logging
     image: beamhaven-ops:local
     env_file: .env
     environment:
@@ -79,6 +96,20 @@ services:
       NODE_ENV: production
     command: ["npm", "run", "worker"]
     restart: unless-stopped
+    # Healthy while the worker keeps writing its heartbeat, which it only does
+    # while the database answers (every 30 seconds).
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "process.exit(Date.now()-require('fs').statSync('/tmp/worker-heartbeat').mtimeMs<120000?0:1)",
+        ]
+      interval: 30s
+      timeout: 5s
+      start_period: 60s
+      retries: 3
     # Stops cleanly: it finishes the job in hand first (up to 20 seconds).
     stop_grace_period: 30s
     depends_on:
@@ -87,6 +118,7 @@ services:
 
   # Admin commands. Not started by "up"; used with "docker compose run --rm ops ...".
   ops:
+    logging: *logging
     image: beamhaven-ops:local
     profiles: [tools]
     env_file: .env

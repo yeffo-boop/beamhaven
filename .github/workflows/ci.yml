@@ -73,12 +73,32 @@ jobs:
           BETTER_AUTH_SECRET=$(openssl rand -base64 32)
           TRUST_PROXY=true
           ENV
+          # Made by us (as on the VM), so Docker doesn't create it as root.
+          mkdir -p backups/status
       - name: Build and start
         run: docker compose up -d --build --wait
       - name: Health check
         run: curl --fail --silent http://127.0.0.1:3000/api/health
       - name: The worker starts and runs its first reminders pass
         run: timeout 90 sh -c 'until docker compose logs worker | grep -q "reminder(s)"; do sleep 3; done'
+      - name: Backups (local, off-site to a folder, status, and reading one back)
+        run: |
+          printf 'RESTIC_REPOSITORY=/tmp/beamhaven-offsite\nRESTIC_PASSWORD=%s\n' "$(openssl rand -hex 16)" >> .env
+          ./scripts/server/backup.sh
+          ./scripts/server/backup.sh
+          ./scripts/server/backup.sh
+          # Locally, one per day is kept. Off-site, restic also keeps the oldest
+          # until it has a full 7 days, so 3 runs today leave 2: pruning works.
+          test "$(ls backups/beamhaven-db-*.dump | wc -l)" = 1
+          test "$(./scripts/server/offsite.sh snapshots --json | jq length)" = 2
+          grep -q '"ok":true' backups/status/last-backup.json
+          grep -q '"offsite":"ok"' backups/status/last-backup.json
+          # The website can read the status (owners see a warning when it's bad).
+          docker compose exec -T app cat /data/backup-status/last-backup.json | grep -q '"ok":true'
+          # And the off-site copy comes back as a readable database dump.
+          ./scripts/server/offsite.sh restore latest --target /backups/from-offsite
+          dump="$(sudo find backups/from-offsite -name 'beamhaven-db-*.dump' | head -1)"
+          sudo cat "$dump" | docker compose exec -T db pg_restore --list > /dev/null
       - name: The database port is not published
         # "docker compose port" prints ":0" for an unpublished port, so check the
         # container's actual port bindings instead: none means not reachable.

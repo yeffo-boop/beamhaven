@@ -29,7 +29,10 @@ FROM deps AS build
 COPY . .
 # The build needs no secrets: every setting is read when a request arrives.
 ENV NEXT_TELEMETRY_DISABLED=1
-RUN npm run build
+# The same optional proxy certificate, for downloading the fonts while building.
+RUN --mount=type=secret,id=extra_ca,required=false \
+    if [ -f /run/secrets/extra_ca ]; then export NODE_EXTRA_CA_CERTS=/run/secrets/extra_ca; fi; \
+    npm run build
 
 # --- 3a. The ops image: migrations and admin commands -----------------------
 # Dependencies plus source code (the scripts run it directly); no website build.

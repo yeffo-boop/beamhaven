@@ -220,7 +220,7 @@ Then run the backup every night at 2:00 AM. Run `crontab -e` (choose `nano` if a
 0 2 * * * cd /opt/beamhaven && ./scripts/server/backup.sh >> backups/backup.log 2>&1
 ```
 
-> These backups stay on the VM, so they protect against mistakes and bad updates, but not against losing the VM. Off-site copies are part of Milestone 10 (`BACKUP_AND_RECOVERY.md`).
+> Each backup keeps 7 daily, 4 weekly and 12 monthly copies on the VM. To also keep an encrypted copy off the VM (Backblaze B2, a NAS or a USB drive), follow "Off-site copies" in `BACKUP_AND_RECOVERY.md`. Owners see a warning on Home if backups stop.
 
 ## Updating BeamHaven
 
@@ -237,7 +237,7 @@ The very first time, `update.sh` doesn't exist on the VM yet, so run `git pull` 
 
 **What it does:** takes a backup, downloads the newest code (`git pull`), rebuilds and restarts (the `migrate` step updates the database tables before the new website starts), and clears out old build images. It takes a few minutes.
 
-**Success looks like:** it ends with `Done. BeamHaven is running version <abc1234>.` and `docker compose ps` shows `app` and `db` as `healthy` and `worker` as `running` (the worker has no health check; its log says what it did).
+**Success looks like:** it ends with `Done. BeamHaven is running version <abc1234>.` and `docker compose ps` shows `app`, `db` and `worker` as `healthy`.
 
 **If it fails,** it stops and says why. Nothing is lost: the backup was taken first. Paste the output to Claude.
 
@@ -254,7 +254,7 @@ If the update had changed the database (the pull request will say so), also rest
 
 ### The background worker
 
-From Milestone 7, a third container, `worker`, runs next to the website. It uses the same `ops` image and the same `.env`, has no ports, and every 15 minutes adds the reminders that are due (ADR-033). Its job queue lives in the database, in a `pgboss` schema, so the normal backup covers it. If it stops, the website keeps working; reminders just wait until it's back (`docker compose up -d worker`).
+From Milestone 7, a third container, `worker`, runs next to the website. It uses the same `ops` image and the same `.env`, has no ports, and every 15 minutes adds the reminders that are due (ADR-033). Its job queue lives in the database, in a `pgboss` schema, so the normal backup covers it. Every 30 seconds, while the database answers, it writes a heartbeat; Docker shows it as `unhealthy` if that stops for two minutes (ADR-042). If it stops, the website keeps working; reminders just wait until it's back (`docker compose up -d worker`).
 
 ## Everyday commands
 

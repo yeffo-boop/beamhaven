@@ -1,9 +1,11 @@
 import { ImagePlus, ListPlus, Plus } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 
 import { ActivityFeed } from "@/components/home/activity-feed";
 import { AttentionList } from "@/components/home/attention-list";
+import { BackupWarning } from "@/components/household/backup-status";
 import { BudgetCard } from "@/components/home/budget-card";
 import { ProjectCards } from "@/components/home/project-cards";
 import { PageHeader } from "@/components/page-header";
@@ -70,6 +72,10 @@ export default async function HomePage() {
           ) : null
         }
       />
+
+      <Suspense fallback={null}>
+        <BackupWarning />
+      </Suspense>
 
       <Panel
         title="Budget"
