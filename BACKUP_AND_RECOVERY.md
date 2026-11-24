@@ -14,7 +14,7 @@ These were tested in Docker here and in CI. Production isn't done until a restor
   1. writes a database dump and a copy of the uploaded files to `/opt/beamhaven/backups`;
   2. checks the dump can be read;
   3. keeps the newest backup of each of the last **7 days**, **4 weeks** and **12 months**, and deletes the rest (`prune-backups.sh`);
-  4. if off-site is set up, copies the new backup and `.env` there, **encrypted**, and keeps the same 7/4/12 there;
+  4. if off-site is set up (Google Cloud Storage, Backblaze B2, or a NAS/USB folder), copies the new backup and `.env` there, **encrypted**, and keeps the same 7/4/12 there;
   5. writes `backups/status/last-backup.json`.
 - **BeamHaven reads that status file.** Owners see a warning on Home if:
   - the last good backup is more than **48 hours** old;
@@ -41,10 +41,32 @@ Off-site copies use **restic**, a widely used backup tool. It encrypts everythin
 **Setting it up (once):**
 
 1. Pick where the copies go, and fill in `.env` (see `.env.server.example`):
+   - **Google Cloud Storage:** follow "Setting up Google Cloud Storage" below. Then set `RESTIC_REPOSITORY=gs:<bucket>:/beamhaven` and `GOOGLE_PROJECT_ID=<project ID>`, and put the key file at `/opt/beamhaven/gcs-key.json`.
    - **Backblaze B2:** create a private bucket and an application key limited to that bucket. Then set `RESTIC_REPOSITORY=b2:<bucket>:beamhaven`, `B2_ACCOUNT_ID` and `B2_ACCOUNT_KEY`.
    - **A NAS share or a USB drive:** mount it on the VM (for example at `/mnt/backup`), so that your user can write to it. Then set `RESTIC_REPOSITORY=/mnt/backup/beamhaven`.
 2. Make a password with `openssl rand -base64 32`, put it in `RESTIC_PASSWORD`, and **save it in your password manager**. Without it, the off-site copies can't be opened, by anyone.
 3. Run `./scripts/server/backup.sh`. The first time, it creates the repository. Success looks like `Done:` and two file names, and Settings → Backups says there's an off-site copy.
+
+### Setting up Google Cloud Storage
+
+All of this is in the Google Cloud console (console.cloud.google.com) in your browser on the Mac, except the last two steps.
+
+1. **Project:** pick the project at the top of the page, or create one named `beamhaven`. Its **Project ID** is shown on the project's Dashboard; you'll need it for `GOOGLE_PROJECT_ID`.
+2. **Bucket:** go to Cloud Storage → Buckets → Create, and choose:
+   - a name that's unique across all of Google, for example `beamhaven-backups-<something of yours>`;
+   - location type **Region**, for example `us-west1`;
+   - storage class **Standard**. Don't use Nearline, Coldline or Archive: they charge extra when files are deleted early, and restic deletes old pieces every night;
+   - access control **Uniform**, with "Enforce public access prevention" ticked (the default).
+3. **A login just for backups (a "service account"):** go to IAM & Admin → Service Accounts → Create service account. Name it `beamhaven-backup`, and skip the optional "grant access to project" step, so it can't touch anything else.
+4. **Let it use only that bucket:** open the bucket → Permissions → Grant access. Paste the service account's email (it ends in `.iam.gserviceaccount.com`), and add two roles:
+   - **Storage Object Admin**, to read, write and delete backup files;
+   - **Storage Legacy Bucket Reader**, so restic can check the bucket exists.
+5. **Key file:** go to Service Accounts → `beamhaven-backup` → Keys → Add key → Create new key → JSON. A `.json` file downloads to your Mac. **Save it in your password manager.** If Google says key creation is disabled, send Claude the message.
+6. **Mac, Terminal:** copy the key to the VM:
+   `scp ~/Downloads/<the file>.json <your user>@<VM IP>:/opt/beamhaven/gcs-key.json`
+7. **VM:** run `chmod 600 gcs-key.json`. Then add these lines to `.env` (with `nano .env`), using your bucket name and project ID: `RESTIC_REPOSITORY=gs:<bucket>:/beamhaven`, `GOOGLE_PROJECT_ID=<project ID>`, and `RESTIC_PASSWORD=` (made as in step 2 of "Setting it up" above). Git ignores `gcs-key.json`, so it's never committed.
+
+Cost: the Standard class costs about 2 cents per GB per month, so a few GB of backups is a few cents a month. Downloading for a restore costs about 12 cents per GB.
 
 **Useful commands** (on the VM, in `/opt/beamhaven`):
 

@@ -28,7 +28,7 @@ If a command doesn't print what's described, stop and send Claude the output.
 - [ ] **Password manager:** these are saved in it:
   - `.env` (all of it);
   - the `RESTIC_PASSWORD`;
-  - the B2 application key, if you use B2.
+  - the Google Cloud key file (`gcs-key.json`) or the B2 application key, whichever you use.
 - [ ] **The next morning:** Settings → Backups shows a backup from about 2:00 AM, and Home shows no backup warning.
 
 ## 4. A restore has been tested on a fresh VM
@@ -37,7 +37,8 @@ This proves you could recover if the VM were lost. Do it on a **second, temporar
 
 - [ ] **Proxmox:** create a temporary VM using `DEPLOYMENT.md`, steps 2 to 6.
   - Copy `.env` from your password manager.
-  - Keep the `RESTIC_` and `B2_` lines.
+  - Keep the `RESTIC_` lines, and the `GOOGLE_PROJECT_ID` or `B2_` lines.
+  - If you use Google Cloud, copy `gcs-key.json` from your password manager to `/opt/beamhaven/gcs-key.json`, then run `chmod 600 gcs-key.json`.
   - Change two lines: `APP_BIND_IP=<temporary VM IP>` and `APP_URL=http://localhost:3000`.
   - Skip step 7 (Nginx Proxy Manager), so the real address keeps pointing at the real VM.
 - [ ] **Temporary VM:** `./scripts/server/offsite.sh restore latest --target /backups/from-offsite`.

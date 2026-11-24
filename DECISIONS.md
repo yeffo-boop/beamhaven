@@ -487,7 +487,7 @@ Statuses: **Proposed** (waiting for Jeff) · **Accepted** · **Superseded**
 - **Off-site:** if `RESTIC_REPOSITORY` is set in `.env`, `backup.sh` copies the new backup and `.env` with **restic**, through `scripts/server/offsite.sh`:
   - restic encrypts on the VM before anything leaves it, and only sends what changed;
   - it runs in a pinned `restic/restic` container, so nothing is installed on the VM;
-  - it works with Backblaze B2 (recommended: cheap, and away from the house) or a mounted NAS/USB folder;
+  - it works with Google Cloud Storage (Jeff's choice, 2026-11-24), Backblaze B2, or a mounted NAS/USB folder. For Google Cloud, a service account limited to one bucket signs in with a key file, `gcs-key.json`, which sits next to `.env`, is kept out of Git, and is mounted read-only;
   - the off-site copies keep the same 7/4/12, grouped by host and tag. Restic groups by file path by default, and our file names change every night, so the default would never delete anything;
   - every Sunday, `restic check` reads back 5% of the data, to catch a copy that can't be read.
 - **Status and warning:** every run writes `backups/status/last-backup.json`, including when it fails. The app reads it (read-only mount) and shows owners a warning on Home when the last good backup is over 48 hours old, a run failed, the off-site copy failed, or no backup has ever finished. Settings → Backups shows the details. Only owners see it, because only they can fix it.

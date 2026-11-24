@@ -3,6 +3,8 @@
 .env.*
 !.env.example
 !.env.server.example
+# The Google Cloud service account key for off-site backups
+gcs-key.json
 
 # Dependencies and build output
 node_modules/

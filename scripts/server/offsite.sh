@@ -9,7 +9,8 @@
 #   ./scripts/server/offsite.sh check              check the repository
 #
 # restic runs in a short-lived container (nothing is installed on the VM).
-# It only gets restic's own settings from .env (RESTIC_*, B2_*, AWS_*), never
+# It only gets restic's own settings from .env (RESTIC_*, B2_*, AWS_*,
+# GOOGLE_PROJECT_ID), never
 # the database password. ./backups is mounted at /backups, and .env at
 # /config/.env (read-only). Everything is encrypted with RESTIC_PASSWORD
 # before it leaves the VM: keep that password in your password manager,
@@ -36,7 +37,7 @@ backup_abs="$(cd "$BACKUP_DIR" && pwd)"
 restic_env="$(mktemp)"
 chmod 600 "$restic_env"
 trap 'rm -f "$restic_env"' EXIT
-grep -E '^(RESTIC_|B2_|AWS_)[A-Z_]*=' .env > "$restic_env"
+grep -E '^(RESTIC_|B2_|AWS_)[A-Z_]*=|^GOOGLE_PROJECT_ID=' .env > "$restic_env" || true
 
 # Restores are written into ./backups, so it's writable; .env is read-only.
 mounts=(-v "$backup_abs:/backups" -v "$(pwd)/.env:/config/.env:ro")
@@ -44,6 +45,17 @@ mounts=(-v "$backup_abs:/backups" -v "$(pwd)/.env:/config/.env:ro")
 if [[ "$repository" == /* ]]; then
   mkdir -p "$repository"
   mounts+=(-v "$repository:$repository")
+fi
+# Google Cloud Storage (gs:<bucket>:/<folder>) signs in with a service account's
+# key file, kept next to .env as gcs-key.json (never in Git), mounted read-only.
+if [[ "$repository" == gs:* ]]; then
+  key_file="$(pwd)/gcs-key.json"
+  if [[ ! -r "$key_file" ]]; then
+    echo "Google Cloud Storage needs the service account key file at $key_file" >&2
+    echo "(see BACKUP_AND_RECOVERY.md, \"Off-site copies\")." >&2
+    exit 2
+  fi
+  mounts+=(-v "$key_file:/config/gcs-key.json:ro" -e GOOGLE_APPLICATION_CREDENTIALS=/config/gcs-key.json)
 fi
 
 # Runs as you, not as root, so files it restores are yours and restore.sh can
