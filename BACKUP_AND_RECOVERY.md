@@ -6,7 +6,7 @@
 - An optional encrypted off-site copy.
 - A warning for owners when backups stop working.
 
-These were tested in Docker here and in CI. Production isn't done until a restore has been tested on a fresh VM (`PRODUCTION_CHECKLIST.md`).
+These were tested in Docker here and in CI. Production isn't done until a restore has been tested on a fresh VM (`PRODUCTION_CHECKLIST.md`, section 4).
 
 ## What runs
 
@@ -42,7 +42,7 @@ Off-site copies use **restic**, a widely used backup tool. It encrypts everythin
 
 1. Pick where the copies go, and fill in `.env` (see `.env.server.example`):
    - **Backblaze B2:** create a private bucket and an application key limited to that bucket. Then set `RESTIC_REPOSITORY=b2:<bucket>:beamhaven`, `B2_ACCOUNT_ID` and `B2_ACCOUNT_KEY`.
-   - **A NAS share or a USB drive:** mount it on the VM (for example at `/mnt/backup`). Then set `RESTIC_REPOSITORY=/mnt/backup/beamhaven`.
+   - **A NAS share or a USB drive:** mount it on the VM (for example at `/mnt/backup`), so that your user can write to it. Then set `RESTIC_REPOSITORY=/mnt/backup/beamhaven`.
 2. Make a password with `openssl rand -base64 32`, put it in `RESTIC_PASSWORD`, and **save it in your password manager**. Without it, the off-site copies can't be opened, by anyone.
 3. Run `./scripts/server/backup.sh`. The first time, it creates the repository. Success looks like `Done:` and two file names, and Settings → Backups says there's an off-site copy.
 
@@ -61,14 +61,14 @@ A restore from off-site lands in `backups/from-offsite/backups/`. Use those file
 
 1. **Undo a mistake or a bad update (same VM):**
    - `./scripts/server/restore.sh backups/beamhaven-db-<time>.dump backups/beamhaven-uploads-<time>.tar.gz`
-   - It asks you to type `RESTORE`, stops the website and worker, replaces the database and files, and starts them again.
+   - It asks you to type `RESTORE`, saves a copy of the current database in `backups/before-restore/`, stops the website and worker, replaces the database and files, and starts them again.
 2. **Go back to the previous version of the code:** see "If an update goes wrong" in `DEPLOYMENT.md`. If that update changed the database, also restore the backup `update.sh` took just before it.
 3. **Lost the VM:**
    - Build a new one with `DEPLOYMENT.md`, steps 1 to 6, and copy `.env` back from your password manager.
    - Get the newest backup with `offsite.sh restore latest …` (step above), and restore it with `restore.sh`.
    - Point Nginx Proxy Manager at the new VM's IP.
 4. **Check a restore worked:**
-   - `curl http://<VM IP>:3000/api/health` says `"status":"ok"`.
+   - `./scripts/server/restore-check.sh` ends with `RESTORE CHECK PASSED`. It checks the health page, prints how many logins, households, projects, expenses and files there are, and checks every uploaded file is on disk.
    - You can sign in.
    - The newest expense you remember is there.
    - A recent receipt or photo opens.

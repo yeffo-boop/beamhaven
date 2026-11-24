@@ -97,8 +97,31 @@ jobs:
           docker compose exec -T app cat /data/backup-status/last-backup.json | grep -q '"ok":true'
           # And the off-site copy comes back as a readable database dump.
           ./scripts/server/offsite.sh restore latest --target /backups/from-offsite
-          dump="$(sudo find backups/from-offsite -name 'beamhaven-db-*.dump' | head -1)"
-          sudo cat "$dump" | docker compose exec -T db pg_restore --list > /dev/null
+          # The restored files belong to you (not root), so they can be read without sudo.
+          dump="$(find backups/from-offsite -name 'beamhaven-db-*.dump' | head -1)"
+          docker compose exec -T db pg_restore --list < "$dump" > /dev/null
+      - name: Restore check, wiping the test data, and restoring it again
+        run: |
+          q() { docker compose exec -T db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -At -v ON_ERROR_STOP=1'; }
+          printf '%s\n' \
+            "INSERT INTO workspaces (id, name, slug) VALUES ('w1', 'Test household', 'test');" \
+            "INSERT INTO files (id, workspace_id, storage_key, original_name, mime_type, size_bytes, sha256) VALUES ('f1', 'w1', 'w1/test-key', 'receipt.png', 'image/png', 4, 'x');" | q
+          docker compose exec -T app sh -c 'mkdir -p /data/uploads/w1 && printf test > /data/uploads/w1/test-key'
+          ./scripts/server/restore-check.sh
+          # A missing uploaded file is reported.
+          docker compose exec -T app rm /data/uploads/w1/test-key
+          if ./scripts/server/restore-check.sh; then exit 1; fi
+          docker compose exec -T app sh -c 'printf test > /data/uploads/w1/test-key'
+          # Anything but WIPE cancels.
+          if echo no | ./scripts/server/wipe-test-data.sh; then exit 1; fi
+          test "$(echo 'SELECT count(*) FROM workspaces;' | q)" = 1
+          echo WIPE | ./scripts/server/wipe-test-data.sh
+          test "$(echo 'SELECT count(*) FROM workspaces;' | q)" = 0
+          test -z "$(docker compose exec -T app find /data/uploads -mindepth 1)"
+          # The backup it kept brings everything back (restore.sh over a running database).
+          echo RESTORE | ./scripts/server/restore.sh backups/before-wipe/beamhaven-db-*.dump backups/before-wipe/beamhaven-uploads-*.tar.gz
+          test "$(echo 'SELECT count(*) FROM workspaces;' | q)" = 1
+          ./scripts/server/restore-check.sh
       - name: The database port is not published
         # "docker compose port" prints ":0" for an unpublished port, so check the
         # container's actual port bindings instead: none means not reachable.

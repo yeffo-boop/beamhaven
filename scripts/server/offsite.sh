@@ -46,5 +46,9 @@ if [[ "$repository" == /* ]]; then
   mounts+=(-v "$repository:$repository")
 fi
 
-exec docker run --rm --env-file "$restic_env" --hostname beamhaven "${mounts[@]}" \
+# Runs as you, not as root, so files it restores are yours and restore.sh can
+# read them. Its cache (which makes each run faster) is kept in backups/.restic-cache.
+# Not "exec": the trap above has to run afterwards, to delete the temporary settings file.
+docker run --rm --env-file "$restic_env" --hostname beamhaven "${mounts[@]}" \
+  --user "$(id -u):$(id -g)" -e RESTIC_CACHE_DIR=/backups/.restic-cache \
   "$RESTIC_IMAGE" "$@"

@@ -512,3 +512,25 @@ Statuses: **Proposed** (waiting for Jeff) · **Accepted** · **Superseded**
 - **Reboots:** containers already use `restart: unless-stopped`, and Docker starts at boot on Ubuntu. Jeff tests this once on the VM (`PRODUCTION_CHECKLIST.md`).
 
 **Consequences.** `docker compose ps` now shows app, db and worker as healthy. The heartbeat file lives in the container's `/tmp`, so nothing is written to the data volumes.
+
+## ADR-043: Restores and the test-data wipe recreate the database, and both keep a copy first (Milestone 10, part 3)
+
+**Date:** 2026-11-24. **Status:** accepted. Builds on ADR-041.
+
+**Decision.**
+
+- **`restore.sh` now recreates the database** (drop, then create empty) before loading the backup. Before, it used `pg_restore --clean`, which removes tables one by one. Our test of a restore over a running database showed that this fails: the job queue (pg-boss) keeps its statistics in partitioned tables, which `--clean` can't drop. Recreating the database avoids that, and leaves nothing from before the restore behind.
+- **Before it replaces anything, `restore.sh` saves the current database** to `backups/before-restore/`. That way, restoring the wrong file can be undone.
+- **`wipe-test-data.sh`** clears everything for a fresh start before real use:
+  - it asks you to type `WIPE`;
+  - it takes a backup and moves it to `backups/before-wipe/`;
+  - it recreates the database, empties the uploads, runs the migrations, and starts everything again.
+- The nightly clean-up only looks at the top of `backups/`, so it never deletes the safety copies in those two folders. They're removed by hand when no longer needed.
+- **`restore-check.sh`** only reads. It checks:
+  - the health page;
+  - how many logins, households, projects, expenses and files there are, plus the newest expense, for a person to compare with what they remember;
+  - that every file the database knows about is on disk.
+- `PRODUCTION_CHECKLIST.md` lists what has to be true before real use, including a restore test on a temporary VM.
+- CI runs the wipe, the restore over a running database, and the restore check against the real Docker stack.
+
+**Consequences.** A restore briefly leaves the database empty. If loading the backup then fails, the database stays empty until another restore succeeds. The safety copy from `before-restore/` is there for exactly that. The safety copies take disk space until deleted.

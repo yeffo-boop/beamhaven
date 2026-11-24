@@ -4,6 +4,44 @@ Newest entries at the top. Each entry records what was done, which files changed
 
 ---
 
+## 2026-11-24: Milestone 10, part 3 (production checklist, restore check, wiping the test data), built
+
+### Done
+
+- **`PRODUCTION_CHECKLIST.md`**: everything that has to be true before real use, in order:
+  - health and reboot tests;
+  - backups and the off-site copy;
+  - a restore test on a temporary VM;
+  - wiping the test data;
+  - what's left for later.
+- **`restore-check.sh`** (ADR-043): checks a restore worked. It checks the health page, counts the main records, shows the newest expense, and checks every uploaded file is on disk. It only reads.
+- **`wipe-test-data.sh`**: deletes everything to start fresh. It asks you to type `WIPE`, and keeps a backup in `backups/before-wipe/` first. **Run it only when you're ready.**
+- **Fixed in `restore.sh`**: restoring over a running database failed, because of the job queue's partitioned tables. It now recreates the database, and first saves a copy of the current one in `backups/before-restore/`.
+- **Fixed in `offsite.sh`**:
+  - files restored from off-site belonged to root, so `restore.sh` couldn't read them. restic now runs as your user;
+  - a temporary file holding the restic password was left in `/tmp`.
+
+### Tests (cloud workspace, 2026-11-24)
+
+- **Real Docker stack:**
+  - The restore check passes with data, and fails when an uploaded file is missing.
+  - Typing anything but `WIPE` cancels the wipe.
+  - The wipe empties the database and uploads.
+  - Restoring the kept backup over the running database brings everything back, and the check passes again.
+  - The backup, off-site and restore test from part 1 still passes.
+- CI runs the same steps.
+- See the pull request for the lint, type check, unit, integration, end-to-end and build results.
+
+### For Jeff to check
+
+Work through `PRODUCTION_CHECKLIST.md` on the VM. Don't run section 5 (the wipe) until you're ready to start using BeamHaven for real.
+
+### Next
+
+Once the checklist is done, Milestone 10 is done. Milestone 11 (AI features) needs Jeff's go-ahead and his approval of the costs.
+
+---
+
 ## 2026-11-24: Milestone 10, parts 1 and 2 (backups, health checks, log limits), built
 
 ### Done

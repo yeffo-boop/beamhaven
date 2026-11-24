@@ -273,4 +273,4 @@ Never run `docker compose down -v`: the `-v` deletes the database.
 
 ## Before going live (Milestone 10)
 
-Staging uses the real address. Before real data goes in, we wipe the test data (with your go-ahead), set up off-site backups, and move image builds to GitHub Actions for one-step rollbacks.
+Staging uses the real address. Before real data goes in, work through `PRODUCTION_CHECKLIST.md`. It covers the reboot test, off-site backups, a restore test on a temporary VM, and wiping the test data (`wipe-test-data.sh`, only when you're ready).
