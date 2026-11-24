@@ -171,6 +171,8 @@ Photos, manuals and spec sheets are attachments with `material_id` (purpose `doc
 | **Order** (added)     | expectedOn                                                                                                       | When the store says it should arrive. Shown on the calendar until everything has arrived.                                                                                 |
 | **Workspace** (added) | timeZone                                                                                                         | IANA name, `UTC` until an owner sets it. Used for "today" and (part 3) reminders.                                                                                         |
 
+| **Reminder** | workspaceId, userId, entryKey, kind, title, href, day, readAt | One person's in-app reminder, written by the worker (ADR-033). Unique per (userId, entryKey, day). Goes with the household or the person. href must be an in-app path. |
+
 The calendar itself isn't stored: it's read from appointments, tasks' due dates, milestones' target dates, deliveries, orders' expected dates and unpaid bills' due dates (ADR-032).
 
 ## 5. Files and attachments (storage in Milestone 3, used everywhere)

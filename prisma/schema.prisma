@@ -32,6 +32,7 @@ model User {
   accounts      Account[]
   memberships   Membership[]
   invitations   Invitation[]
+  reminders     Reminder[]
 
   @@map("users")
 }
@@ -120,6 +121,7 @@ model Workspace {
   contractors       Contractor[]
   priceItems        PriceItem[]
   materials         Material[]
+  reminders         Reminder[]
 
   @@map("workspaces")
 }
@@ -1239,4 +1241,31 @@ model Appointment {
   @@index([roomId])
   @@index([contractorId])
   @@map("appointments")
+}
+
+/// An in-app reminder for one person (Milestone 7, part 3, ADR-033). The
+/// worker writes these from the calendar; the title and link are copied so a
+/// reminder still reads sensibly if its record changes later.
+model Reminder {
+  id          String    @id
+  workspaceId String    @map("workspace_id")
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  userId      String    @map("user_id")
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// The calendar entry it's about, like "task:<id>" or "appointment:<id>".
+  entryKey    String    @map("entry_key")
+  /// The calendar kind: "task", "inspection", "payment", ...
+  kind        String
+  title       String
+  href        String
+  /// The day the thing happens (or is due).
+  day         DateTime  @db.Date
+  /// When the reminder showed up.
+  createdAt   DateTime  @default(now()) @map("created_at")
+  readAt      DateTime? @map("read_at")
+
+  /// One reminder per person, thing and day, so running the worker twice is harmless.
+  @@unique([userId, entryKey, day])
+  @@index([workspaceId, userId, readAt])
+  @@map("reminders")
 }

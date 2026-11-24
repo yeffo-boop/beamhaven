@@ -19,8 +19,8 @@ import { BrandMark } from "./brand-mark";
  * `account` is the signed-in person's name and sign-out button. It is passed
  * in from the server because it reads the login session.
  */
-export function Sidebar({ account }: { account?: ReactNode }) {
-  return <SidebarView pathname={usePathname()} account={account} />;
+export function Sidebar({ account, reminders }: { account?: ReactNode; reminders?: ReactNode }) {
+  return <SidebarView pathname={usePathname()} account={account} reminders={reminders} />;
 }
 
 /**
@@ -32,9 +32,12 @@ export function Sidebar({ account }: { account?: ReactNode }) {
 export function SidebarView({
   pathname,
   account,
+  reminders,
 }: {
   pathname: string | null;
   account?: ReactNode;
+  /** The reminders bell, from the server (it reads the session). */
+  reminders?: ReactNode;
 }) {
   const active = (item: NavItem) => pathname !== null && isActive(item, pathname);
   return (
@@ -67,6 +70,7 @@ export function SidebarView({
       ))}
 
       <div className="mt-auto flex flex-col gap-3 border-t border-border pt-3">
+        {reminders}
         <SidebarLink item={settingsItem} active={active(settingsItem)} />
         <div className="hidden px-1 lg:block">
           <ThemeToggle compact />

@@ -237,7 +237,7 @@ The very first time, `update.sh` doesn't exist on the VM yet, so run `git pull` 
 
 **What it does:** takes a backup, downloads the newest code (`git pull`), rebuilds and restarts (the `migrate` step updates the database tables before the new website starts), and clears out old build images. It takes a few minutes.
 
-**Success looks like:** it ends with `Done. BeamHaven is running version <abc1234>.` and `docker compose ps` shows `app` and `db` as `healthy`.
+**Success looks like:** it ends with `Done. BeamHaven is running version <abc1234>.` and `docker compose ps` shows `app` and `db` as `healthy` and `worker` as `running` (the worker has no health check; its log says what it did).
 
 **If it fails,** it stops and says why. Nothing is lost: the backup was taken first. Paste the output to Claude.
 
@@ -252,6 +252,10 @@ docker compose up -d --build --wait
 
 If the update had changed the database (the pull request will say so), also restore the backup it took: see `BACKUP_AND_RECOVERY.md`. When the fix is ready, `git checkout main` and run `update.sh` again.
 
+### The background worker
+
+From Milestone 7, a third container, `worker`, runs next to the website. It uses the same `ops` image and the same `.env`, has no ports, and every 15 minutes adds the reminders that are due (ADR-033). Its job queue lives in the database, in a `pgboss` schema, so the normal backup covers it. If it stops, the website keeps working; reminders just wait until it's back (`docker compose up -d worker`).
+
 ## Everyday commands
 
 Run these on the VM, in `/opt/beamhaven`:
@@ -260,6 +264,7 @@ Run these on the VM, in `/opt/beamhaven`:
 | ------------------------------ | -------------------------------------------------------------------- |
 | What's running                 | `docker compose ps`                                                  |
 | Website log                    | `docker compose logs -f app` (Ctrl+C to stop)                        |
+| Background worker log          | `docker compose logs -f worker` (reminders, every 15 minutes)        |
 | Restart after editing `.env`   | `docker compose up -d`                                               |
 | Password-reset link            | `docker compose run --rm ops npm run password-reset-link -- <email>` |
 | Stop everything (data is kept) | `docker compose down`                                                |

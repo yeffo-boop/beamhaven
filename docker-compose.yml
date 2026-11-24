@@ -5,6 +5,7 @@
 #   docker compose up -d --build     build and start (or update) everything
 #   docker compose ps                see what's running and whether it's healthy
 #   docker compose logs -f app       watch the website's log (Ctrl+C to stop)
+#   docker compose logs -f worker    watch the background worker (reminders)
 #   docker compose run --rm ops npm run create-first-account
 #
 # Before the website starts, the "migrate" step brings the database tables
@@ -62,6 +63,24 @@ services:
       - "${APP_BIND_IP:?Set APP_BIND_IP in .env}:${APP_PORT:-3000}:3000"
     volumes:
       - uploads:/data/uploads
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+    security_opt: [no-new-privileges:true]
+
+  # Background jobs (Milestone 7, ADR-009, ADR-033): adds reminders every 15
+  # minutes. pg-boss keeps its queue in the database, in a "pgboss" schema.
+  # It has no ports: nothing connects to it. Watch it with:
+  #   docker compose logs -f worker
+  worker:
+    image: beamhaven-ops:local
+    env_file: .env
+    environment:
+      <<: *database-url
+      NODE_ENV: production
+    command: ["npm", "run", "worker"]
+    restart: unless-stopped
+    # Stops cleanly: it finishes the job in hand first (up to 20 seconds).
+    stop_grace_period: 30s
     depends_on:
       migrate: { condition: service_completed_successfully }
     security_opt: [no-new-privileges:true]

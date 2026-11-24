@@ -335,3 +335,18 @@ Statuses: **Proposed** (waiting for Jeff) · **Accepted** · **Superseded**
 - Views: month (a grid on tablets and laptops, a list of busy days on phones), week, a 30-day agenda, and the tasks and milestones list from part 1. Each project shows its next four weeks.
 
 **Consequences.** Appointments don't repeat; that can come later if it's missed. If the household moves time zones, appointment times stay as typed, which is what people expect of a paper calendar.
+
+## ADR-033: In-app reminders, written by a pg-boss worker from the calendar (Milestone 7, part 3)
+
+**Date:** 2026-11-24. **Status:** accepted. Builds on ADR-009 and ADR-032.
+
+**Decision.**
+
+- A **worker** container (`npm run worker`, the `ops` image) runs pg-boss. pg-boss keeps its queue and schedule in our database, in its own `pgboss` schema, which it creates and upgrades itself; Prisma's migrations don't touch it. pg-boss makes sure each 15-minute run happens once, even if two workers are started.
+- Each run looks at every household. From **7 AM household time** it adds reminders for what's on the calendar **tomorrow** (appointments, inspections, delivery windows, tasks due, milestone targets, orders expected) and for **bills due today or in the next 3 days**. Finished, passed or paid things are skipped.
+- **Who:** a task given to a household member goes to that person alone; everything else goes to owners and members. Viewers get none, since they can't act on them.
+- A reminder belongs to one person, with a copy of the title and link. One per person, thing and day (a unique key), so a run can be repeated safely and a restart costs nothing.
+- In the app: a bell with the unread count in the sidebar and phone top bar, and a Reminders page where people mark their own reminders read.
+- The worker reads the calendar through a **read-only system context** (`systemWorkspaceContext`, viewer role, no person). It's the one exception to "contexts come only from `resolveWorkspaceContext()`", and services that change records refuse it.
+
+**Consequences.** No email or push notifications yet: those can be added as new pg-boss jobs once email is set up (ROADMAP). Reminder timing isn't configurable per person yet. If the worker is down, the website works and reminders catch up when it's back (for that day's window).

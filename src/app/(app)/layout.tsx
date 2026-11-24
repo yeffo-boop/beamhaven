@@ -4,6 +4,7 @@ import { PhoneTabBar, PhoneTabBarView, PhoneTopBar } from "@/components/app-shel
 import { Sidebar, SidebarView } from "@/components/app-shell/sidebar";
 import { AccountSummary } from "@/components/auth/account-summary";
 import { SignedIn } from "@/components/auth/signed-in";
+import { RemindersBell } from "@/components/reminders/reminders-bell";
 
 /**
  * The app shell shared by every signed-in page: sidebar on iPad and laptop,
@@ -19,13 +20,20 @@ export default function AppLayout({ children }: LayoutProps<"/">) {
       <AccountSummary />
     </Suspense>
   );
+  const reminders = (compact: boolean) => (
+    <Suspense fallback={<div className="h-10" />}>
+      <RemindersBell compact={compact} />
+    </Suspense>
+  );
   return (
     <div className="flex min-h-dvh">
-      <Suspense fallback={<SidebarView pathname={null} account={account} />}>
-        <Sidebar account={account} />
+      <Suspense
+        fallback={<SidebarView pathname={null} account={account} reminders={reminders(false)} />}
+      >
+        <Sidebar account={account} reminders={reminders(false)} />
       </Suspense>
       <div className="flex min-w-0 flex-1 flex-col">
-        <PhoneTopBar />
+        <PhoneTopBar reminders={reminders(true)} />
         <main
           id="main"
           className="mx-auto w-full max-w-5xl flex-1 px-4 pt-6 pb-28 md:px-8 md:pt-8 md:pb-12 lg:px-10"
