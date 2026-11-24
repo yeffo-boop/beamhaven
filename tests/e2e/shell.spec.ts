@@ -4,7 +4,7 @@ test("every section opens and is marked as the current page", async ({ page }, t
   test.skip(testInfo.project.name === "phone", "The phone uses the tab bar; tested below.");
 
   await page.goto("/");
-  await expect(page).toHaveTitle("BeamHaven");
+  await expect(page).toHaveTitle("Home · BeamHaven");
   const nav = page.getByRole("navigation", { name: "Main" });
 
   await nav.getByRole("link", { name: "Budget" }).click();
@@ -12,10 +12,9 @@ test("every section opens and is marked as the current page", async ({ page }, t
   await expect(page.getByRole("heading", { level: 1, name: "Budget" })).toBeVisible();
   await expect(nav.getByRole("link", { name: "Budget" })).toHaveAttribute("aria-current", "page");
 
-  // Sections that aren't built yet say which milestone builds them.
   await nav.getByRole("link", { name: "Home" }).click();
   await expect(page.getByRole("heading", { level: 1, name: "Home" })).toBeVisible();
-  await expect(page.getByText("Coming in Milestone 9")).toBeVisible();
+  await expect(nav.getByRole("link", { name: "Home" })).toHaveAttribute("aria-current", "page");
 
   await nav.getByRole("link", { name: "Contractors" }).click();
   await expect(page.getByRole("heading", { level: 1, name: "Contractors" })).toBeVisible();

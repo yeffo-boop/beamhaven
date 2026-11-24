@@ -64,3 +64,70 @@ export async function listActivityFor(
     createdAt: r.createdAt,
   }));
 }
+
+export type FeedItem = ActivityItem & {
+  action: string;
+  entityType: string;
+  entityId: string;
+};
+
+export type FeedFilter = {
+  /** Only events older than this, for the next page. */
+  before?: Date;
+  entityType?: ActivityInput["entityType"];
+  limit?: number;
+};
+
+/** The household's history, newest first (Milestone 9, part 1). */
+export async function listHouseholdActivity(
+  ctx: WorkspaceContext,
+  filter: FeedFilter = {},
+): Promise<FeedItem[]> {
+  const rows = await getPrisma().activityEvent.findMany({
+    where: {
+      workspaceId: ctx.workspaceId,
+      ...(filter.entityType ? { entityType: filter.entityType } : {}),
+      ...(filter.before ? { createdAt: { lt: filter.before } } : {}),
+    },
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    take: Math.min(filter.limit ?? 50, 200),
+    select: {
+      id: true,
+      summary: true,
+      actorUserId: true,
+      createdAt: true,
+      action: true,
+      entityType: true,
+      entityId: true,
+    },
+  });
+  const actorIds = [...new Set(rows.flatMap((r) => (r.actorUserId ? [r.actorUserId] : [])))];
+  const actors = actorIds.length
+    ? await getPrisma().user.findMany({
+        where: { id: { in: actorIds } },
+        select: { id: true, name: true },
+      })
+    : [];
+  const names = new Map(actors.map((a) => [a.id, a.name]));
+  return rows.map(({ actorUserId, ...r }) => ({
+    ...r,
+    actorName: actorUserId ? (names.get(actorUserId) ?? null) : null,
+  }));
+}
+
+/** Which of these records have a "deleted" event, so older events about them can drop their link. */
+export async function findDeletedEntityIds(
+  ctx: WorkspaceContext,
+  entityIds: string[],
+): Promise<Set<string>> {
+  if (entityIds.length === 0) return new Set();
+  const rows = await getPrisma().activityEvent.findMany({
+    where: {
+      workspaceId: ctx.workspaceId,
+      entityId: { in: entityIds },
+      action: { endsWith: ".deleted" },
+    },
+    select: { entityId: true, entityType: true, action: true },
+  });
+  return new Set(rows.filter((r) => r.action === `${r.entityType}.deleted`).map((r) => r.entityId));
+}
