@@ -20,6 +20,24 @@ Milestone 12, part 1. Email (part 2) will use Resend, which Jeff chose on 2026-1
 
 ---
 
+## 2026-11-24: Milestone 10 done: BeamHaven is in production
+
+### Done (on Jeff's VM, as Jeff reported them on 2026-11-24)
+
+- `update.sh` ran, bringing in Milestones 6 to 10.
+- Off-site backups to Google Cloud Storage (bucket `beamhaven_backup`). The first encrypted copy succeeded, and Settings → Backups shows it.
+- SSH key login set up.
+- Reboot test: everything came back healthy by itself.
+- Restore test on a temporary VM: `restore-check.sh` passed. Jeff reported it; Claude didn't see the output.
+- The test data was wiped, and real data started fresh.
+
+### Next
+
+- Later, not blocking: email for invitations and password resets; images built in GitHub Actions; repeat the restore test every few months.
+- Milestone 11 (AI features) needs Jeff's go-ahead and his approval of the costs.
+
+---
+
 ## 2026-11-24: Off-site backups can go to Google Cloud Storage
 
 ### Done

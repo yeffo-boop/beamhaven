@@ -179,14 +179,14 @@ Built in three parts: **part 1** milestones, task dependencies and the Schedule 
 - ✅ Financial and project reports, with CSV and PDF exports (part 3, ADR-039).
 - ✅ In-app notifications (part 4, ADR-040).
 
-## Milestone 10: Production Deployment 🚧
+## Milestone 10: Production Deployment ✅
 
 **Depends on:** Milestone 2.5, and whichever feature milestones we want live.
 
 - Promote the staging setup to production at `https://beamhaven.thehoschak.com`.
 - Automated nightly backups with a retention policy, plus a copy outside the VM. ✅ (part 1, ADR-041)
-- A **tested restore** onto a fresh VM. Tools built (part 3, ADR-043): `restore-check.sh` and `PRODUCTION_CHECKLIST.md`, section 4. The test itself is Jeff's, on a temporary VM.
-- Health checks, log rotation, and containers that restart after a reboot. ✅ built (part 2, ADR-042); the reboot test is Jeff's, on the VM.
+- A **tested restore** onto a fresh VM. Tools built (part 3, ADR-043): `restore-check.sh` and `PRODUCTION_CHECKLIST.md`, section 4. Jeff ran it on a temporary VM on 2026-11-24 (he reported it passed).
+- Health checks, log rotation, and containers that restart after a reboot. ✅ built (part 2, ADR-042); Jeff's reboot test passed on 2026-11-24.
 - A production readiness checklist. ✅ (`PRODUCTION_CHECKLIST.md`, with `wipe-test-data.sh` for clearing the test data)
 
 ## Changes agreed on 2026-11-24

@@ -60,7 +60,7 @@ All of this is in the Google Cloud console (console.cloud.google.com) in your br
 3. **A login just for backups (a "service account"):** go to IAM & Admin → Service Accounts → Create service account. Name it `beamhaven-backup`, and skip the optional "grant access to project" step, so it can't touch anything else.
 4. **Let it use only that bucket:** open the bucket → Permissions → Grant access. Paste the service account's email (it ends in `.iam.gserviceaccount.com`), and add two roles:
    - **Storage Object Admin**, to read, write and delete backup files;
-   - **Storage Legacy Bucket Reader**, so restic can check the bucket exists.
+   - **Storage Legacy Bucket Reader**, so restic can check the bucket exists. Google hides it: type `Legacy Bucket Reader` into the role box. If it still doesn't appear, add **Storage Admin** instead. Granted on this bucket only, it can't touch anything else.
 5. **Key file:** go to Service Accounts → `beamhaven-backup` → Keys → Add key → Create new key → JSON. A `.json` file downloads to your Mac. **Save it in your password manager.** If Google says key creation is disabled, send Claude the message.
 6. **Mac, Terminal:** copy the key to the VM:
    `scp ~/Downloads/<the file>.json <your user>@<VM IP>:/opt/beamhaven/gcs-key.json`
