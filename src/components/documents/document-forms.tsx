@@ -1,81 +1,17 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useId, useRef, useState } from "react";
+import { useId, useRef } from "react";
 
 import { useForm } from "@/components/budget/use-form";
 import { TextField } from "@/components/forms/field";
 import { FormFooter } from "@/components/records/form-footer";
-import { Button } from "@/components/ui/button";
+import { UploadFooter, useUpload } from "@/components/forms/use-upload";
 import { saveDocumentAction } from "@/server/actions/documents";
 
 import { type DocumentChoices, DocumentFields, type DocumentValues } from "./document-fields";
 
 const ACCEPT = "image/jpeg,image/png,image/webp,image/heic,image/heif,image/avif,application/pdf";
-
-type UploadState = {
-  busy: boolean;
-  message?: string;
-  error?: boolean;
-  fields: Record<string, string | undefined>;
-  values: Record<string, string>;
-  attempt: number;
-};
-
-/**
- * Sends the form, with its file, to /api/documents. Server Actions limit how
- * big a request can be, so files go through that route instead.
- */
-function useUpload(onDone: (documentId: string) => void) {
-  const [state, setState] = useState<UploadState>({
-    busy: false,
-    fields: {},
-    values: {},
-    attempt: 0,
-  });
-  async function submit(form: HTMLFormElement) {
-    const data = new FormData(form);
-    const values = Object.fromEntries(
-      [...data].filter((e): e is [string, string] => typeof e[1] === "string"),
-    );
-    setState((s) => ({ ...s, busy: true, message: "Uploading…", error: false, fields: {} }));
-    try {
-      const response = await fetch("/api/documents", { method: "POST", body: data });
-      const body = (await response.json().catch(() => ({}))) as {
-        error?: string;
-        fields?: Record<string, string>;
-        documentId?: string;
-      };
-      if (!response.ok || !body.documentId) {
-        setState((s) => ({
-          busy: false,
-          error: true,
-          message: body.error ?? "The upload didn't work.",
-          fields: body.fields ?? {},
-          values,
-          attempt: s.attempt + 1,
-        }));
-        return;
-      }
-      setState((s) => ({
-        busy: false,
-        message: "Saved.",
-        fields: {},
-        values: {},
-        attempt: s.attempt + 1,
-      }));
-      onDone(body.documentId);
-    } catch {
-      setState((s) => ({
-        ...s,
-        busy: false,
-        error: true,
-        message: "The upload didn't work. Check your connection.",
-      }));
-    }
-  }
-  return { state, submit };
-}
 
 function FileField({ error }: { error: string | undefined }) {
   const id = useId();
@@ -102,22 +38,6 @@ function FileField({ error }: { error: string | undefined }) {
   );
 }
 
-function Footer({ state, label }: { state: UploadState; label: string }) {
-  return (
-    <div className="flex flex-wrap items-center gap-3">
-      <Button type="submit" disabled={state.busy}>
-        {state.busy ? "Uploading…" : label}
-      </Button>
-      <p
-        role="status"
-        className={state.error ? "text-sm text-destructive" : "text-sm text-muted-foreground"}
-      >
-        {state.message}
-      </p>
-    </div>
-  );
-}
-
 /** Adds a document to the library. On a project page, it stays there. */
 export function AddDocumentForm({
   choices,
@@ -128,7 +48,7 @@ export function AddDocumentForm({
 }) {
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
-  const { state, submit } = useUpload((id) => {
+  const { state, submit } = useUpload("/api/documents", "documentId", (id) => {
     if (fixedProjectId) {
       formRef.current?.reset();
       router.refresh();
@@ -155,7 +75,7 @@ export function AddDocumentForm({
         {...(fixedProjectId ? { fixedProjectId } : {})}
       />
       <FileField error={state.fields["file"]} />
-      <Footer state={state} label="Add document" />
+      <UploadFooter state={state} label="Add document" />
     </form>
   );
 }
@@ -163,7 +83,7 @@ export function AddDocumentForm({
 /** Uploads a new version of a document; the earlier ones are kept. */
 export function NewVersionForm({ documentId }: { documentId: string }) {
   const router = useRouter();
-  const { state, submit } = useUpload(() => router.refresh());
+  const { state, submit } = useUpload("/api/documents", "documentId", () => router.refresh());
   return (
     <form
       key={state.attempt}
@@ -184,7 +104,7 @@ export function NewVersionForm({ documentId }: { documentId: string }) {
         defaultValue={state.values["note"] ?? ""}
         error={state.fields["note"]}
       />
-      <Footer state={state} label="Upload new version" />
+      <UploadFooter state={state} label="Upload new version" />
     </form>
   );
 }

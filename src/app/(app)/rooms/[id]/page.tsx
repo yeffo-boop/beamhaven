@@ -12,6 +12,7 @@ import { OpeningForm } from "@/components/records/opening-form";
 import { orNotFound } from "@/components/records/or-not-found";
 import { Detail, EmptyState, Panel } from "@/components/records/panel";
 import { PhotoGallery } from "@/components/records/photo-gallery";
+import { BoardList } from "@/components/boards/board-list";
 import { openingKindLabel, roomTypeLabel } from "@/components/records/room-labels";
 import { StatusBadge } from "@/components/records/status-badge";
 import { MaterialList } from "@/components/materials/list";
@@ -22,6 +23,7 @@ import { can } from "@/server/auth/permissions";
 import { getWorkspaceContext } from "@/server/auth/workspace";
 import { getActivity } from "@/server/services/activity";
 import { getPhotos } from "@/server/services/attachments";
+import { getBoards } from "@/server/services/boards";
 import { getRecordChoices, NO_CHOICES } from "@/server/services/choices";
 import { getMeasurementPreference } from "@/server/services/preferences";
 import { getRoom } from "@/server/services/rooms";
@@ -37,15 +39,17 @@ export default async function RoomPage({ params, searchParams }: PageProps<"/roo
   if (!ctx) notFound();
   const room = await orNotFound(getRoom(ctx, id));
   const canEdit = can(ctx, "records:edit");
-  const [photos, activity, system, tasks, warranties, choices, materials] = await Promise.all([
-    getPhotos(ctx, { kind: "room", id }),
-    getActivity(ctx, "room", id),
-    getMeasurementPreference(ctx),
-    getTasks(ctx, { roomId: id }),
-    getWarranties(ctx, { roomId: id }),
-    canEdit ? getRecordChoices(ctx) : Promise.resolve(NO_CHOICES),
-    getMaterials(ctx, { roomId: id }),
-  ]);
+  const [photos, activity, system, tasks, warranties, choices, materials, boards] =
+    await Promise.all([
+      getPhotos(ctx, { kind: "room", id }),
+      getActivity(ctx, "room", id),
+      getMeasurementPreference(ctx),
+      getTasks(ctx, { roomId: id }),
+      getWarranties(ctx, { roomId: id }),
+      canEdit ? getRecordChoices(ctx) : Promise.resolve(NO_CHOICES),
+      getMaterials(ctx, { roomId: id }),
+      getBoards(ctx, { roomId: id }),
+    ]);
   const today = new Date();
   const roomProjects = room.projects.map((p) => ({ value: p.projectId, label: p.projectName }));
   const { floorMm2, wallMm2 } = estimateRoomAreas(room, room.openings);
@@ -248,6 +252,20 @@ export default async function RoomPage({ params, searchParams }: PageProps<"/roo
             </div>
           </details>
         ) : null}
+      </Panel>
+
+      <Panel
+        title="Design boards"
+        id="boards"
+        actions={
+          canEdit ? (
+            <Button asChild variant="outline" size="sm">
+              <Link href="/inspiration#new-board-heading">Start a board</Link>
+            </Button>
+          ) : null
+        }
+      >
+        <BoardList boards={boards} empty="No design boards for this room yet." />
       </Panel>
 
       <Panel title="Photos" id="photos">

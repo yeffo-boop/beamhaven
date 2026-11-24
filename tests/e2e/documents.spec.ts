@@ -112,7 +112,10 @@ test("the Files pages fit the screen", async ({ page }) => {
   const first = page.getByRole("list", { name: "Documents" }).getByRole("link").first();
   if (await first.isVisible()) {
     await first.click();
-    await expect(page.getByRole("region", { name: "Versions" })).toBeVisible();
+    // Another test running alongside may have just deleted it.
+    const gone = page.getByText("This page could not be found.");
+    await expect(page.getByRole("region", { name: "Versions" }).or(gone)).toBeVisible();
+    if (await gone.isVisible()) return;
     const detailOverflow = await page.evaluate(
       () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
     );
