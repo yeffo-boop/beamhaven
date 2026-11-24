@@ -401,3 +401,21 @@ Statuses: **Proposed** (waiting for Jeff) · **Accepted** · **Superseded**
 - Property photos stay a plain gallery.
 
 **Consequences.** The day taken isn't read from the photo's EXIF data. That would mean parsing uploaded files more deeply, and phones often strip EXIF anyway. It could be added later as a suggestion. The comparison works best when both photos are taken from the same spot.
+
+## ADR-037: Home is built from existing records, and the activity feed reads the existing history (Milestone 9, part 1)
+
+**Date:** 2026-11-24. **Status:** accepted. Builds on ADR-028 (calendar) and the activity history from Milestone 3.
+
+**Decision.**
+
+- **Home** replaces its placeholder with five panels, all worked out when the page is opened, so nothing new is stored:
+  - **Budget**: the household's current budget, spent, still to pay and left to plan, with one bar (paid, billed but not paid, still expected). It uses the same totals as the Budget page (`docs/BUDGET_DEFINITIONS.md`).
+  - **Needs attention**: tasks that are overdue or due today, bills and deliveries due within the next 7 days (or late), and quotes waiting for a decision. Overdue things come first, then by day. Done tasks, paid bills and delivered orders are left out.
+  - **This week**: the calendar from today through the next six days.
+  - **Active projects**: projects that are planning, in progress or on hold, each with its budget (when it has budget lines) and its next milestone.
+  - **Recent activity**: the ten latest events.
+- Quick actions on Home: add an expense (once there's a budget), and add a photo or task to the most recently changed project.
+- **Activity** (`/activity`) lists the whole household's history, newest first, 50 at a time, with an "Older" link and a filter by kind of record. Each event links to its record. When a record has a "deleted" event, every event about it loses its link, since there's nothing left to open.
+- "Today" is the household's day, in its time zone (ADR-028).
+
+**Consequences.** Some records are logged on their project or contractor rather than on themselves (quotes, for example), so the feed links there. Deleting a project doesn't write a "deleted" event yet, so older events about a deleted project still link to it and show "not found". Everything is read on each visit; if Home gets slow with years of data, we can narrow the look-back (now one year) or cache it.

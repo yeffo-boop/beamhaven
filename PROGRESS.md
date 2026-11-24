@@ -4,6 +4,37 @@ Newest entries at the top. Each entry records what was done, which files changed
 
 ---
 
+## 2026-11-24: Milestone 9, part 1 (Home dashboard and activity feed), built
+
+### Done
+
+- **Home** is now a real dashboard (ADR-037):
+  - **Budget**: four numbers and a bar for paid, billed and still expected.
+  - **Needs attention**: overdue tasks, bills and deliveries due in the next week, and quotes waiting for a decision.
+  - **This week**: what's on the calendar for the next seven days.
+  - **Active projects**: each with its budget and next milestone.
+  - **Recent activity**, with a link to all of it.
+  - Quick buttons to add an expense, a photo or a task.
+- **Activity** (`/activity`): the whole household's history, newest first, filtered by kind, with older pages. Events about something that was deleted no longer link to it.
+- No database changes.
+
+### Tests (cloud workspace, 2026-11-24)
+
+- Lint, formatting and type check: passed. Production build: passed.
+- Unit: 149 of 149 passed, including 3 new ones for the "needs attention" rules (`tests/unit/dashboard-rules.test.ts`).
+- Integration: 149 of 149 passed, including 7 new ones in `tests/integration/dashboard.test.ts`: an empty household; what needs attention, this week and active projects; viewers and other households; feed links, filter and older pages; deleted records losing their link.
+- End-to-end: full run, 83 passed, 32 skipped on purpose, 0 failed. New: an overdue task shows on Home and opens; the activity filter; Home and Activity fit the screen.
+
+### For Jeff to check
+
+After `update.sh`, open Home. You should see your projects, anything overdue, and the latest changes. Click "All activity" and try the filter.
+
+### Next
+
+Milestone 9, part 2: search across everything you can see.
+
+---
+
 ## 2026-11-24: Milestone 8, part 3 (progress photos), built: Milestone 8 done
 
 ### Done
