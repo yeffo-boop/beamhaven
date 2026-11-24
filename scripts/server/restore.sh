@@ -5,7 +5,8 @@
 # Run on the VM from /opt/beamhaven:
 #   ./scripts/server/restore.sh backups/beamhaven-db-<time>.dump [backups/beamhaven-uploads-<time>.tar.gz]
 #
-# It asks you to type RESTORE before changing anything. The website and the
+# It asks you to type RESTORE before changing anything, and saves a copy of the
+# current database to backups/before-restore/ first. The website and the
 # background worker are stopped during the restore and started again at the end.
 set -euo pipefail
 
@@ -36,9 +37,22 @@ fi
 echo "Stopping the website and the worker..."
 docker compose stop app worker
 
+# A copy of the database as it is now, in case the backup turns out to be the wrong one.
+# It goes in before-restore/, where the nightly clean-up never deletes it.
+safety_dir="${BACKUP_DIR:-./backups}/before-restore"
+mkdir -p "$safety_dir"
+safety_file="$safety_dir/beamhaven-db-$(date +%Y-%m-%d_%H%M%S).dump"
+echo "Saving a copy of the current database to $safety_file..."
+docker compose exec -T db sh -c 'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc' > "$safety_file"
+chmod 600 "$safety_file"
+
 echo "Restoring the database..."
+# The database is recreated empty rather than cleaned table by table: the job
+# queue (pg-boss) uses partitioned tables, which pg_restore --clean can't drop.
 docker compose exec -T db sh -c \
-  'pg_restore -U "$POSTGRES_USER" -d "$POSTGRES_DB" --clean --if-exists --no-owner --single-transaction' \
+  'dropdb -U "$POSTGRES_USER" --force "$POSTGRES_DB" && createdb -U "$POSTGRES_USER" "$POSTGRES_DB"'
+docker compose exec -T db sh -c \
+  'pg_restore -U "$POSTGRES_USER" -d "$POSTGRES_DB" --no-owner --single-transaction --exit-on-error' \
   < "$db_file"
 
 if [[ -n "$uploads_file" ]]; then
@@ -50,4 +64,4 @@ fi
 
 echo "Starting the website and the worker..."
 docker compose up -d --wait app worker
-echo "Restore finished. Check https://<your address>/api/health and sign in."
+echo "Restore finished. Now run ./scripts/server/restore-check.sh, then sign in."
