@@ -29,6 +29,7 @@ const targetSchema = z.object({
     "contract",
     "material",
     "order",
+    "punch_item",
   ]),
   targetId: z.string().min(1).max(64),
   caption: z.string().max(300).optional(),

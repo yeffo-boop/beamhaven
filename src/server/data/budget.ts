@@ -471,6 +471,11 @@ export async function deleteLineRow(
     if (used || (line.originalCents ?? 0n) > 0n) {
       return { status: "in_use", projectId: line.projectId };
     }
+    // Materials chosen against it as an allowance just lose the link (ADR-046).
+    await tx.material.updateMany({
+      where: { workspaceId: ws, budgetLineId: id },
+      data: { budgetLineId: null },
+    });
     await tx.budgetLine.delete({ where: { id } });
     return { status: "deleted", projectId: line.projectId };
   });

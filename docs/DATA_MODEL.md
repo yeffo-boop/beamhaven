@@ -203,6 +203,15 @@ The library is separate from attachments: a receipt stays on its expense and a l
 | **DesignBoard** | id, workspaceId, name, roomId, projectId, notes, createdById, updatedAt                                                                                       | Room and project links are cleared when those are deleted.                                                                                                                                                                                                                           |
 | **BoardItem**   | id, workspaceId, boardId, kind, title, notes, position, fileId (unique), colorHex, brand, code, productUrl, materialId, isPreferred, approvedAt, approvedById | kind: image (needs fileId), product, color (needs colorHex, `#rrggbb`) or finish. position from 0, gaps closed on removal. productUrl is http(s) only. The material link is cleared when the material is deleted. Deleting the board deletes its items and their pictures (ADR-035). |
 
+## 5b. Homeowner extras (Milestone 12, part 1)
+
+| Model            | Key fields                                                                                                                                     | Notes                                                                                                                                                                                                      |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **CalendarFeed** | id, workspaceId, userId, tokenHash (unique), createdAt, lastUsedAt                                                                             | One private calendar link per person per household (ADR-045). Only the SHA-256 of the link's secret is stored. The feed checks membership on every request, so a person who leaves the household loses it. |
+| **PunchItem**    | id, workspaceId, projectId (required), roomId, contractorId (nullable), title, notes, status, fixedAt, signedOffAt, signedOffById, createdById | `status` is `open` \| `fixed` \| `signed_off` (ADR-047). Photos are attachments with `punch_item_id` (purpose `document`). Deleted with its project; a deleted room or contractor only loses the link.     |
+
+**Allowances** (ADR-046) add one column: `Material.budgetLineId` (nullable), the budget line a material is chosen against. The line must be on the material's project when it has one. Deleting the line or its project, or moving the material to another project, clears it.
+
 ## 6. Activity history (from Milestone 3 on)
 
 | Model             | Key fields                                                                                                                                              |

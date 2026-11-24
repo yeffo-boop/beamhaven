@@ -4,7 +4,11 @@ import { useForm } from "@/components/budget/use-form";
 import { SelectField, TextAreaField, TextField } from "@/components/forms/field";
 import { FormFooter } from "@/components/records/form-footer";
 import { Button } from "@/components/ui/button";
-import { saveMaterialAction, setMaterialStatusAction } from "@/server/actions/materials";
+import {
+  saveMaterialAction,
+  setMaterialAllowanceAction,
+  setMaterialStatusAction,
+} from "@/server/actions/materials";
 
 import { materialStatusOptions } from "./labels";
 
@@ -163,6 +167,34 @@ export function MaterialForm({
 }
 
 /** Moves a material to another status without opening the whole form. */
+/** Which allowance (budget line) the material is chosen against (ADR-046). */
+export function MaterialAllowanceForm({
+  id,
+  budgetLineId,
+  lines,
+}: {
+  id: string;
+  budgetLineId: string | null;
+  lines: { value: string; label: string }[];
+}) {
+  return (
+    <form action={setMaterialAllowanceAction} className="flex flex-wrap items-end gap-3">
+      <input type="hidden" name="id" value={id} />
+      <SelectField
+        id="material-allowance"
+        name="budgetLineId"
+        label="Allowance"
+        options={[{ value: "", label: "Not on an allowance" }, ...lines]}
+        defaultValue={budgetLineId ?? ""}
+        className="min-w-48 sm:max-w-md sm:flex-1"
+      />
+      <Button type="submit" variant="outline">
+        Save allowance
+      </Button>
+    </form>
+  );
+}
+
 export function MaterialStatusForm({ id, status }: { id: string; status: string }) {
   return (
     <form action={setMaterialStatusAction} className="flex flex-wrap items-end gap-3">

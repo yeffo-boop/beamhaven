@@ -5,7 +5,7 @@ import { notFound } from "next/navigation";
 import { WarrantyForm } from "@/components/contractors/forms";
 import { WarrantyList } from "@/components/contractors/lists";
 import { ProblemNotice } from "@/components/budget/problem-notice";
-import { MaterialStatusForm } from "@/components/materials/forms";
+import { MaterialAllowanceForm, MaterialStatusForm } from "@/components/materials/forms";
 import { OrderList } from "@/components/orders/list";
 import { describeQuantity, MaterialStatusBadge } from "@/components/materials/labels";
 import { PageHeader } from "@/components/page-header";
@@ -20,6 +20,7 @@ import { deleteMaterialAction } from "@/server/actions/materials";
 import { can } from "@/server/auth/permissions";
 import { getWorkspaceContext } from "@/server/auth/workspace";
 import { getActivity } from "@/server/services/activity";
+import { getAllowanceChoices } from "@/server/services/allowances";
 import { getDocuments } from "@/server/services/attachments";
 import { getRecordChoices, NO_CHOICES } from "@/server/services/choices";
 import { getMaterial } from "@/server/services/materials";
@@ -35,13 +36,15 @@ export default async function MaterialPage({ params, searchParams }: PageProps<"
   if (!ctx) notFound();
   const m = await orNotFound(getMaterial(ctx, id));
   const canEdit = can(ctx, "records:edit");
-  const [files, warranties, activity, choices, orders] = await Promise.all([
+  const [files, warranties, activity, choices, orders, allowanceLines] = await Promise.all([
     getDocuments(ctx, { kind: "material", id }),
     getWarranties(ctx, { materialId: id }),
     getActivity(ctx, "material", id),
     canEdit ? getRecordChoices(ctx) : Promise.resolve(NO_CHOICES),
     getOrders(ctx, { materialId: id }),
+    getAllowanceChoices(ctx, m.projectId),
   ]);
+  const allowance = allowanceLines.find((l) => l.value === m.budgetLineId);
   const back = m.projectId
     ? { href: `/projects/${m.projectId}`, label: m.projectName }
     : m.roomId
@@ -118,6 +121,18 @@ export default async function MaterialPage({ params, searchParams }: PageProps<"
           <Detail label="SKU or item number">{m.sku ?? dash}</Detail>
           <Detail label="Color or finish">{m.colorFinish ?? dash}</Detail>
           <Detail label="How much">{amount ?? dash}</Detail>
+          <Detail label="Allowance">
+            {allowance ? (
+              <Link
+                href={`/budget/lines/${allowance.value}#allowance`}
+                className="text-primary hover:underline"
+              >
+                {allowance.label}
+              </Link>
+            ) : (
+              dash
+            )}
+          </Detail>
           <Detail label="Product link">
             {m.productUrl ? (
               <a
@@ -148,6 +163,9 @@ export default async function MaterialPage({ params, searchParams }: PageProps<"
           </div>
         ) : null}
         {canEdit ? <MaterialStatusForm id={id} status={m.status} /> : null}
+        {canEdit && allowanceLines.length > 0 ? (
+          <MaterialAllowanceForm id={id} budgetLineId={m.budgetLineId} lines={allowanceLines} />
+        ) : null}
       </Panel>
 
       <Panel

@@ -124,3 +124,16 @@ A room estimate fills in the **estimate** of budget lines. It never sets the pla
 - **Where it goes:** material and tax on the material category's line, install on the labor category's line (or on the material line if none is chosen); one line per room, or one for the whole project. Areas typed in with no room go on a whole-project line. Lines are found by category, room and the estimate's name, and made when missing (after lock-in at $0, like any new line).
 - When a price, a room's size or openings, the tax rate or the estimate itself changes, its lines are updated straight away. A line it no longer needs loses the estimate; if the estimate made it and nothing else is on it, it's deleted.
 - A **quote can be compared** with one of its project's estimates: the difference, and both prices per sq ft (or per foot) over the estimate's measured size.
+
+## Allowances (Milestone 12, ADR-046)
+
+An **allowance** is a budget line used for a selection, like "Kitchen · Materials · Tile, $3,000". It is not a new kind of money and changes none of the numbers above.
+
+| Number                | Meaning                              | Formula                                                                                                                                       |
+| --------------------- | ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Allowance**         | What the selection may cost.         | The line's **current budget**.                                                                                                                |
+| **Chosen so far**     | What the picks are expected to cost. | Sum of `unit price × quantity` (rounded to the cent) of materials on the line that are Selected, Ordered, Delivered or Installed. Before tax. |
+| **Still considering** | What the other options would add.    | The same sum for materials still being Considered. Not counted in "left".                                                                     |
+| **Left**              | How much of the allowance is unused. | `allowance − chosen so far` (below zero is "Over by").                                                                                        |
+
+Returned and canceled materials don't count. A material with no price or quantity can't be counted, and the page says how many there are. The forecast, commitments and available amount of the line are unchanged: they move only when real orders, quotes or expenses are recorded.

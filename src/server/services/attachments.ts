@@ -102,6 +102,7 @@ export function purposeFor(kind: AttachmentTarget["kind"]): Purpose {
     case "contract":
     case "material":
     case "order":
+    case "punch_item":
       return "document";
   }
 }

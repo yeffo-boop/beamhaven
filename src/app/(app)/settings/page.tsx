@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 
+import { CalendarLink } from "@/components/account/calendar-link";
 import { ChangePasswordForm } from "@/components/account/change-password-form";
 import { InlineNameForm } from "@/components/forms/inline-name-form";
 import { BackupSettings } from "@/components/household/backup-status";
@@ -11,6 +12,9 @@ import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { signOutEverywhereAction, updateNameAction } from "@/server/actions/account";
 import { signOutAction } from "@/server/auth/actions";
 import { getCurrentUser } from "@/server/auth/session";
+import { getWorkspaceContext } from "@/server/auth/workspace";
+import { formatDay } from "@/lib/dates";
+import { getCalendarLinkInfo } from "@/server/services/calendar-feed";
 
 export const metadata = { title: "Settings" };
 
@@ -45,6 +49,18 @@ export default function SettingsPage() {
         </h2>
         <Suspense fallback={<div className="h-16" />}>
           <AccountDetails />
+        </Suspense>
+      </section>
+
+      <section
+        aria-labelledby="calendar-heading"
+        className="flex flex-col gap-3 rounded-[var(--radius-card)] border border-border bg-surface p-5 md:p-6"
+      >
+        <h2 id="calendar-heading" className="font-semibold">
+          Calendar on your phone
+        </h2>
+        <Suspense fallback={<div className="h-16" />}>
+          <CalendarLinkSettings />
         </Suspense>
       </section>
 
@@ -123,4 +139,11 @@ async function AccountDetails() {
       </div>
     </div>
   );
+}
+
+async function CalendarLinkSettings() {
+  const ctx = await getWorkspaceContext();
+  if (!ctx) return null;
+  const info = await getCalendarLinkInfo(ctx);
+  return <CalendarLink since={info ? formatDay(info.createdAt) : null} />;
 }
