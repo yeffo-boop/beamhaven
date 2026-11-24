@@ -77,6 +77,8 @@ jobs:
         run: docker compose up -d --build --wait
       - name: Health check
         run: curl --fail --silent http://127.0.0.1:3000/api/health
+      - name: The worker starts and runs its first reminders pass
+        run: timeout 90 sh -c 'until docker compose logs worker | grep -q "reminder(s)"; do sleep 3; done'
       - name: The database port is not published
         # "docker compose port" prints ":0" for an unpublished port, so check the
         # container's actual port bindings instead: none means not reachable.

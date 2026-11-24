@@ -4,6 +4,34 @@ Newest entries at the top. Each entry records what was done, which files changed
 
 ---
 
+## 2026-11-24: Milestone 7, part 3 (reminders), built: Milestone 7 done
+
+### Done
+
+- **Database** (one migration, `20261124050000_reminders`): a reminders table. It only adds a table; no existing data changes. pg-boss also creates its own `pgboss` schema the first time the worker starts.
+- **Worker**: a new `worker` container (same image as `ops`) runs pg-boss and, every 15 minutes, adds reminders that are due: from 7 AM household time, for tomorrow's calendar, and bills due within 3 days. Tasks go to their assignee; the rest to owners and members (ADR-033).
+- **In the app**: a bell with an unread count (sidebar and phone top bar) and a Reminders page with Mark read and Mark all read.
+- **Server scripts**: `restore.sh` now stops and restarts the worker too; `DEPLOYMENT.md` explains it.
+- **Dependency**: `pg-boss` 12.38.1 (installed with `--before=2026-11-09`). `npm audit` reports the same 10 dev-tool advisories as before, nothing from pg-boss.
+
+### Tests (cloud workspace, 2026-11-24)
+
+- Unit: 146 of 146 passed, including 3 new reminder-rule tests (what's due, who gets it, the household's hour).
+- Integration: 115 of 115 passed.
+- Integration: 4 new tests in `tests/integration/reminders.test.ts` pass: the right people once, waiting for 7 AM in the household's time zone, marking only your own read (and other households untouched), and the worker's context being read-only.
+- End-to-end: full run, 70 passed, 24 skipped on purpose, 0 failed (new: the bell opens Reminders; the page fits the screen).
+- The worker started locally against the dev database, scheduled its 15-minute job and ran its first pass. CI now also starts it in Docker and waits for that first pass.
+
+### For Jeff to check on the VM
+
+Run `update.sh`, then `docker compose ps` should list `worker` as running and `docker compose logs worker` should say `started` and `added 0 reminder(s)` (or more).
+
+### Next
+
+Milestone 8 (documents and design boards) needs Jeff's go-ahead.
+
+---
+
 ## 2026-11-23: Milestone 7, part 2 (the calendar), built
 
 ### Done

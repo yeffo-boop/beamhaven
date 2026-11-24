@@ -38,7 +38,7 @@ echo "== 3/4 Rebuilding and restarting (this takes a few minutes)"
 if ! docker compose up -d --build --wait; then
   echo
   echo "The new version didn't start. The previous one was at $before."
-  echo "Logs:   docker compose logs --tail 100 migrate app"
+  echo "Logs:   docker compose logs --tail 100 migrate app worker"
   echo "To go back to it, see 'If an update goes wrong' in DEPLOYMENT.md."
   exit 1
 fi

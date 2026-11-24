@@ -98,7 +98,7 @@ test("put an inspection on a project, see it coming up and on the calendar, then
 });
 
 test("calendar pages fit the screen", async ({ page }) => {
-  for (const path of [`/schedule?date=${daysFromNow(0)}`, "/settings"]) {
+  for (const path of [`/schedule?date=${daysFromNow(0)}`, "/settings", "/reminders"]) {
     await page.goto(path);
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
     const overflow = await page.evaluate(
@@ -106,4 +106,13 @@ test("calendar pages fit the screen", async ({ page }) => {
     );
     expect(overflow, `${path} scrolls sideways`).toBeLessThanOrEqual(0);
   }
+});
+
+test("the reminders bell opens the reminders", async ({ page }) => {
+  await page.goto("/projects");
+  await visible(page.getByRole("link", { name: /^Reminders/ }))
+    .first()
+    .click();
+  await expect(page.getByRole("heading", { level: 1, name: "Reminders" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "New" })).toBeVisible();
 });

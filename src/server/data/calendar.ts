@@ -35,6 +35,8 @@ export type CalendarEntry = {
   done: boolean;
   /** A short extra fact, like "Failed" or "$1,200.00". */
   note: string | null;
+  /** For a task given to a household member: who, so only they are reminded. */
+  assigneeUserId?: string | null;
 };
 
 export type CalendarRange = { from: Date; to: Date; projectId?: string };
@@ -59,6 +61,7 @@ export async function listCalendarEntries(
         title: true,
         status: true,
         dueDate: true,
+        assigneeUserId: true,
         project: { select: { name: true } },
       },
       take: 500,
@@ -154,6 +157,7 @@ export async function listCalendarEntries(
       projectName: t.project?.name ?? null,
       done: t.status === "done",
       note: t.status === "done" ? "Done" : "Due",
+      assigneeUserId: t.assigneeUserId,
     });
   }
   for (const m of milestones) {

@@ -42,6 +42,16 @@ export function todayIn(zone: string, now: Date = new Date()): Date {
   return parseDay(local) ?? parseDay(now.toISOString().slice(0, 10)) ?? now;
 }
 
+/** The hour of the day (0 to 23) where the household is. */
+export function hourIn(zone: string, now: Date = new Date()): number {
+  const hour = new Intl.DateTimeFormat("en-US", {
+    timeZone: isTimeZone(zone) ? zone : "UTC",
+    hour: "numeric",
+    hourCycle: "h23",
+  }).format(now);
+  return Number(hour) % 24;
+}
+
 /** The Sunday on or before `day`. */
 export function startOfWeek(day: Date): Date {
   return addDays(day, -day.getUTCDay());

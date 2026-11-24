@@ -5,8 +5,8 @@
 # Run on the VM from /opt/beamhaven:
 #   ./scripts/server/restore.sh backups/beamhaven-db-<time>.dump [backups/beamhaven-uploads-<time>.tar.gz]
 #
-# It asks you to type RESTORE before changing anything. The website is
-# stopped during the restore and started again at the end.
+# It asks you to type RESTORE before changing anything. The website and the
+# background worker are stopped during the restore and started again at the end.
 set -euo pipefail
 
 cd "$(dirname "$0")/../.."
@@ -33,8 +33,8 @@ if [[ "$answer" != "RESTORE" ]]; then
   exit 1
 fi
 
-echo "Stopping the website..."
-docker compose stop app
+echo "Stopping the website and the worker..."
+docker compose stop app worker
 
 echo "Restoring the database..."
 docker compose exec -T db sh -c \
@@ -48,6 +48,6 @@ if [[ -n "$uploads_file" ]]; then
     'find /data/uploads -mindepth 1 -delete && tar -C /data -xzf -' < "$uploads_file"
 fi
 
-echo "Starting the website..."
-docker compose up -d --wait app
+echo "Starting the website and the worker..."
+docker compose up -d --wait app worker
 echo "Restore finished. Check https://<your address>/api/health and sign in."

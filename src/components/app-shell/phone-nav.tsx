@@ -3,7 +3,7 @@
 import { Ellipsis } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import {
@@ -25,14 +25,15 @@ import { cn } from "@/lib/utils";
 
 import { BrandMark } from "./brand-mark";
 
-/** Phone-only top bar with the product name. */
-export function PhoneTopBar() {
+/** Phone-only top bar with the product name and the reminders bell. */
+export function PhoneTopBar({ reminders }: { reminders?: ReactNode }) {
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-border bg-background/95 px-4 backdrop-blur md:hidden">
       <Link href="/" className="flex items-center gap-2">
         <BrandMark className="size-6" />
         <span className="font-semibold tracking-tight">{brand.name}</span>
       </Link>
+      <div className="ml-auto">{reminders}</div>
     </header>
   );
 }
