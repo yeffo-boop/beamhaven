@@ -7,7 +7,7 @@ import { z } from "zod";
 import { assertCan, requireWorkspace } from "@/server/auth/workspace";
 import { isTimeZone } from "@/lib/calendar";
 import { setMeasurementSystem, setTimeZone } from "@/server/data/workspaces";
-import { deletePhoto } from "@/server/services/attachments";
+import { deletePhoto, updatePhotoDetails } from "@/server/services/attachments";
 import {
   createProject,
   deleteProject,
@@ -251,6 +251,32 @@ export async function deletePhotoAction(formData: FormData): Promise<void> {
     return;
   }
   refresh();
+}
+
+/** A progress photo's caption, phase and day taken (Milestone 8, part 3). */
+export async function savePhotoDetailsAction(
+  _previous: FormResult,
+  formData: FormData,
+): Promise<FormResult> {
+  const ctx = await requireWorkspace();
+  const kind = targetKind.safeParse(formData.get("targetKind"));
+  if (!kind.success) notFound();
+  try {
+    await updatePhotoDetails(
+      ctx,
+      { kind: kind.data, id: idFrom(formData, "targetId") },
+      idFrom(formData, "attachmentId"),
+      {
+        caption: text(formData, "caption"),
+        phase: text(formData, "phase"),
+        takenOn: text(formData, "takenOn"),
+      },
+    );
+  } catch (error) {
+    return asFormResult(error, formData);
+  }
+  refresh();
+  return { status: "saved" };
 }
 
 // --- Household preferences -------------------------------------------------

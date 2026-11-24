@@ -384,3 +384,20 @@ Statuses: **Proposed** (waiting for Jeff) · **Accepted** · **Superseded**
 - New items go through `/api/boards/items`, which checks the origin and applies a rate limit, because pictures can be large. Edits, flags, moves and removals are Server Actions.
 
 **Consequences.** An item's kind and picture can't be changed after it's added: remove it and add it again. Boards aren't shared outside the household; that waits for the client portal idea (ADR-017).
+
+## ADR-036: Progress photos are ordinary photos with a phase and a day (Milestone 8, part 3)
+
+**Date:** 2026-11-24. **Status:** accepted. Builds on ADR-012.
+
+**Decision.**
+
+- Progress photos are the photos already on projects and rooms, so there's no new table. A photo gains two optional fields:
+  - a **phase**: before, during or after the work;
+  - **taken on**: the day the photo was taken.
+- Database checks allow these fields only on photos, and the phase only as one of those three values. Existing photos start as "not sorted".
+- On a project or room, photos are grouped by phase, oldest first. A photo is placed by the day it was taken when that's known, and otherwise by when it was uploaded.
+- When uploading, you can pick the stage for the new photos. Each photo's details (caption, stage, day taken) can be changed afterwards.
+- **Before and after:** once there's at least one photo of each, a comparison shows a before photo laid over an after photo. A slider wipes between them. It's an ordinary range input, so it works with a keyboard and a screen reader. Two pickers choose which photos to compare; the defaults are the first before photo and the latest after photo.
+- Property photos stay a plain gallery.
+
+**Consequences.** The day taken isn't read from the photo's EXIF data. That would mean parsing uploaded files more deeply, and phones often strip EXIF anyway. It could be added later as a suggestion. The comparison works best when both photos are taken from the same spot.

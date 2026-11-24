@@ -160,14 +160,14 @@ Built in three parts: **part 1** materials, **part 2** orders with several items
 
 Built in three parts: **part 1** milestones, task dependencies and the Schedule page (built), **part 2** the calendar with appointments and inspections (built), **part 3** in-app reminders from a pg-boss worker (built; email reminders wait for email).
 
-## Milestone 8: Documents and Design Boards ⬜
+## Milestone 8: Documents and Design Boards ✅
 
 **Depends on:** Milestone 3.
 
 - A central document library with categories, search, filters and versions. ✅ (part 1)
 - Design boards with images, products, colors and finishes, plus drag-and-drop ordering. ✅ (part 2)
 - Floor plans and renderings (images and PDFs), with versions. ✅ (part 1: library categories)
-- Progress photos by phase, with before-and-after comparison.
+- Progress photos by phase, with before-and-after comparison. ✅ (part 3)
 
 ## Milestone 9: Dashboard and Reports ⬜
 

@@ -184,6 +184,8 @@ The calendar itself isn't stored: it's read from appointments, tasks' due dates,
 
 Built so far: purposes `photo` (property, project, room) and `receipt` (expense; a photo or a PDF, which is only ever sent as a download). The other targets arrive with their milestones. The bytes live in the storage folder under `<workspaceId>/<random 64-character hex>`; the database never holds file contents.
 
+Progress photos (Milestone 8, part 3) use two optional columns on photo attachments: `phase` (before, during or after) and `takenOn` (a calendar day). Database checks allow them only on photos (ADR-036).
+
 ### Document library (Milestone 8, part 1)
 
 | Model               | Key fields                                                                                       | Notes                                                                                                                                                                                    |

@@ -93,6 +93,7 @@ export async function insertAttachedFile(
   file: NewFile,
   purpose: string,
   caption: string | null,
+  photo: PhotoDetails = { phase: null, takenOn: null },
 ): Promise<{ attachmentId: string; fileId: string } | null> {
   if (!(await targetExists(ctx, target))) return null;
   const fileId = newId();
@@ -108,6 +109,7 @@ export async function insertAttachedFile(
         fileId,
         purpose,
         caption,
+        ...(purpose === "photo" ? photo : {}),
         createdById: ctx.userId,
         ...targetColumn(target),
       },
@@ -116,7 +118,10 @@ export async function insertAttachedFile(
   return { attachmentId, fileId };
 }
 
-export type AttachmentSummary = {
+/** For progress photos (Milestone 8, part 3): before, during or after, and the day taken. */
+export type PhotoDetails = { phase: string | null; takenOn: Date | null };
+
+export type AttachmentSummary = PhotoDetails & {
   id: string;
   fileId: string;
   caption: string | null;
@@ -137,11 +142,32 @@ export async function listAttachments(
       id: true,
       fileId: true,
       caption: true,
+      phase: true,
+      takenOn: true,
       createdAt: true,
       file: { select: { originalName: true, mimeType: true } },
     },
   });
   return rows.map(({ file, ...row }) => ({ ...row, ...file }));
+}
+
+/** Changes a photo's caption, phase and day taken. False if it isn't that record's photo. */
+export async function updatePhotoRow(
+  ctx: WorkspaceContext,
+  target: AttachmentTarget,
+  attachmentId: string,
+  details: PhotoDetails & { caption: string | null },
+): Promise<boolean> {
+  const result = await getPrisma().attachment.updateMany({
+    where: {
+      id: attachmentId,
+      workspaceId: ctx.workspaceId,
+      purpose: "photo",
+      ...targetColumn(target),
+    },
+    data: details,
+  });
+  return result.count === 1;
 }
 
 export type StoredFile = {
