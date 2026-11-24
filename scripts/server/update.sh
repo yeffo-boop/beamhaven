@@ -35,6 +35,8 @@ else
 fi
 
 echo "== 3/4 Rebuilding and restarting (this takes a few minutes)"
+# The website reads the backup status from here; made by us, not by Docker as root.
+mkdir -p backups/status
 if ! docker compose up -d --build --wait; then
   echo
   echo "The new version didn't start. The previous one was at $before."

@@ -476,3 +476,39 @@ Statuses: **Proposed** (waiting for Jeff) · **Accepted** · **Superseded**
 - Database checks allow only the four kinds and in-app links.
 
 **Consequences.** No email or push yet: like reminders, those wait for email to be set up. Comments and @-mentions don't exist yet, so they don't notify. Notifications aren't cleared automatically; if the list grows large, a later job can delete read ones older than, say, six months.
+
+## ADR-041: Backups keep 7 daily, 4 weekly and 12 monthly copies, with an encrypted off-site copy through restic (Milestone 10, part 1)
+
+**Date:** 2026-11-24. **Status:** accepted. Builds on the Milestone 2.5 backup script.
+
+**Decision.**
+
+- **Retention:** `scripts/server/prune-backups.sh` keeps the newest backup of each of the last 7 days, 4 weeks and 12 months, and deletes the rest. Before, nothing was ever deleted, so the disk would eventually fill.
+- **Off-site:** if `RESTIC_REPOSITORY` is set in `.env`, `backup.sh` copies the new backup and `.env` with **restic**, through `scripts/server/offsite.sh`:
+  - restic encrypts on the VM before anything leaves it, and only sends what changed;
+  - it runs in a pinned `restic/restic` container, so nothing is installed on the VM;
+  - it works with Backblaze B2 (recommended: cheap, and away from the house) or a mounted NAS/USB folder;
+  - the off-site copies keep the same 7/4/12, grouped by host and tag. Restic groups by file path by default, and our file names change every night, so the default would never delete anything;
+  - every Sunday, `restic check` reads back 5% of the data, to catch a copy that can't be read.
+- **Status and warning:** every run writes `backups/status/last-backup.json`, including when it fails. The app reads it (read-only mount) and shows owners a warning on Home when the last good backup is over 48 hours old, a run failed, the off-site copy failed, or no backup has ever finished. Settings → Backups shows the details. Only owners see it, because only they can fix it.
+
+**Why restic and not rsync or rclone?** It encrypts by default, keeps many versions without storing each in full, and has its own retention and checking commands. rsync would copy unencrypted files and need its own retention.
+
+**Consequences.**
+
+- The restic password is the only way to open the off-site copies, so it has to be saved in Jeff's password manager.
+- The app container receives all of `.env` (as before), which now includes the restic password. The app never uses it. Keeping one `.env` is simpler; it could be split later.
+- B2 storage costs a little each month (a few GB at about $6 per TB).
+- If `RESTIC_REPOSITORY` isn't set, nothing changes except local retention.
+
+## ADR-042: The worker has a health check, logs have a size cap, and everything starts again after a reboot (Milestone 10, part 2)
+
+**Date:** 2026-11-24. **Status:** accepted.
+
+**Decision.**
+
+- **Worker health:** every 30 seconds, the worker touches a heartbeat file, but only if it can reach the database. Docker's health check marks the worker unhealthy when the file is more than 2 minutes old. Before, a stuck worker looked fine.
+- **Log size:** every container uses Docker's `local` log driver, capped at 5 files of 20 MB. Before, logs could grow until the disk was full.
+- **Reboots:** containers already use `restart: unless-stopped`, and Docker starts at boot on Ubuntu. Jeff tests this once on the VM (`PRODUCTION_CHECKLIST.md`).
+
+**Consequences.** `docker compose ps` now shows app, db and worker as healthy. The heartbeat file lives in the container's `/tmp`, so nothing is written to the data volumes.

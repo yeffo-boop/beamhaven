@@ -2,6 +2,7 @@ import { Suspense } from "react";
 
 import { ChangePasswordForm } from "@/components/account/change-password-form";
 import { InlineNameForm } from "@/components/forms/inline-name-form";
+import { BackupSettings } from "@/components/household/backup-status";
 import { HouseholdMembers } from "@/components/household/household-members";
 import { PageHeader } from "@/components/page-header";
 import { PropertiesSettings } from "@/components/records/properties-settings";
@@ -70,6 +71,10 @@ export default function SettingsPage() {
           <PropertiesSettings />
         </Suspense>
       </section>
+
+      <Suspense fallback={null}>
+        <BackupSettings />
+      </Suspense>
 
       <section
         aria-labelledby="password-heading"

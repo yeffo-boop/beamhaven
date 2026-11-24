@@ -9,6 +9,8 @@
  * server to run or back up. Every 15 minutes it adds the reminders that are
  * due. Stop it with Ctrl+C (or `docker compose stop worker`).
  */
+import { writeFile } from "node:fs/promises";
+
 import { loadEnvConfig } from "@next/env";
 import { PgBoss } from "pg-boss";
 
@@ -16,6 +18,13 @@ loadEnvConfig(process.cwd());
 
 const QUEUE = "reminders";
 const EVERY_15_MINUTES = "*/15 * * * *";
+/**
+ * Docker's health check reads this file's age (docker-compose.yml): if the
+ * worker hangs or loses the database, it stops being updated and the
+ * container shows as unhealthy (Milestone 10, part 2).
+ */
+const HEARTBEAT_FILE = process.env.WORKER_HEARTBEAT_FILE ?? "/tmp/worker-heartbeat";
+const HEARTBEAT_MS = 30_000;
 
 async function main() {
   // Imported after .env is loaded, because they read settings when used.
@@ -36,8 +45,19 @@ async function main() {
   await boss.send(QUEUE, {});
   console.log("[worker] started: reminders every 15 minutes");
 
+  // Only beats while the database answers, so "healthy" means it can do its job.
+  const { checkDatabase } = await import("@/server/data/health");
+  const beat = async () => {
+    const database = await checkDatabase();
+    if (database.ok) await writeFile(HEARTBEAT_FILE, new Date().toISOString());
+    else console.error("[worker] database check failed:", database.error);
+  };
+  await beat();
+  const heartbeat = setInterval(() => void beat().catch(console.error), HEARTBEAT_MS);
+
   const stop = async () => {
     console.log("[worker] stopping");
+    clearInterval(heartbeat);
     await boss.stop({ graceful: true, timeout: 20_000 });
     process.exit(0);
   };

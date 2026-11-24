@@ -4,6 +4,37 @@ Newest entries at the top. Each entry records what was done, which files changed
 
 ---
 
+## 2026-11-24: Milestone 10, parts 1 and 2 (backups, health checks, log limits), built
+
+### Done
+
+- **Backups** (ADR-041):
+  - keep 7 daily, 4 weekly and 12 monthly copies, and delete older ones;
+  - can copy each backup and `.env` off-site, encrypted, with restic (Backblaze B2 or a NAS/USB folder), keeping the same 7/4/12 there;
+  - write a status file. Owners see a warning on Home when backups are late or failing, and Settings → Backups shows the last good one.
+- **Health and logs** (ADR-042): the worker now has a health check (a heartbeat every 30 seconds), and every container's logs are capped at 100 MB.
+- The Docker build step now also accepts the optional proxy certificate (only used on the cloud test machine).
+- No database changes.
+
+### Tests (cloud workspace, 2026-11-24)
+
+- Lint, formatting and type check: passed. Production build: passed.
+- Unit: 160 of 160 passed, including the new retention rules (`prune-backups.test.ts`, which runs the real script) and the backup warning rules.
+- Integration: 164 of 164 passed.
+- End-to-end: 92 passed, 38 skipped on purpose, 0 failed.
+- **Real Docker stack** (built images, local test data only): app, db and worker all healthy; two backups in a row, one kept locally; off-site copy made and pruned; the app reads the status file; the newest off-site copy restored and read back as a valid dump. A failed off-site copy is recorded in the status file. CI runs the same check.
+- Two bugs found and fixed by that test: an off-site failure skipped the status file, and restic would have kept every off-site copy forever.
+
+### For Jeff to check (on the BeamHaven VM)
+
+`git pull`, then `./scripts/server/update.sh`, then `./scripts/server/backup.sh`, then Settings → Backups. Off-site needs his choice of destination first.
+
+### Next
+
+Part 3: production checklist, a script to wipe the test data (only with Jeff's go-ahead), and the fresh-VM restore test.
+
+---
+
 ## 2026-11-24: Milestone 9, part 4 (in-app notifications), built: Milestone 9 done
 
 ### Done

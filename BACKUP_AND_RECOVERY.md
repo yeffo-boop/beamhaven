@@ -1,47 +1,74 @@
 # Backup and Recovery
 
-**Status:** Milestone 2.5 added the backup and restore scripts (`scripts/server/backup.sh` and `restore.sh`), tested in Docker on 2026-11-23: a backup, then a data change, then a restore brought the data back. The step-by-step use is in `DEPLOYMENT.md`, step 9. Milestone 10 adds off-site copies and monitoring. Production isn't considered done until a restore has been tested on the real VM.
+**Status (Milestone 10, part 1, ADR-041):**
 
-## What runs today (Milestone 2.5)
+- Nightly backups with a 7 daily, 4 weekly and 12 monthly retention.
+- An optional encrypted off-site copy.
+- A warning for owners when backups stop working.
 
-- **Every night at 2:00 AM** (a cron job you add in `DEPLOYMENT.md` step 9), `backup.sh` writes a database dump and a tar of the uploaded files to `/opt/beamhaven/backups`. It checks that the dump can be read, and keeps 14 days.
-- **Restoring:** `restore.sh <dump> [uploads]` asks you to type `RESTORE`, stops the website, replaces the database (and files), and starts the website again.
-- **Gap:** these copies are on the VM's own disk. They cover mistakes and bad updates, but not losing the VM. Since there's no off-VM destination yet, keep `.env`'s two secrets in your password manager, and we pick a destination in Milestone 10.
+These were tested in Docker here and in CI. Production isn't done until a restore has been tested on a fresh VM (`PRODUCTION_CHECKLIST.md`).
 
-> You told us there is no backup plan today. This file is how we fix that for BeamHaven.
+## What runs
 
-## What must be backed up
+- **Every night at 2:00 AM** (the cron job from `DEPLOYMENT.md` step 9), and **before every update**, `scripts/server/backup.sh`:
+  1. writes a database dump and a copy of the uploaded files to `/opt/beamhaven/backups`;
+  2. checks the dump can be read;
+  3. keeps the newest backup of each of the last **7 days**, **4 weeks** and **12 months**, and deletes the rest (`prune-backups.sh`);
+  4. if off-site is set up, copies the new backup and `.env` there, **encrypted**, and keeps the same 7/4/12 there;
+  5. writes `backups/status/last-backup.json`.
+- **BeamHaven reads that status file.** Owners see a warning on Home if:
+  - the last good backup is more than **48 hours** old;
+  - a backup failed;
+  - no backup has ever finished.
 
-| What                                                  | Why                                              | How                                                                                                                              |
-| ----------------------------------------------------- | ------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------- |
-| **PostgreSQL database**                               | All your records                                 | `pg_dump` in custom format (`-Fc`), run inside the `db` container. This is a consistent snapshot, even while the app is running. |
-| **Uploaded files**                                    | Receipts, photos, contracts                      | Copy the `uploads` volume (incremental, with `restic`)                                                                           |
-| **`.env`**                                            | Secrets and settings needed to run the app again | Stored **encrypted** in the backup, and also in your password manager                                                            |
-| **`docker-compose.yml` and the deployed version tag** | How to rebuild the app                           | In Git, plus a copy in each backup                                                                                               |
+  Settings → Backups shows when the last good one was, and whether there's an off-site copy.
 
-**Why not just use Proxmox snapshots?** A snapshot taken while Postgres is writing can capture a half-written database. Snapshots also usually live on the same disk as the VM. They're a useful extra, for example right before an upgrade, but they're **not** our database backup.
+## What's backed up
 
-## The proposed plan (we'll confirm it together)
+| What                    | Why                                         | How                                                                                               |
+| ----------------------- | ------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| **PostgreSQL database** | All your records, including the job queue   | `pg_dump -Fc` inside the `db` container: a consistent snapshot, even while the app is running.    |
+| **Uploaded files**      | Receipts, photos, contracts, documents      | A `.tar.gz` of the `uploads` volume.                                                              |
+| **`.env`**              | The secrets and settings needed to start up | In the off-site copy only (encrypted). Also keep it in your password manager.                     |
+| **The code**            | How to rebuild the app                      | GitHub. `update.sh` prints the version it moved from, so you can go back to it (`DEPLOYMENT.md`). |
 
-- **Nightly at 2:00 AM:** a database dump plus a file backup, written first to a backup folder on the VM's data disk.
-- **Then copied off the VM**, to a destination we still need to pick. Options, in order of preference:
-  1. **Proxmox Backup Server or a NAS** on your network (free, and fast to restore from).
-  2. **Cloud storage** such as Backblaze B2 (a few dollars a month at most, and it survives a house fire or theft). Encrypted before upload.
-  3. A **USB drive** attached to the Proxmox host (better than nothing).
-     Doing both 1 (or 3) and 2 gives the classic **3-2-1** setup: 3 copies, on 2 kinds of storage, with 1 off-site.
-- **How long we keep backups:** 7 daily, 4 weekly, 12 monthly.
-- **Monitoring:** the backup script reports success or failure to the app's health page, and BeamHaven shows a warning banner to Owners if the last good backup is more than 48 hours old.
-- **A monthly restore test:** restore the latest backup into a throwaway container and check the record counts. Once a year, we do a full rebuild on a fresh VM.
+**Why not just Proxmox snapshots?** A snapshot taken while PostgreSQL is writing can capture a half-written database, and snapshots usually live on the same disk as the VM. They're a good extra right before a big change, but they're **not** the database backup.
 
-## Recovery procedures (detailed in Milestone 10)
+## Off-site copies
 
-1. **Restore the database:** stop `app`, then `pg_restore --clean --if-exists` into `db`, then start `app`.
-2. **Restore the uploaded files:** `restic restore` into the `uploads` volume.
-3. **Rebuild the containers:** `git checkout <tag>`, then `docker compose up -d --build`.
-4. **Recover from a failed update:** roll back to the previous image tag. If the migration changed data, restore the database dump taken just before the update.
-5. **Move to a replacement VM:** follow `DEPLOYMENT.md` to build the new VM, copy `.env`, restore the database and files, then point Nginx Proxy Manager at the new IP.
-6. **Verify a restore:** `/api/health` reports OK, you can log in, the latest expense you remember is there, and a recent receipt opens.
+Off-site copies use **restic**, a widely used backup tool. It encrypts everything on the VM before sending it. It also only sends what changed, so the nightly upload stays small. It runs in a short-lived container (`restic/restic`), so nothing extra is installed on the VM. `scripts/server/offsite.sh` runs it with the settings from `.env`.
 
-## Decision needed from Jeff (before Milestone 10)
+**Setting it up (once):**
 
-Which off-VM backup destination should we use: a NAS or Proxmox Backup Server, Backblaze B2, a USB drive, or a combination? (As of 2026-11-23 there is none.)
+1. Pick where the copies go, and fill in `.env` (see `.env.server.example`):
+   - **Backblaze B2:** create a private bucket and an application key limited to that bucket. Then set `RESTIC_REPOSITORY=b2:<bucket>:beamhaven`, `B2_ACCOUNT_ID` and `B2_ACCOUNT_KEY`.
+   - **A NAS share or a USB drive:** mount it on the VM (for example at `/mnt/backup`). Then set `RESTIC_REPOSITORY=/mnt/backup/beamhaven`.
+2. Make a password with `openssl rand -base64 32`, put it in `RESTIC_PASSWORD`, and **save it in your password manager**. Without it, the off-site copies can't be opened, by anyone.
+3. Run `./scripts/server/backup.sh`. The first time, it creates the repository. Success looks like `Done:` and two file names, and Settings → Backups says there's an off-site copy.
+
+**Useful commands** (on the VM, in `/opt/beamhaven`):
+
+| Task                                | Command                                                                     |
+| ----------------------------------- | --------------------------------------------------------------------------- |
+| List the off-site backups           | `./scripts/server/offsite.sh snapshots`                                     |
+| Bring the newest one back to the VM | `./scripts/server/offsite.sh restore latest --target /backups/from-offsite` |
+| Check the repository                | `./scripts/server/offsite.sh check` (backup.sh also checks 5% every Sunday) |
+| See what local pruning would delete | `./scripts/server/prune-backups.sh --dry-run`                               |
+
+A restore from off-site lands in `backups/from-offsite/backups/`. Use those files with `restore.sh` below.
+
+## Recovery procedures
+
+1. **Undo a mistake or a bad update (same VM):**
+   - `./scripts/server/restore.sh backups/beamhaven-db-<time>.dump backups/beamhaven-uploads-<time>.tar.gz`
+   - It asks you to type `RESTORE`, stops the website and worker, replaces the database and files, and starts them again.
+2. **Go back to the previous version of the code:** see "If an update goes wrong" in `DEPLOYMENT.md`. If that update changed the database, also restore the backup `update.sh` took just before it.
+3. **Lost the VM:**
+   - Build a new one with `DEPLOYMENT.md`, steps 1 to 6, and copy `.env` back from your password manager.
+   - Get the newest backup with `offsite.sh restore latest …` (step above), and restore it with `restore.sh`.
+   - Point Nginx Proxy Manager at the new VM's IP.
+4. **Check a restore worked:**
+   - `curl http://<VM IP>:3000/api/health` says `"status":"ok"`.
+   - You can sign in.
+   - The newest expense you remember is there.
+   - A recent receipt or photo opens.

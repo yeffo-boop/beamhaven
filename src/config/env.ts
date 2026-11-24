@@ -36,6 +36,9 @@ export const envSchema = z.object({
   STORAGE_LOCAL_PATH: z.string().min(1).default("./data/uploads"),
   // Largest single upload. Nginx Proxy Manager's client_max_body_size must be at least this.
   UPLOAD_MAX_MB: z.coerce.number().int().min(1).max(500).default(25),
+  // Written by scripts/server/backup.sh on the VM (ADR-041). Unset on a Mac,
+  // where there are no server backups to warn about.
+  BACKUP_STATUS_FILE: z.string().min(1).optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;
