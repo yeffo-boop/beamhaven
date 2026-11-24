@@ -17,6 +17,7 @@ import { orNotFound } from "@/components/records/or-not-found";
 import { Detail, EmptyState, Panel } from "@/components/records/panel";
 import { AddDocumentForm } from "@/components/documents/document-forms";
 import { DocumentList } from "@/components/documents/document-list";
+import { BoardList } from "@/components/boards/board-list";
 import { PhotoGallery } from "@/components/records/photo-gallery";
 import { ProjectRoomsForm } from "@/components/records/project-rooms-form";
 import { StatusBadge } from "@/components/records/status-badge";
@@ -39,6 +40,7 @@ import { getHouseholdToday } from "@/server/services/preferences";
 import { getProjectContractors } from "@/server/services/contractors";
 import { getProject } from "@/server/services/projects";
 import { getRooms } from "@/server/services/rooms";
+import { getBoards } from "@/server/services/boards";
 import { getDocumentLibrary } from "@/server/services/documents";
 import { getMaterials } from "@/server/services/materials";
 import { getOrders } from "@/server/services/orders";
@@ -72,6 +74,7 @@ export default async function ProjectPage({ params, searchParams }: PageProps<"/
     milestones,
     householdToday,
     documents,
+    boards,
   ] = await Promise.all([
     getPhotos(ctx, { kind: "project", id }),
     getActivity(ctx, "project", id),
@@ -88,6 +91,7 @@ export default async function ProjectPage({ params, searchParams }: PageProps<"/
     getMilestones(ctx, { projectId: id }),
     getHouseholdToday(ctx),
     getDocumentLibrary(ctx, { projectId: id }),
+    getBoards(ctx, { projectId: id }),
   ]);
   const comingUp = await getCalendar(ctx, {
     from: householdToday,
@@ -415,6 +419,20 @@ export default async function ProjectPage({ params, searchParams }: PageProps<"/
             </div>
           </details>
         ) : null}
+      </Panel>
+
+      <Panel
+        title="Design boards"
+        id="boards"
+        actions={
+          canEdit ? (
+            <Button asChild variant="outline" size="sm">
+              <Link href="/inspiration#new-board-heading">Start a board</Link>
+            </Button>
+          ) : null
+        }
+      >
+        <BoardList boards={boards} empty="No design boards for this project yet." />
       </Panel>
 
       <Panel title="Photos" id="photos">

@@ -126,6 +126,11 @@ export async function deleteMaterialRow(
     // What was bought stays part of the order's history.
     if (row._count.orderItems > 0) return "on_order";
     const warrantyFiles = await unlinkWarranties(tx, ctx.workspaceId, { materialId: id });
+    // Design board items stay on their boards.
+    await tx.boardItem.updateMany({
+      where: { workspaceId: ctx.workspaceId, materialId: id },
+      data: { materialId: null },
+    });
     await tx.material.delete({ where: { id } });
     return [...warrantyFiles, ...row.attachments.map((a) => a.fileId)];
   });

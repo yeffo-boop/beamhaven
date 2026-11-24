@@ -193,6 +193,13 @@ Built so far: purposes `photo` (property, project, room) and `receipt` (expense;
 
 The library is separate from attachments: a receipt stays on its expense and a license on its contractor. A search on the Files page also looks through those attachments' names and captions (ADR-034).
 
+### Design boards (Milestone 8, part 2)
+
+| Model           | Key fields                                                                                                                                                    | Notes                                                                                                                                                                                                                                                                                |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **DesignBoard** | id, workspaceId, name, roomId, projectId, notes, createdById, updatedAt                                                                                       | Room and project links are cleared when those are deleted.                                                                                                                                                                                                                           |
+| **BoardItem**   | id, workspaceId, boardId, kind, title, notes, position, fileId (unique), colorHex, brand, code, productUrl, materialId, isPreferred, approvedAt, approvedById | kind: image (needs fileId), product, color (needs colorHex, `#rrggbb`) or finish. position from 0, gaps closed on removal. productUrl is http(s) only. The material link is cleared when the material is deleted. Deleting the board deletes its items and their pictures (ADR-035). |
+
 ## 6. Activity history (from Milestone 3 on)
 
 | Model             | Key fields                                                                                                                                              |
@@ -205,7 +212,6 @@ Written by the service layer whenever something important changes. It powers the
 
 - **Orders (M6, parts 2 and 3):** `Order`, `OrderItem` (which saves `unitPriceCents` at the time of purchase), `Shipment`, `ShipmentItem`, `Return`.
 - **Scheduling (M7):** `Milestone`, `TaskDependency` (with a cycle check), `CalendarEvent` (appointments, inspections and deliveries), `Reminder`.
-- **Design boards (M8, part 2):** `DesignBoard`, `BoardItem` (an image, a product reference, or a color or finish), plus `isPreferred` / `isApproved` flags.
 - **Notifications (M9):** `Notification` (per user and household), `NotificationPreference`.
 - **AI (M11):** `AiUsage` (tokens and cost per user and household), `AiConsent`.
 

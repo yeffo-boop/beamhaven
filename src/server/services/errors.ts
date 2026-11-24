@@ -58,6 +58,8 @@ export const RULE_MESSAGES = {
     "Record the order's bill first. Before that, just change the order to what you're keeping.",
   material_on_order: "This material is on an order. Take it off the order first.",
   document_last_version: "This is the only version. Delete the document instead.",
+  board_order_changed:
+    "Someone else changed this board while you were moving things. This is the latest order; try again.",
   room_has_budget:
     "This room is used by budget lines. Remove those lines (or charge them to the whole project) first.",
 } as const;

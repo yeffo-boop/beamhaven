@@ -270,6 +270,11 @@ export async function unlinkProjectOrRoom(
     where: { workspaceId, ...link },
     data: "projectId" in link ? { projectId: null } : { roomId: null },
   });
+  // So do design boards.
+  await tx.designBoard.updateMany({
+    where: { workspaceId, ...link },
+    data: "projectId" in link ? { projectId: null } : { roomId: null },
+  });
   if ("projectId" in link) {
     await tx.communication.updateMany({
       where: { workspaceId, projectId: link.projectId },

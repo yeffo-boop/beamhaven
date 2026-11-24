@@ -165,7 +165,7 @@ Built in three parts: **part 1** milestones, task dependencies and the Schedule 
 **Depends on:** Milestone 3.
 
 - A central document library with categories, search, filters and versions. ✅ (part 1)
-- Design boards with images, products, colors and finishes, plus drag-and-drop ordering.
+- Design boards with images, products, colors and finishes, plus drag-and-drop ordering. ✅ (part 2)
 - Floor plans and renderings (images and PDFs), with versions. ✅ (part 1: library categories)
 - Progress photos by phase, with before-and-after comparison.
 

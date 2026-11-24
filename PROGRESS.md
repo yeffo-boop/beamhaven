@@ -4,6 +4,45 @@ Newest entries at the top. Each entry records what was done, which files changed
 
 ---
 
+## 2026-11-24: Milestone 8, part 2 (design boards), built
+
+### Done
+
+- **Database** (one migration, `20261124070000_design_boards`): design boards and board items tables. It only adds tables; no existing data changes.
+- **Inspiration page**: your boards as cards, each showing its first items, how many there are and how many are approved. A form to start a board, optionally for a room or project.
+- **A board's page**: add an **image** (a photo), a **product** (picture, brand, SKU, link, a tracked material), a **color** (color picker or a typed hex, brand, paint code) or a **finish** (picture and/or color).
+  - **Prefer** marks favourites. **Approve** records the final choice with who and when, and the card is outlined.
+  - **Reorder** by dragging the handle (mouse or finger), or with the earlier and later arrow buttons.
+  - Edit or remove an item, and edit or delete the board.
+- **Rooms and projects** show their design boards.
+- The upload form code is now shared by Files and boards (`components/forms/use-upload.tsx`).
+- Decisions in ADR-035.
+
+### Tests (cloud workspace, 2026-11-24)
+
+- Lint, formatting and type check: passed. Production build: passed.
+- Unit: 146 of 146 passed.
+- Integration: 137 of 137 passed, including 10 new ones in `tests/integration/boards.test.ts`:
+  - the kinds and their rules;
+  - edits keeping the kind;
+  - preferred and approved;
+  - reordering (including a stale order refused);
+  - deleting with pictures;
+  - links cleared when a room, project or material is deleted;
+  - viewers;
+  - other households getting "not found".
+- End-to-end: full run, 78 passed, 28 skipped on purpose, 0 failed. New tests: start a board, add a color, an image and a product, move with the buttons, drag to reorder (saved after a reload), prefer, approve, remove, delete. The board pages fit the screen.
+
+### For Jeff to check
+
+After `update.sh`, open Inspiration and start a board. Try dragging an item on the iPad.
+
+### Next
+
+Milestone 8, part 3: progress photos by phase, with a before and after comparison.
+
+---
+
 ## 2026-11-24: Milestone 8, part 1 (the document library), built
 
 ### Done

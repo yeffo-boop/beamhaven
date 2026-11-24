@@ -365,3 +365,22 @@ Statuses: **Proposed** (waiting for Jeff) · **Accepted** · **Superseded**
 - Deleting a project, room or contractor keeps its documents and clears the link.
 
 **Consequences.** A document can only link to one project, room and contractor; tags can come later if that's too limiting. PDFs have no in-page preview, which is the safe choice (a PDF opened on our address could run scripts in some viewers). Floor plans and renderings are documents in those categories, so they get versions too.
+
+## ADR-035: Design boards with ordered items, preferred and approved (Milestone 8, part 2)
+
+**Date:** 2026-11-24. **Status:** accepted. Builds on ADR-012 (private files).
+
+**Decision.**
+
+- **Inspiration** holds design boards. A board has a name, notes, and an optional room and project in the same household. Deleting the room or project keeps the board and clears the link.
+- A board's **items** come in four kinds:
+  - an **image**, which must have a picture;
+  - a **product**, with an optional picture, brand, model or SKU, web link, and a link to a tracked material;
+  - a **color**, which must have a color, stored as `#rrggbb`, plus a brand and paint code;
+  - a **finish**, which can have a picture, a color, or both.
+- Database checks back up these rules. Pictures are photos only, checked by their contents (no PDFs, no SVG). Links must be `http` or `https` and open in a new tab without passing on where they came from.
+- **Preferred** marks a favourite while you're still choosing. **Approved** is the decision, and records who approved it and when. Anyone who can edit can set or clear either one. Approving or taking an approval back is written to the activity history.
+- **Order:** each item has a position. You can drag an item by its handle with a mouse, pen or finger, using pointer events rather than HTML drag and drop, which doesn't work on iPads. Each item also has **earlier** and **later** buttons, which work from a keyboard and without JavaScript. A drag sends the whole new order. The server only accepts it if it names exactly the board's current items; otherwise it says the board changed and shows the latest order. The board's row is locked while items are added or reordered.
+- New items go through `/api/boards/items`, which checks the origin and applies a rate limit, because pictures can be large. Edits, flags, moves and removals are Server Actions.
+
+**Consequences.** An item's kind and picture can't be changed after it's added: remove it and add it again. Boards aren't shared outside the household; that waits for the client portal idea (ADR-017).
