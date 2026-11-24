@@ -419,3 +419,19 @@ Statuses: **Proposed** (waiting for Jeff) · **Accepted** · **Superseded**
 - "Today" is the household's day, in its time zone (ADR-028).
 
 **Consequences.** Some records are logged on their project or contractor rather than on themselves (quotes, for example), so the feed links there. Deleting a project doesn't write a "deleted" event yet, so older events about a deleted project still link to it and show "not found". Everything is read on each visit; if Home gets slow with years of data, we can narrow the look-back (now one year) or cache it.
+
+## ADR-038: Search uses plain database matching, one kind of record at a time (Milestone 9, part 2)
+
+**Date:** 2026-11-24. **Status:** accepted.
+
+**Decision.**
+
+- **Search** (`/search`, linked from the top of the sidebar and the phone's top bar) looks through projects, rooms, properties, tasks, milestones, expenses, contractors, quotes, contracts, warranties, materials, orders, appointments, files, design boards and the things on them.
+- It matches each record's names and notes, ignoring upper and lower case, plus a few names kept on related records: a contractor's business name, an expense's or order's vendor, and a quote's contractor.
+- A query is split into words, and a record matches when **every word** appears in one of its fields, in any order. One-letter words are ignored, and at most six words are used. Queries are capped at 100 characters.
+- Results are grouped by kind, at most 8 per kind. Within a kind, a title that contains all the words comes first. A thing on a design board opens its board.
+- Every household member, viewers included, can search, because everyone can already see every record (ADR-007). Each query is scoped to the household like every other one, and Prisma passes the words as parameters, so symbols such as `%` or quotes are just text.
+
+**Why not PostgreSQL full-text search?** It would need a migration with search columns and indexes on many tables, and it handles partial words (like "plumb" for "plumber") poorly. A household has hundreds or a few thousand records, so simple matching is fast enough and finds partial words. If it gets slow, the `pg_trgm` extension can add indexes for exactly this kind of matching without changing how search behaves.
+
+**Consequences.** There's no ranking by relevance beyond the simple rule above, and file contents (inside a PDF, for example) aren't searched, only titles and notes.

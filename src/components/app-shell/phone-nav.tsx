@@ -1,6 +1,6 @@
 "use client";
 
-import { Ellipsis } from "lucide-react";
+import { Ellipsis, Search as SearchIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { type ReactNode, useState } from "react";
@@ -20,6 +20,7 @@ import {
   isActive as isActiveFor,
   type NavItem,
   phoneTabIds,
+  searchItem,
 } from "@/config/navigation";
 import { cn } from "@/lib/utils";
 
@@ -33,7 +34,16 @@ export function PhoneTopBar({ reminders }: { reminders?: ReactNode }) {
         <BrandMark className="size-6" />
         <span className="font-semibold tracking-tight">{brand.name}</span>
       </Link>
-      <div className="ml-auto">{reminders}</div>
+      <div className="ml-auto flex items-center gap-1">
+        <Link
+          href={searchItem.href}
+          aria-label="Search"
+          className="flex size-10 items-center justify-center rounded-[var(--radius-control)] text-foreground hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+        >
+          <SearchIcon className="size-5" aria-hidden="true" />
+        </Link>
+        {reminders}
+      </div>
     </header>
   );
 }
